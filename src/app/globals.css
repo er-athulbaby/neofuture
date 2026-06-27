@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #D4236A;
+  --color-primary-dark: #A81B54;
+  --color-primary-light: #FBE8F2;
+  --color-neo-orange: #E07B2A;
+  --color-neo-orange-light: #FEF3E7;
+  --color-neo-purple: #7B35A8;
+  --color-neo-purple-light: #F3E8FC;
+  --color-brand-dark: #1A1535;
+  --color-brand-gray: #6B7280;
+  --color-brand-light: #FAF9FF;
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-danger: #DC2626;
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #1A1535;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Score bar animation */
+@keyframes fillBar {
+  from { width: 0 }
+  to { width: var(--bar-width) }
+}
+
+.score-bar {
+  animation: fillBar 1s ease-out forwards;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #D4236A40; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #D4236A; }
+
+/* Quiz popup overlay */
+.quiz-overlay {
+  backdrop-filter: blur(4px);
+}
+
+/* Product card hover */
+.product-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(212, 35, 106, 0.15);
+}
+
+/* Tool card */
+.tool-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.tool-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
