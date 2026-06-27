@@ -101,11 +101,13 @@ export interface OrderItem {
 export interface ShippingAddress {
   name: string
   phone: string
+  email?: string
   line1: string
   line2?: string
   city: string
   state: string
   pincode: string
+  country?: string
 }
 
 export interface Coupon {

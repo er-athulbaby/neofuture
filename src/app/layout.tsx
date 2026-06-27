@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   title: { default: 'NeoFuture', template: '%s | NeoFuture' },
   description: 'From trusted hands to quality lives — Women\'s health and wellness products',
   keywords: ['PCOS', 'menstrual cup', 'pregnancy support', 'women wellness', 'nutraceuticals', 'neobalance', 'neoprime', 'neonidra'],
+  manifest: '/manifest.json',
   openGraph: {
     siteName: 'NeoFuture',
     type: 'website',

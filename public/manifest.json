@@ -1,0 +1,26 @@
+{
+  "name": "NeoFuture",
+  "short_name": "NeoFuture",
+  "description": "Wellness & health products for women and mothers",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF9FF",
+  "theme_color": "#D4236A",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "shopping"],
+  "screenshots": []
+}
