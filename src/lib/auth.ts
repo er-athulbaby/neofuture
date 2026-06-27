@@ -6,48 +6,56 @@ import pool from './db'
 import bcrypt from 'bcryptjs'
 import { queryOne } from './db'
 
+const providers = [
+  Credentials({
+    name: 'credentials',
+    credentials: {
+      email: { label: 'Email', type: 'email' },
+      password: { label: 'Password', type: 'password' },
+    },
+    async authorize(credentials) {
+      if (!credentials?.email || !credentials?.password) return null
+
+      const user = await queryOne<{
+        id: string
+        name: string
+        email: string
+        password_hash: string
+        is_admin: boolean
+        avatar: string
+      }>('SELECT id, name, email, password_hash, is_admin, avatar FROM users WHERE email = $1', [
+        credentials.email,
+      ])
+
+      if (!user || !user.password_hash) return null
+
+      const valid = await bcrypt.compare(credentials.password as string, user.password_hash)
+      if (!valid) return null
+
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        image: user.avatar,
+        is_admin: user.is_admin,
+      }
+    },
+  }),
+]
+
+// Add Google provider only when credentials are configured
+if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
+  providers.push(
+    Google({
+      clientId: process.env.AUTH_GOOGLE_ID,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET,
+    }) as never
+  )
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PostgresAdapter(pool),
-  providers: [
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID!,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
-    }),
-    Credentials({
-      name: 'credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
-
-        const user = await queryOne<{
-          id: string
-          name: string
-          email: string
-          password_hash: string
-          is_admin: boolean
-          avatar: string
-        }>('SELECT id, name, email, password_hash, is_admin, avatar FROM users WHERE email = $1', [
-          credentials.email,
-        ])
-
-        if (!user || !user.password_hash) return null
-
-        const valid = await bcrypt.compare(credentials.password as string, user.password_hash)
-        if (!valid) return null
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.avatar,
-          is_admin: user.is_admin,
-        }
-      },
-    }),
-  ],
+  providers,
   session: { strategy: 'jwt' },
   callbacks: {
     async jwt({ token, user }) {
