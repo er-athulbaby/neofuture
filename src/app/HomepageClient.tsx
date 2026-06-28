@@ -215,6 +215,136 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </div>
       </section>
 
+      {/* ── PERIOD CALENDAR CTA ── */}
+      <section className="py-20 px-4 bg-brand-dark">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+
+          {/* Calendar table mockup */}
+          <div className="flex justify-center">
+            <div className="bg-white rounded-3xl shadow-2xl overflow-hidden w-full max-w-sm">
+              {/* Calendar header */}
+              <div className="bg-gradient-to-r from-primary to-primary-dark text-white px-6 py-5">
+                <p className="text-sm font-medium opacity-80">NeoFuture Period Tracker</p>
+                <p className="text-2xl font-bold mt-1">July 2025</p>
+                <div className="flex gap-4 mt-3 text-xs">
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-white inline-block" /> Period</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-purple-300 inline-block" /> Ovulation</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-white/30 inline-block" /> Fertile</span>
+                </div>
+              </div>
+
+              {/* Calendar grid */}
+              <div className="p-4">
+                {/* Weekday headers */}
+                <div className="grid grid-cols-7 mb-2">
+                  {['S','M','T','W','T','F','S'].map((d, i) => (
+                    <div key={i} className="text-center text-xs font-bold text-brand-gray py-1">{d}</div>
+                  ))}
+                </div>
+
+                {/* Days — July 2025 starts on Tuesday (index 2) */}
+                {(() => {
+                  const days = [
+                    { d: null }, { d: null },
+                    { d: 1 }, { d: 2 }, { d: 3 }, { d: 4 }, { d: 5 },
+                    { d: 6 }, { d: 7 }, { d: 8 }, { d: 9 }, { d: 10 }, { d: 11 }, { d: 12 },
+                    { d: 13 }, { d: 14 }, { d: 15 }, { d: 16 }, { d: 17 }, { d: 18 }, { d: 19 },
+                    { d: 20 }, { d: 21 }, { d: 22 }, { d: 23 }, { d: 24 }, { d: 25 }, { d: 26 },
+                    { d: 27 }, { d: 28 }, { d: 29 }, { d: 30 }, { d: 31 }, { d: null }, { d: null },
+                  ]
+                  // Period: 1-5, Fertile: 9-14, Ovulation: 14, Predicted: 29-31
+                  const period = [1,2,3,4,5]
+                  const fertile = [9,10,11,12,13]
+                  const ovulation = [14]
+                  const predicted = [29,30,31]
+                  return (
+                    <div className="grid grid-cols-7 gap-0.5">
+                      {days.map((cell, i) => {
+                        if (!cell.d) return <div key={i} />
+                        const d = cell.d
+                        const isPeriod = period.includes(d)
+                        const isFertile = fertile.includes(d)
+                        const isOvulation = ovulation.includes(d)
+                        const isPredict = predicted.includes(d)
+                        const isToday = d === 28
+                        return (
+                          <div key={i} className={
+                            `aspect-square flex items-center justify-center text-xs font-semibold rounded-lg ` +
+                            (isPeriod ? 'bg-primary text-white' :
+                             isOvulation ? 'bg-purple-600 text-white' :
+                             isFertile ? 'bg-purple-100 text-purple-700' :
+                             isPredict ? 'bg-primary/20 text-primary' :
+                             isToday ? 'ring-2 ring-primary text-primary' :
+                             'text-brand-dark')
+                          }>
+                            {d}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+
+                {/* Next period strip */}
+                <div className="mt-4 bg-primary-light rounded-xl px-4 py-3 flex justify-between items-center">
+                  <div>
+                    <p className="text-xs text-brand-gray">Next Period</p>
+                    <p className="text-sm font-bold text-brand-dark">Jul 29 – Aug 3</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-brand-gray">Ovulation</p>
+                    <p className="text-sm font-bold text-purple-600">Jul 14</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Text + CTA */}
+          <div>
+            <span className="text-xs font-bold uppercase tracking-widest text-primary mb-3 block">Smart Cycle Tracking</span>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">
+              Track Your Period.<br />Know Your Body.
+            </h2>
+            <p className="text-white/70 leading-relaxed mb-6">
+              Log your periods and let NeoFuture AI predict your next cycle, ovulation window, and fertile days — all in one beautiful calendar. Get personalised insights built around your unique rhythm.
+            </p>
+
+            <div className="space-y-3 mb-8">
+              {[
+                { icon: '🩸', text: 'Period predictions based on your actual history' },
+                { icon: '🟣', text: 'Ovulation & fertile window highlighted automatically' },
+                { icon: '🔔', text: 'Reminders before your period starts' },
+                { icon: '📊', text: 'Cycle trends and average length over time' },
+              ].map((f) => (
+                <div key={f.text} className="flex items-center gap-3">
+                  <span className="text-lg">{f.icon}</span>
+                  <span className="text-white/80 text-sm">{f.text}</span>
+                </div>
+              ))}
+            </div>
+
+            {session ? (
+              <Link href="/account/period-calendar"
+                className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-bold text-base hover:bg-primary-dark transition-colors shadow-lg shadow-primary/30">
+                Open My Period Calendar <ArrowRight size={18} />
+              </Link>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href="/login"
+                  className="inline-flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-bold text-base hover:bg-primary-dark transition-colors shadow-lg shadow-primary/30">
+                  Login to Track Your Period <ArrowRight size={18} />
+                </Link>
+                <Link href="/signup"
+                  className="inline-flex items-center justify-center gap-2 border border-white/30 text-white px-6 py-4 rounded-xl font-semibold text-base hover:bg-white/10 transition-colors">
+                  Create Free Account
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* ── COMMUNITY ── */}
       <section id="community" className="py-20 px-4 bg-white">
         <div className="max-w-4xl mx-auto text-center">
