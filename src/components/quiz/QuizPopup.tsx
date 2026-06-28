@@ -79,8 +79,17 @@ function calcEnergyScore(answers: Record<string, string | string[]>): number {
   return Math.min(score, 100)
 }
 
-export default function QuizPopup() {
+export default function QuizPopup({ forceOpen, onClose }: { forceOpen?: boolean; onClose?: () => void } = {}) {
   const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (forceOpen) setOpen(true)
+  }, [forceOpen])
+
+  function handleClose() {
+    setOpen(false)
+    onClose?.()
+  }
   const [state, setState] = useState<QuizState>({
     step: 1,
     ageGroup: '',
@@ -96,6 +105,7 @@ export default function QuizPopup() {
   })
 
   useEffect(() => {
+    if (forceOpen) return
     const seen = sessionStorage.getItem('nf_quiz_seen')
     if (!seen) {
       const timer = setTimeout(() => {
@@ -104,7 +114,7 @@ export default function QuizPopup() {
       }, 3000)
       return () => clearTimeout(timer)
     }
-  }, [])
+  }, [forceOpen])
 
   function updateAnswer(key: string, value: string | string[]) {
     setState((s) => ({ ...s, answers: { ...s.answers, [key]: value } }))
@@ -210,7 +220,7 @@ export default function QuizPopup() {
         {/* Header */}
         <div className="bg-gradient-to-r from-primary to-primary-dark text-white p-6 rounded-t-2xl relative">
           <button
-            onClick={() => setOpen(false)}
+            onClick={handleClose}
             className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30"
           >
             <X size={16} />
@@ -387,7 +397,7 @@ export default function QuizPopup() {
                     We'll reach out on WhatsApp with your personalized wellness plan soon.
                   </p>
                   <button
-                    onClick={() => setOpen(false)}
+                    onClick={handleClose}
                     className="bg-primary text-white px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-primary-dark transition-colors"
                   >
                     Explore Products

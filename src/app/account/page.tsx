@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation'
 import { query, queryOne } from '@/lib/db'
 import Link from 'next/link'
 import { formatDate, getScoreLabel } from '@/lib/utils'
-import { Sparkles, ShoppingBag, Calendar, Baby, Scale, Utensils, BarChart3 } from 'lucide-react'
+import { Sparkles, ShoppingBag, Calendar, Baby, Scale, Utensils, BarChart3, Droplets, ArrowRight } from 'lucide-react'
+import AccountPeriodWidget from './AccountPeriodWidget'
 
 export const metadata = { title: 'My Dashboard' }
 
@@ -32,11 +33,10 @@ export default async function AccountPage() {
     { href: '/tools/growth-chart', icon: BarChart3, title: 'Baby Growth Chart', color: 'neo-purple' },
     { href: '/tools/weight-gain', icon: Scale, title: 'Weight Gain Calculator', color: 'primary' },
     { href: '/tools/baby-food', icon: Utensils, title: 'Baby Food Chart', color: 'neo-orange' },
-    { href: '/account/period-calendar', icon: Calendar, title: 'Period Calendar', color: 'primary' },
   ]
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <div className="w-14 h-14 rounded-full bg-primary-light flex items-center justify-center text-primary font-bold text-xl">
@@ -44,12 +44,12 @@ export default async function AccountPage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-brand-dark">Hello, {session.user.name?.split(' ')[0]}!</h1>
-          <p className="text-brand-gray text-sm">Welcome to your wellness dashboard</p>
+          <p className="text-brand-gray text-sm">Your AI Wellness Dashboard</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: wellness scores */}
+        {/* Left: main content */}
         <div className="lg:col-span-2 space-y-5">
 
           {/* Wellness scores */}
@@ -62,18 +62,11 @@ export default async function AccountPage() {
                 <span className="text-xs text-brand-gray">Last updated {formatDate(latestScore.created_at)}</span>
               )}
             </div>
-
             {latestScore ? (
               <div className="space-y-4">
-                {latestScore.hormone_score > 0 && (
-                  <ScoreRow label="Hormone Score" score={latestScore.hormone_score} type="hormone" />
-                )}
-                {latestScore.stress_score > 0 && (
-                  <ScoreRow label="Stress Score" score={latestScore.stress_score} type="stress" />
-                )}
-                {latestScore.energy_score > 0 && (
-                  <ScoreRow label="Energy Score" score={latestScore.energy_score} type="energy" />
-                )}
+                {latestScore.hormone_score > 0 && <ScoreRow label="Hormone Score" score={latestScore.hormone_score} type="hormone" />}
+                {latestScore.stress_score > 0 && <ScoreRow label="Stress Score" score={latestScore.stress_score} type="stress" />}
+                {latestScore.energy_score > 0 && <ScoreRow label="Energy Score" score={latestScore.energy_score} type="energy" />}
               </div>
             ) : (
               <div className="text-center py-6">
@@ -84,6 +77,19 @@ export default async function AccountPage() {
                 </Link>
               </div>
             )}
+          </div>
+
+          {/* Period Calendar */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-brand-dark flex items-center gap-2">
+                <Droplets size={18} className="text-primary" /> Period Tracker
+              </h2>
+              <Link href="/account/period-calendar" className="text-sm text-primary hover:underline flex items-center gap-1">
+                Full view <ArrowRight size={13} />
+              </Link>
+            </div>
+            <AccountPeriodWidget />
           </div>
 
           {/* Recent orders */}
@@ -127,7 +133,7 @@ export default async function AccountPage() {
         {/* Right: Quick tools */}
         <div>
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <h2 className="font-semibold text-brand-dark mb-4">Quick Access</h2>
+            <h2 className="font-semibold text-brand-dark mb-4">Wellness Tools</h2>
             <div className="space-y-2">
               {tools.map((tool) => {
                 const Icon = tool.icon
@@ -139,7 +145,7 @@ export default async function AccountPage() {
                 return (
                   <Link key={tool.href} href={tool.href}
                     className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors group">
-                    <div className={`w-8 h-8 rounded-lg ${colors[tool.color]} flex items-center justify-center`}>
+                    <div className={`w-8 h-8 rounded-lg ${colors[tool.color]} flex items-center justify-center flex-shrink-0`}>
                       <Icon size={16} />
                     </div>
                     <span className="text-sm font-medium text-brand-dark group-hover:text-primary transition-colors">{tool.title}</span>
@@ -165,7 +171,7 @@ function ScoreRow({ label, score, type }: { label: string; score: number; type: 
         <span className="text-sm font-medium text-brand-dark">{label}</span>
         <div className="text-right">
           <span className="text-sm font-bold text-brand-dark">{score}/100</span>
-          <span className={`ml-2 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-brand-gray`}>{interpretation}</span>
+          <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-brand-gray">{interpretation}</span>
         </div>
       </div>
       <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">

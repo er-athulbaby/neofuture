@@ -1,54 +1,76 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useToast } from '@/components/ui/ToastProvider'
-import { Settings, Upload, Eye, EyeOff, Save } from 'lucide-react'
-import Image from 'next/image'
+import { Settings, Save, Upload, Image as ImageIcon, Palette, Type, Share2 } from 'lucide-react'
 
-interface SiteSettings {
-  site_name: string
-  tagline: string
-  logo_url: string
-  favicon_url: string
-  contact_email: string
-  contact_phone: string
-  whatsapp_number: string
-  address: string
-  instagram_url: string
-  facebook_url: string
+type Cfg = {
+  site_name: string; tagline: string; logo_url: string; favicon_url: string
+  hero_title: string; hero_subtitle: string
+  dashboard_title: string; dashboard_subtitle: string
+  period_title: string; period_subtitle: string
+  community_title: string; community_subtitle: string; community_whatsapp: string
+  about_title: string; about_text: string; about_image: string
+  contact_email: string; contact_phone: string; whatsapp_number: string; address: string
+  instagram_url: string; facebook_url: string; instagram_posts: string
+  color_primary: string; color_primary_dark: string; color_primary_light: string
+  color_neo_orange: string; color_neo_purple: string; color_brand_dark: string
   razorpay_mode: string
 }
 
-const DEFAULTS: SiteSettings = {
-  site_name: 'NeoFuture',
-  tagline: 'From trusted hands to quality lives',
-  logo_url: '',
-  favicon_url: '',
-  contact_email: '',
-  contact_phone: '',
-  whatsapp_number: '',
-  address: '',
-  instagram_url: '',
-  facebook_url: '',
+const D: Cfg = {
+  site_name: 'NeoFuture', tagline: 'From trusted hands to quality lives',
+  logo_url: '', favicon_url: '',
+  hero_title: 'Welcome to the Next Generation of Healthcare',
+  hero_subtitle: 'Experience the future of healthcare through intelligent AI, powered by trusted Doctors.',
+  dashboard_title: 'Your AI-Powered Wellness Dashboard',
+  dashboard_subtitle: "Our AI-powered wellness dashboard isn't just about numbers and data; it's a daily reflection of your holistic health.",
+  period_title: 'Advanced AI Cycle Tracking',
+  period_subtitle: 'Advanced AI cycle tracking that predicts periods, ovulation, and fertile windows.',
+  community_title: 'Join the Bloom Story Community',
+  community_subtitle: 'Where 200+ women and mothers connect, share experiences, and receive trusted guidance.',
+  community_whatsapp: '',
+  about_title: 'About NeoFuture',
+  about_text: 'We are a team of passionate women, doctors, and wellness experts.',
+  about_image: '',
+  contact_email: '', contact_phone: '', whatsapp_number: '', address: '',
+  instagram_url: '', facebook_url: '', instagram_posts: '',
+  color_primary: '#D4236A', color_primary_dark: '#A81B54', color_primary_light: '#FBE8F2',
+  color_neo_orange: '#E07B2A', color_neo_purple: '#7B35A8', color_brand_dark: '#1A1535',
   razorpay_mode: 'test',
 }
 
 export default function AdminSettingsPage() {
   const { toast } = useToast()
-  const [settings, setSettings] = useState<SiteSettings>(DEFAULTS)
+  const [s, setS] = useState<Cfg>(D)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [showPreview, setShowPreview] = useState(false)
+  const [uploading, setUploading] = useState<string | null>(null)
+  const logoRef = useRef<HTMLInputElement>(null)
+  const aboutRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetch('/api/admin/settings')
       .then((r) => r.json())
-      .then((d) => { if (d.settings) setSettings({ ...DEFAULTS, ...d.settings }) })
+      .then((d) => { if (d.settings) setS({ ...D, ...d.settings }) })
       .finally(() => setLoading(false))
   }, [])
 
   const fc = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
-    setSettings((s) => ({ ...s, [e.target.name]: e.target.value }))
+    setS((x) => ({ ...x, [e.target.name]: e.target.value }))
+
+  async function uploadFile(file: File, field: string) {
+    setUploading(field)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: form })
+      const data = await res.json()
+      if (data.url) { setS((x) => ({ ...x, [field]: data.url })); toast('Uploaded!') }
+      else toast(data.error ?? 'Upload failed', 'error')
+    } catch { toast('Upload failed', 'error') }
+    finally { setUploading(null) }
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
@@ -56,10 +78,10 @@ export default function AdminSettingsPage() {
     const res = await fetch('/api/admin/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(settings),
+      body: JSON.stringify(s),
     })
     setSaving(false)
-    if (res.ok) toast('Settings saved!')
+    if (res.ok) { toast('Settings saved! Refresh to see color changes.') }
     else toast('Failed to save', 'error')
   }
 
@@ -71,77 +93,122 @@ export default function AdminSettingsPage() {
         <Settings size={20} className="text-primary" /> Site Settings
       </h1>
 
-      <form onSubmit={save} className="space-y-6">
+      <form onSubmit={save} className="space-y-5">
 
         {/* Branding */}
-        <Section title="Branding & Logo">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Site Name" name="site_name" value={settings.site_name} onChange={fc} />
-            <Field label="Tagline" name="tagline" value={settings.tagline} onChange={fc} />
-          </div>
-
+        <Sec icon={<ImageIcon size={16} />} title="Branding & Logo">
+          <Row>
+            <F label="Site Name" name="site_name" value={s.site_name} onChange={fc} />
+            <F label="Tagline" name="tagline" value={s.tagline} onChange={fc} />
+          </Row>
           <div>
-            <label className="block text-xs font-semibold text-brand-gray mb-1.5 uppercase">Logo URL</label>
-            <div className="flex gap-3 items-start">
-              <input name="logo_url" value={settings.logo_url} onChange={fc}
-                placeholder="https://your-cdn.com/logo.png"
-                className={inputClass} />
-              {settings.logo_url && (
-                <div className="w-16 h-16 border border-gray-200 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0 flex items-center justify-center">
-                  <img src={settings.logo_url} alt="Logo preview" className="max-w-full max-h-full object-contain p-1" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                </div>
-              )}
+            <label className={lbl}>Logo</label>
+            <div className="flex gap-3 items-center">
+              <input ref={logoRef} type="file" accept="image/*" className="hidden"
+                onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], 'logo_url')} />
+              <input name="logo_url" value={s.logo_url} onChange={fc} placeholder="/uploads/logo.png or https://..." className={inp} />
+              <button type="button" onClick={() => logoRef.current?.click()}
+                className="flex-shrink-0 flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-brand-dark px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">
+                <Upload size={14} /> {uploading === 'logo_url' ? '...' : 'Upload'}
+              </button>
             </div>
-            <p className="text-xs text-brand-gray mt-1">Upload your logo image to any image host (e.g. imgbb.com, Cloudinary) and paste the URL here.</p>
+            {s.logo_url && <img src={s.logo_url} alt="preview" className="mt-2 h-10 object-contain rounded-lg border border-gray-100 px-2" />}
           </div>
-
           <div>
-            <label className="block text-xs font-semibold text-brand-gray mb-1.5 uppercase">Favicon URL</label>
-            <input name="favicon_url" value={settings.favicon_url} onChange={fc}
-              placeholder="https://your-cdn.com/favicon.ico"
-              className={inputClass} />
+            <label className={lbl}>Favicon URL</label>
+            <input name="favicon_url" value={s.favicon_url} onChange={fc} placeholder="https://.../favicon.ico" className={inp} />
           </div>
-        </Section>
+        </Sec>
+
+        {/* Homepage Content */}
+        <Sec icon={<Type size={16} />} title="Homepage Content">
+          <F label="Hero Title" name="hero_title" value={s.hero_title} onChange={fc} />
+          <TextA label="Hero Subtitle" name="hero_subtitle" value={s.hero_subtitle} onChange={fc} />
+          <F label="Dashboard Section Title" name="dashboard_title" value={s.dashboard_title} onChange={fc} />
+          <TextA label="Dashboard Section Text" name="dashboard_subtitle" value={s.dashboard_subtitle} onChange={fc} />
+          <F label="Period Tracker Title" name="period_title" value={s.period_title} onChange={fc} />
+          <TextA label="Period Tracker Text" name="period_subtitle" value={s.period_subtitle} onChange={fc} />
+          <F label="Community Title" name="community_title" value={s.community_title} onChange={fc} />
+          <TextA label="Community Subtitle" name="community_subtitle" value={s.community_subtitle} onChange={fc} />
+          <F label="WhatsApp Community Link (number only, e.g. 919876543210)" name="community_whatsapp" value={s.community_whatsapp} onChange={fc} placeholder="919876543210" />
+          <F label="About Us Title" name="about_title" value={s.about_title} onChange={fc} />
+          <TextA label="About Us Text" name="about_text" value={s.about_text} onChange={fc} rows={4} />
+          <div>
+            <label className={lbl}>About Us / Team Photo</label>
+            <div className="flex gap-3 items-center">
+              <input ref={aboutRef} type="file" accept="image/*" className="hidden"
+                onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], 'about_image')} />
+              <input name="about_image" value={s.about_image} onChange={fc} placeholder="/uploads/team.jpg" className={inp} />
+              <button type="button" onClick={() => aboutRef.current?.click()}
+                className="flex-shrink-0 flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-brand-dark px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">
+                <Upload size={14} /> {uploading === 'about_image' ? '...' : 'Upload'}
+              </button>
+            </div>
+            {s.about_image && <img src={s.about_image} alt="preview" className="mt-2 h-20 object-cover rounded-xl border border-gray-100" />}
+          </div>
+        </Sec>
+
+        {/* Theme Colors */}
+        <Sec icon={<Palette size={16} />} title="Theme Colors">
+          <p className="text-xs text-brand-gray -mt-1">Changes take effect on next page refresh (no rebuild needed).</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <ColorField label="Primary Color" name="color_primary" value={s.color_primary} onChange={fc} />
+            <ColorField label="Primary Dark" name="color_primary_dark" value={s.color_primary_dark} onChange={fc} />
+            <ColorField label="Primary Light" name="color_primary_light" value={s.color_primary_light} onChange={fc} />
+            <ColorField label="Neo Orange" name="color_neo_orange" value={s.color_neo_orange} onChange={fc} />
+            <ColorField label="Neo Purple" name="color_neo_purple" value={s.color_neo_purple} onChange={fc} />
+            <ColorField label="Brand Dark" name="color_brand_dark" value={s.color_brand_dark} onChange={fc} />
+          </div>
+          <div className="mt-3 flex gap-3 flex-wrap">
+            <div className="h-10 rounded-xl flex-1 min-w-20" style={{ background: s.color_primary }} title="Primary" />
+            <div className="h-10 rounded-xl flex-1 min-w-20" style={{ background: s.color_neo_orange }} title="Orange" />
+            <div className="h-10 rounded-xl flex-1 min-w-20" style={{ background: s.color_neo_purple }} title="Purple" />
+            <div className="h-10 rounded-xl flex-1 min-w-20" style={{ background: s.color_brand_dark }} title="Dark" />
+          </div>
+        </Sec>
+
+        {/* Instagram */}
+        <Sec icon={<Share2 size={16} />} title="Instagram Feed">
+          <F label="Instagram Profile URL" name="instagram_url" value={s.instagram_url} onChange={fc} placeholder="https://instagram.com/neofuture" />
+          <div>
+            <label className={lbl}>Instagram Post URLs (comma-separated)</label>
+            <TextA name="instagram_posts" value={s.instagram_posts} onChange={fc} rows={3}
+              placeholder="https://instagram.com/p/ABC123, https://instagram.com/p/DEF456" />
+            <p className="text-xs text-brand-gray mt-1">Paste Instagram post URLs separated by commas. These show as a grid on the homepage.</p>
+          </div>
+        </Sec>
 
         {/* Contact */}
-        <Section title="Contact Information">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Contact Email" name="contact_email" type="email" value={settings.contact_email} onChange={fc} placeholder="hello@neofuture.in" />
-            <Field label="Contact Phone" name="contact_phone" value={settings.contact_phone} onChange={fc} placeholder="+91 98765 43210" />
-            <Field label="WhatsApp Number" name="whatsapp_number" value={settings.whatsapp_number} onChange={fc} placeholder="919876543210 (no + or spaces)" />
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-brand-gray mb-1.5 uppercase">Business Address</label>
-              <textarea name="address" value={settings.address} onChange={fc} rows={2}
-                className={inputClass + ' resize-none'} placeholder="Your registered address" />
-            </div>
+        <Sec icon={<Settings size={16} />} title="Contact Information">
+          <Row>
+            <F label="Contact Email" name="contact_email" type="email" value={s.contact_email} onChange={fc} placeholder="hello@neofuture.in" />
+            <F label="Contact Phone" name="contact_phone" value={s.contact_phone} onChange={fc} placeholder="+91 98765 43210" />
+          </Row>
+          <Row>
+            <F label="WhatsApp Number" name="whatsapp_number" value={s.whatsapp_number} onChange={fc} placeholder="919876543210" />
+            <F label="Facebook URL" name="facebook_url" value={s.facebook_url} onChange={fc} placeholder="https://facebook.com/neofuture" />
+          </Row>
+          <div>
+            <label className={lbl}>Business Address</label>
+            <TextA name="address" value={s.address} onChange={fc} rows={2} placeholder="Your registered address" />
           </div>
-        </Section>
-
-        {/* Social */}
-        <Section title="Social Media">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Instagram URL" name="instagram_url" value={settings.instagram_url} onChange={fc} placeholder="https://instagram.com/neofuture" />
-            <Field label="Facebook URL" name="facebook_url" value={settings.facebook_url} onChange={fc} placeholder="https://facebook.com/neofuture" />
-          </div>
-        </Section>
+        </Sec>
 
         {/* Payment */}
-        <Section title="Payment">
+        <Sec icon={<Settings size={16} />} title="Payment">
           <div>
-            <label className="block text-xs font-semibold text-brand-gray mb-1.5 uppercase">Razorpay Mode</label>
-            <select name="razorpay_mode" value={settings.razorpay_mode} onChange={fc} className={inputClass}>
+            <label className={lbl}>Razorpay Mode</label>
+            <select name="razorpay_mode" value={s.razorpay_mode} onChange={fc} className={inp}>
               <option value="test">Test Mode (use rzp_test_ keys)</option>
               <option value="live">Live Mode (use rzp_live_ keys)</option>
             </select>
-            <p className="text-xs text-brand-gray mt-1">Remember to update RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in your .env.local when switching to live.</p>
           </div>
-        </Section>
+        </Sec>
 
         <div className="flex justify-end">
           <button type="submit" disabled={saving}
             className="flex items-center gap-2 bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-primary-dark disabled:opacity-60 transition-colors">
-            <Save size={16} />
-            {saving ? 'Saving...' : 'Save Settings'}
+            <Save size={16} /> {saving ? 'Saving...' : 'Save All Settings'}
           </button>
         </div>
       </form>
@@ -149,26 +216,65 @@ export default function AdminSettingsPage() {
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+// ── helpers ─────────────────────────────────────────────────────────────────
+
+const inp = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors'
+const lbl = 'block text-xs font-semibold text-brand-gray mb-1.5 uppercase tracking-wide'
+
+function Sec({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-5">
-      <h2 className="font-semibold text-brand-dark mb-4 pb-3 border-b border-gray-100">{title}</h2>
+      <h2 className="font-semibold text-brand-dark mb-4 pb-3 border-b border-gray-100 flex items-center gap-2">
+        <span className="text-primary">{icon}</span> {title}
+      </h2>
       <div className="space-y-4">{children}</div>
     </div>
   )
 }
 
-function Field({ label, name, value, onChange, type = 'text', placeholder }: {
+function Row({ children }: { children: React.ReactNode }) {
+  return <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{children}</div>
+}
+
+function F({ label, name, value, onChange, type = 'text', placeholder }: {
   label: string; name: string; value: string
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   type?: string; placeholder?: string
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-brand-gray mb-1.5 uppercase">{label}</label>
-      <input type={type} name={name} value={value} onChange={onChange} placeholder={placeholder} className={inputClass} />
+      <label className={lbl}>{label}</label>
+      <input type={type} name={name} value={value} onChange={onChange} placeholder={placeholder} className={inp} />
     </div>
   )
 }
 
-const inputClass = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors'
+function TextA({ label, name, value, onChange, rows = 2, placeholder }: {
+  label?: string; name: string; value: string
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  rows?: number; placeholder?: string
+}) {
+  return (
+    <div>
+      {label && <label className={lbl}>{label}</label>}
+      <textarea name={name} value={value} onChange={onChange} rows={rows} placeholder={placeholder} className={inp + ' resize-none'} />
+    </div>
+  )
+}
+
+function ColorField({ label, name, value, onChange }: {
+  label: string; name: string; value: string
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+}) {
+  return (
+    <div>
+      <label className={lbl}>{label}</label>
+      <div className="flex gap-2 items-center">
+        <input type="color" name={name} value={value} onChange={onChange}
+          className="w-10 h-10 rounded-lg cursor-pointer border border-gray-200 p-0.5" />
+        <input type="text" name={name} value={value} onChange={onChange}
+          className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary" />
+      </div>
+    </div>
+  )
+}
