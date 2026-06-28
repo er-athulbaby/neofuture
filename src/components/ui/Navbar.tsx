@@ -77,13 +77,16 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
                   <div key={link.label} className="relative"
                     onMouseEnter={() => setToolsOpen(true)}
                     onMouseLeave={() => setToolsOpen(false)}>
-                    <button className={cn('flex items-center gap-1 px-3 py-2 rounded-lg transition-colors text-brand-gray hover:text-primary hover:bg-primary-light')}>
+                    <Link href="/tools"
+                      className={cn('flex items-center gap-1 px-3 py-2 rounded-lg transition-colors text-brand-gray hover:text-primary hover:bg-primary-light',
+                        pathname.startsWith('/tools') ? 'text-primary bg-primary-light' : '')}>
                       {link.label} <ChevronDown size={12} />
-                    </button>
+                    </Link>
                     {toolsOpen && (
-                      <div className="absolute top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-50">
+                      <div className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-50">
                         {link.dropdown.map((item) => (
                           <Link key={item.href} href={item.href}
+                            onClick={() => setToolsOpen(false)}
                             className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-brand-dark hover:bg-primary-light hover:text-primary transition-colors">
                             <span className="text-primary">{item.icon}</span> {item.label}
                           </Link>
@@ -183,9 +186,10 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
             </>
           ) : null}
           <button onClick={() => scrollTo('#community')} className="block w-full text-left text-sm font-medium text-brand-dark hover:text-primary py-2.5 px-2 rounded-lg hover:bg-primary-light transition-colors">Community</button>
-          <div className="px-2 pt-1 pb-0.5">
-            <p className="text-xs font-semibold text-brand-gray uppercase tracking-wider mb-1">Tools &amp; Calculators</p>
-          </div>
+          <Link href="/tools" onClick={() => setMenuOpen(false)}
+            className="block mx-2 mt-1 mb-0.5 text-xs font-semibold text-brand-gray uppercase tracking-wider hover:text-primary transition-colors">
+            Tools &amp; Calculators
+          </Link>
           <MobileLink href="/tools/due-date" label="Due Date Calculator" onClick={() => setMenuOpen(false)} />
           <MobileLink href="/tools/weight-gain" label="Pregnancy Weight Gain" onClick={() => setMenuOpen(false)} />
           <MobileLink href="/tools/vaccination" label="Vaccination Schedule" onClick={() => setMenuOpen(false)} />
