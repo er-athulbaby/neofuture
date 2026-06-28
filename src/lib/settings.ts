@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { query } from './db'
 
 export interface SiteConfig {
@@ -64,7 +65,7 @@ export const CONFIG_DEFAULTS: SiteConfig = {
   color_brand_dark: '#1A1535',
 }
 
-export async function getSiteConfig(): Promise<SiteConfig> {
+export const getSiteConfig = cache(async function getSiteConfigFn(): Promise<SiteConfig> {
   try {
     await query(`CREATE TABLE IF NOT EXISTS site_settings (key VARCHAR(100) PRIMARY KEY, value TEXT, updated_at TIMESTAMPTZ DEFAULT NOW())`, [])
     const rows = await query<{ key: string; value: string }>(`SELECT key, value FROM site_settings`, [])
@@ -74,4 +75,4 @@ export async function getSiteConfig(): Promise<SiteConfig> {
   } catch {
     return CONFIG_DEFAULTS
   }
-}
+})

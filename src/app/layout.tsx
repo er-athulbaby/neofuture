@@ -14,12 +14,19 @@ const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  title: { default: 'NeoFuture', template: '%s | NeoFuture' },
-  description: "From trusted hands to quality lives — Women's health and wellness products",
-  keywords: ['PCOS', 'menstrual cup', 'pregnancy support', 'women wellness', 'nutraceuticals'],
-  manifest: '/manifest.json',
-  openGraph: { siteName: 'NeoFuture', type: 'website' },
+export async function generateMetadata(): Promise<Metadata> {
+  const config = await getSiteConfig()
+  return {
+    title: { default: 'NeoFuture', template: '%s | NeoFuture' },
+    description: "From trusted hands to quality lives — Women's health and wellness products",
+    keywords: ['PCOS', 'menstrual cup', 'pregnancy support', 'women wellness', 'nutraceuticals'],
+    manifest: '/manifest.json',
+    openGraph: { siteName: 'NeoFuture', type: 'website' },
+    icons: {
+      icon: config.favicon_url || '/favicon.ico',
+      shortcut: config.favicon_url || '/favicon.ico',
+    },
+  }
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -40,7 +47,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" className={`${geist.variable} h-full antialiased`}>
       <head>
         <style dangerouslySetInnerHTML={{ __html: themeVars }} />
-        {config.favicon_url && <link rel="icon" href={config.favicon_url} />}
       </head>
       <body className="min-h-full flex flex-col bg-white text-brand-dark">
         <SessionProvider session={session}>
