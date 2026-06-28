@@ -54,7 +54,7 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0">
             {logoUrl ? (
-              <img src={logoUrl} alt={siteName} className="h-9 w-auto max-w-[120px] object-contain" />
+              <img src={logoUrl} alt={siteName} className="h-12 w-auto max-w-[160px] object-contain" />
             ) : (
               <span className="font-bold text-xl">
                 <span className="text-neo-orange">neo</span>
