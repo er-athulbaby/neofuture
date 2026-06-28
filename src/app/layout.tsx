@@ -12,6 +12,8 @@ import { getSiteConfig } from '@/lib/settings'
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: { default: 'NeoFuture', template: '%s | NeoFuture' },
   description: "From trusted hands to quality lives — Women's health and wellness products",

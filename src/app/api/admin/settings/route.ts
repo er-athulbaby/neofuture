@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { query, queryOne } from '@/lib/db'
+import { revalidatePath } from 'next/cache'
 
 async function adminGuard() {
   const session = await auth()
@@ -52,6 +53,8 @@ export async function POST(req: NextRequest) {
       [key, String(value)]
     )
   }
+
+  revalidatePath('/', 'layout')
 
   return NextResponse.json({ success: true })
 }

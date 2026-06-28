@@ -67,8 +67,19 @@ export default function AdminSettingsPage() {
       form.append('file', file)
       const res = await fetch('/api/upload', { method: 'POST', body: form })
       const data = await res.json()
-      if (data.url) { setS((x) => ({ ...x, [field]: data.url })); toast('Uploaded!') }
-      else toast(data.error ?? 'Upload failed', 'error')
+      if (data.url) {
+        const newUrl: string = data.url
+        setS((x) => ({ ...x, [field]: newUrl }))
+        // Auto-save this field immediately so layout picks it up on next load
+        await fetch('/api/admin/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [field]: newUrl }),
+        })
+        toast(`Uploaded & saved! Refresh the page to see the new ${field === 'favicon_url' ? 'favicon' : 'logo'}.`)
+      } else {
+        toast(data.error ?? 'Upload failed', 'error')
+      }
     } catch { toast('Upload failed', 'error') }
     finally { setUploading(null) }
   }
