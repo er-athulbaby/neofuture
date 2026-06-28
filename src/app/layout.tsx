@@ -22,10 +22,12 @@ export async function generateMetadata(): Promise<Metadata> {
     keywords: ['PCOS', 'menstrual cup', 'pregnancy support', 'women wellness', 'nutraceuticals'],
     manifest: '/manifest.json',
     openGraph: { siteName: 'NeoFuture', type: 'website' },
-    icons: {
-      icon: config.favicon_url || '/favicon.ico',
-      shortcut: config.favicon_url || '/favicon.ico',
-    },
+    icons: config.favicon_url
+      ? [
+          { rel: 'icon', url: `${config.favicon_url}?v=${Date.now()}` },
+          { rel: 'shortcut icon', url: `${config.favicon_url}?v=${Date.now()}` },
+        ]
+      : [{ rel: 'icon', url: '/favicon.ico' }],
   }
 }
 

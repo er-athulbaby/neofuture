@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { useSession, signOut } from 'next-auth/react'
 import { useCart } from '@/components/cart/CartProvider'
 import { useState, useEffect } from 'react'
@@ -55,9 +54,7 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0">
             {logoUrl ? (
-              <div className="relative h-9 w-28">
-                <Image src={logoUrl} alt={siteName} fill className="object-contain object-left" />
-              </div>
+              <img src={logoUrl} alt={siteName} className="h-9 w-auto max-w-[120px] object-contain" />
             ) : (
               <span className="font-bold text-xl">
                 <span className="text-neo-orange">neo</span>
