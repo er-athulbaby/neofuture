@@ -17,11 +17,6 @@ import InstagramFeed from '@/components/ui/InstagramFeed'
 
 interface Props { config: SiteConfig; featured: Product[]; autoOpenQuiz?: boolean }
 
-const DASHBOARD_SLIDES = [
-  { label: 'Wellness Score', desc: 'Track your hormone, stress & energy scores daily', color: 'from-primary/10 to-primary/5', icon: <Activity size={32} className="text-primary" /> },
-  { label: 'Quiz History', desc: 'See your past wellness assessments and progress', color: 'from-neo-orange/10 to-neo-orange/5', icon: <Sparkles size={32} className="text-neo-orange" /> },
-  { label: 'Order Tracking', desc: 'Monitor your orders and delivery status in real time', color: 'from-neo-purple/10 to-neo-purple/5', icon: <ShieldCheck size={32} className="text-neo-purple" /> },
-]
 
 const TOOLS = [
   { href: '/tools/due-date', icon: <Calendar size={22} className="text-primary" />, title: 'Due Date Calculator', desc: 'Calculate EDD from LMP, conception date or IVF' },
@@ -33,14 +28,8 @@ const TOOLS = [
 
 export default function HomepageClient({ config, featured, autoOpenQuiz = false }: Props) {
   const { data: session } = useSession()
-  const [slide, setSlide] = useState(0)
-  const [quizOpen, setQuizOpen] = useState(autoOpenQuiz)
-  const slideTimer = useRef<NodeJS.Timeout | null>(null)
 
-  useEffect(() => {
-    slideTimer.current = setInterval(() => setSlide((s) => (s + 1) % DASHBOARD_SLIDES.length), 4000)
-    return () => { if (slideTimer.current) clearInterval(slideTimer.current) }
-  }, [])
+  const [quizOpen, setQuizOpen] = useState(autoOpenQuiz)
 
   const instagramPosts = config.instagram_posts
     ? config.instagram_posts.split(',').map((u) => u.trim()).filter(Boolean)
@@ -103,33 +92,86 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
             </Link>
           </div>
 
-          {/* Slideshow */}
+          {/* Dashboard preview mockup */}
           <div className="relative">
-            <div className={`bg-gradient-to-br ${DASHBOARD_SLIDES[slide].color} rounded-3xl p-8 h-56 flex flex-col justify-between border border-gray-100 shadow-xl transition-all duration-500`}>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-brand-gray uppercase tracking-wide">NeoFuture Dashboard</span>
-                <div className="flex gap-1">
-                  {DASHBOARD_SLIDES.map((_, i) => (
-                    <button key={i} onClick={() => setSlide(i)}
-                      className={`w-2 h-2 rounded-full transition-all ${i === slide ? 'bg-primary w-5' : 'bg-gray-200'}`} />
-                  ))}
+            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+              {/* Header bar */}
+              <div className="bg-gradient-to-r from-primary to-primary-dark px-5 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm">A</div>
+                  <div>
+                    <p className="text-white text-xs font-semibold">Hello, Ananya!</p>
+                    <p className="text-white/70 text-xs">AI Wellness Dashboard</p>
+                  </div>
+                </div>
+                <Sparkles size={18} className="text-white/80" />
+              </div>
+
+              <div className="p-5 space-y-4">
+                {/* Wellness score row */}
+                <div className="flex items-center gap-4">
+                  {/* Circle gauge */}
+                  <div className="relative flex-shrink-0">
+                    <svg width="76" height="76" viewBox="0 0 76 76" className="-rotate-90">
+                      <circle cx="38" cy="38" r="28" fill="none" stroke="#f3f4f6" strokeWidth="8" />
+                      <circle cx="38" cy="38" r="28" fill="none" stroke="#D4236A"
+                        strokeWidth="8" strokeLinecap="round"
+                        strokeDasharray={`${(78 / 100) * 2 * Math.PI * 28} ${2 * Math.PI * 28}`} />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-lg font-bold text-brand-dark leading-none">78</span>
+                      <span className="text-xs text-brand-gray">/100</span>
+                    </div>
+                  </div>
+                  {/* Score cards */}
+                  <div className="grid grid-cols-2 gap-2 flex-1">
+                    <div className="bg-green-50 rounded-xl p-2.5">
+                      <p className="text-xs text-brand-gray">Energy Score</p>
+                      <p className="text-base font-bold text-green-600">82</p>
+                      <p className="text-xs text-green-600 font-medium">Good</p>
+                    </div>
+                    <div className="bg-orange-50 rounded-xl p-2.5">
+                      <p className="text-xs text-brand-gray">Stress Level</p>
+                      <p className="text-base font-bold text-neo-orange">Moderate</p>
+                    </div>
+                    <div className="bg-purple-50 rounded-xl p-2.5">
+                      <p className="text-xs text-brand-gray">Hormone Balance</p>
+                      <p className="text-base font-bold text-purple-600">71</p>
+                      <p className="text-xs text-purple-600 font-medium">Good</p>
+                    </div>
+                    <div className="bg-primary-light rounded-xl p-2.5">
+                      <p className="text-xs text-brand-gray">Sleep Score</p>
+                      <p className="text-base font-bold text-primary">68</p>
+                      <p className="text-xs text-primary font-medium">Average</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Period tracker mini */}
+                <div className="bg-primary-light rounded-2xl px-4 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-primary">Next Period</p>
+                    <p className="text-sm font-bold text-brand-dark">Jul 18 – Jul 23</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-brand-gray">Ovulation</p>
+                    <p className="text-sm font-bold text-purple-600">Jul 4</p>
+                  </div>
+                </div>
+
+                {/* CTA bar */}
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-xs text-brand-gray">Updated today</span>
+                  <span className="text-xs font-semibold text-primary flex items-center gap-1">
+                    View full dashboard <ArrowRight size={11} />
+                  </span>
                 </div>
               </div>
-              <div>
-                {DASHBOARD_SLIDES[slide].icon}
-                <p className="font-bold text-brand-dark text-lg mt-2">{DASHBOARD_SLIDES[slide].label}</p>
-                <p className="text-sm text-brand-gray mt-1">{DASHBOARD_SLIDES[slide].desc}</p>
-              </div>
             </div>
-            <div className="flex gap-2 mt-3 justify-end">
-              <button onClick={() => setSlide((s) => (s - 1 + DASHBOARD_SLIDES.length) % DASHBOARD_SLIDES.length)}
-                className="p-2 rounded-xl border border-gray-200 hover:border-primary transition-colors">
-                <ChevronLeft size={16} />
-              </button>
-              <button onClick={() => setSlide((s) => (s + 1) % DASHBOARD_SLIDES.length)}
-                className="p-2 rounded-xl border border-gray-200 hover:border-primary transition-colors">
-                <ChevronRight size={16} />
-              </button>
+
+            {/* Floating badge */}
+            <div className="absolute -top-3 -right-3 bg-primary text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+              AI-Powered ✦
             </div>
           </div>
         </div>
