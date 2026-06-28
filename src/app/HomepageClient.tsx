@@ -265,9 +265,9 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
 
           {/* Text + CTA */}
           <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-primary mb-3 block">Smart Cycle Tracking</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-primary mb-3 block">AI-Powered Cycle Tracking</span>
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">
-              Track Your Period.<br />Know Your Body.
+              AI-Based Period Tracking.<br />Know Your Body Better.
             </h2>
             <p className="text-white/70 leading-relaxed mb-6">
               Log your periods and let NeoFuture AI predict your next cycle, ovulation window, and fertile days — all in one beautiful calendar. Get personalised insights built around your unique rhythm.
