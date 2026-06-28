@@ -14,21 +14,12 @@ const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata(): Promise<Metadata> {
-  const config = await getSiteConfig()
-  return {
-    title: { default: 'NeoFuture', template: '%s | NeoFuture' },
-    description: "From trusted hands to quality lives — Women's health and wellness products",
-    keywords: ['PCOS', 'menstrual cup', 'pregnancy support', 'women wellness', 'nutraceuticals'],
-    manifest: '/manifest.json',
-    openGraph: { siteName: 'NeoFuture', type: 'website' },
-    icons: config.favicon_url
-      ? [
-          { rel: 'icon', url: `${config.favicon_url}?v=${Date.now()}` },
-          { rel: 'shortcut icon', url: `${config.favicon_url}?v=${Date.now()}` },
-        ]
-      : [{ rel: 'icon', url: '/favicon.ico' }],
-  }
+export const metadata: Metadata = {
+  title: { default: 'NeoFuture', template: '%s | NeoFuture' },
+  description: "From trusted hands to quality lives — Women's health and wellness products",
+  keywords: ['PCOS', 'menstrual cup', 'pregnancy support', 'women wellness', 'nutraceuticals'],
+  manifest: '/manifest.json',
+  openGraph: { siteName: 'NeoFuture', type: 'website' },
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -49,6 +40,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" className={`${geist.variable} h-full antialiased`}>
       <head>
         <style dangerouslySetInnerHTML={{ __html: themeVars }} />
+        {config.favicon_url ? (
+          <>
+            <link rel="icon" type="image/png" href={config.favicon_url} key="favicon-dynamic" />
+            <link rel="shortcut icon" href={config.favicon_url} key="shortcut-dynamic" />
+          </>
+        ) : (
+          <link rel="icon" href="/favicon.ico" key="favicon-default" />
+        )}
       </head>
       <body className="min-h-full flex flex-col bg-white text-brand-dark">
         <SessionProvider session={session}>
