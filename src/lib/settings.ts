@@ -4,6 +4,7 @@ export interface SiteConfig {
   site_name: string
   tagline: string
   logo_url: string
+  favicon_url: string
   hero_title: string
   hero_subtitle: string
   dashboard_title: string
@@ -35,6 +36,7 @@ export const CONFIG_DEFAULTS: SiteConfig = {
   site_name: 'NeoFuture',
   tagline: 'From trusted hands to quality lives',
   logo_url: '',
+  favicon_url: '',
   hero_title: 'Welcome to the Next Generation of Healthcare',
   hero_subtitle: 'Experience the future of healthcare through intelligent AI, powered by trusted Doctors — providing personalized care with precision, confidence, and compassion.',
   dashboard_title: 'Your AI-Powered Wellness Dashboard',

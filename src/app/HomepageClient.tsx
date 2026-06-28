@@ -13,6 +13,7 @@ import {
   Baby, Calendar, ChevronLeft, ChevronRight, MessageCircle,
   Activity, Heart, Stethoscope, Users, ArrowRight
 } from 'lucide-react'
+import InstagramFeed from '@/components/ui/InstagramFeed'
 
 interface Props { config: SiteConfig; featured: Product[] }
 
@@ -309,23 +310,18 @@ export default function HomepageClient({ config, featured }: Props) {
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-8">
               <span className="text-xs font-bold uppercase tracking-widest text-primary mb-3 block">Follow Us</span>
-              <h2 className="text-2xl font-bold text-brand-dark">@neofuture on Instagram</h2>
+              <h2 className="text-2xl font-bold text-brand-dark">
+                {config.instagram_url ? (
+                  <a href={config.instagram_url} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
+                    @neofuture on Instagram
+                  </a>
+                ) : '@neofuture on Instagram'}
+              </h2>
+              <p className="text-brand-gray text-sm mt-2">Our latest reels &amp; posts</p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {instagramPosts.map((url, i) => (
-                <a key={i} href={url} target="_blank" rel="noopener noreferrer"
-                  className="aspect-square bg-gray-100 rounded-2xl overflow-hidden hover:opacity-90 transition-opacity flex items-center justify-center group relative">
-                  <div className="text-center text-brand-gray p-4">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 rounded-xl flex items-center justify-center mx-auto mb-2">
-                      <span className="text-white text-xs font-bold">IG</span>
-                    </div>
-                    <p className="text-xs">View on Instagram</p>
-                  </div>
-                </a>
-              ))}
-            </div>
+            <InstagramFeed posts={instagramPosts} instagramUrl={config.instagram_url} />
             {config.instagram_url && (
-              <div className="text-center mt-6">
+              <div className="text-center mt-8">
                 <a href={config.instagram_url} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 border-2 border-gray-200 px-6 py-2.5 rounded-xl font-medium text-brand-dark hover:border-primary hover:text-primary transition-colors text-sm">
                   Follow on Instagram <ArrowRight size={14} />

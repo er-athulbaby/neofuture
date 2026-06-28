@@ -7,6 +7,7 @@ import Navbar from '@/components/ui/Navbar'
 import Footer from '@/components/ui/Footer'
 import CartProvider from '@/components/cart/CartProvider'
 import ToastProvider from '@/components/ui/ToastProvider'
+import WhatsAppButton from '@/components/ui/WhatsAppButton'
 import { getSiteConfig } from '@/lib/settings'
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
@@ -37,6 +38,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" className={`${geist.variable} h-full antialiased`}>
       <head>
         <style dangerouslySetInnerHTML={{ __html: themeVars }} />
+        {config.favicon_url && <link rel="icon" href={config.favicon_url} />}
       </head>
       <body className="min-h-full flex flex-col bg-white text-brand-dark">
         <SessionProvider session={session}>
@@ -44,7 +46,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <ToastProvider>
               <Navbar logoUrl={config.logo_url} siteName={config.site_name} />
               <main className="flex-1">{children}</main>
-              <Footer />
+              <Footer
+                logoUrl={config.logo_url}
+                siteName={config.site_name}
+                tagline={config.tagline}
+                instagramUrl={config.instagram_url}
+                facebookUrl={config.facebook_url}
+                contactEmail={config.contact_email}
+                contactPhone={config.contact_phone}
+                whatsappNumber={config.whatsapp_number}
+              />
+              <WhatsAppButton number={config.whatsapp_number} />
             </ToastProvider>
           </CartProvider>
         </SessionProvider>

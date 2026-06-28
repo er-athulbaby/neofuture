@@ -48,6 +48,7 @@ export default function AdminSettingsPage() {
   const [uploading, setUploading] = useState<string | null>(null)
   const logoRef = useRef<HTMLInputElement>(null)
   const aboutRef = useRef<HTMLInputElement>(null)
+  const faviconRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetch('/api/admin/settings')
@@ -115,8 +116,17 @@ export default function AdminSettingsPage() {
             {s.logo_url && <img src={s.logo_url} alt="preview" className="mt-2 h-10 object-contain rounded-lg border border-gray-100 px-2" />}
           </div>
           <div>
-            <label className={lbl}>Favicon URL</label>
-            <input name="favicon_url" value={s.favicon_url} onChange={fc} placeholder="https://.../favicon.ico" className={inp} />
+            <label className={lbl}>Favicon</label>
+            <div className="flex gap-3 items-center">
+              <input ref={faviconRef} type="file" accept="image/*,.ico" className="hidden"
+                onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], 'favicon_url')} />
+              <input name="favicon_url" value={s.favicon_url} onChange={fc} placeholder="/uploads/favicon.ico" className={inp} />
+              <button type="button" onClick={() => faviconRef.current?.click()}
+                className="flex-shrink-0 flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-brand-dark px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">
+                <Upload size={14} /> {uploading === 'favicon_url' ? '...' : 'Upload'}
+              </button>
+            </div>
+            {s.favicon_url && <img src={s.favicon_url} alt="favicon" className="mt-2 w-8 h-8 object-contain rounded border border-gray-100" />}
           </div>
         </Sec>
 

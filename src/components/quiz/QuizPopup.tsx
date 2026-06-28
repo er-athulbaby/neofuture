@@ -206,10 +206,10 @@ export default function QuizPopup({ forceOpen, onClose }: { forceOpen?: boolean;
     return (
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-40 bg-primary text-white rounded-full px-5 py-3 shadow-lg font-medium text-sm flex items-center gap-2 hover:bg-primary-dark transition-colors"
+        className="fixed bottom-24 right-6 z-40 bg-primary text-white rounded-full px-5 py-3 shadow-lg font-medium text-sm flex items-center gap-2 hover:bg-primary-dark transition-colors"
       >
         <Sparkles size={16} />
-        Take Wellness Quiz
+        AI Wellness Check-in
       </button>
     )
   }
