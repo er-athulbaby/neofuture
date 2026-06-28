@@ -66,30 +66,13 @@ export default function HomepageClient({ config, featured }: Props) {
           <p className="text-lg text-brand-gray mb-10 max-w-2xl mx-auto leading-relaxed">
             {config.hero_subtitle}
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex justify-center">
             <button onClick={() => setQuizOpen(true)}
               className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-semibold hover:bg-primary-dark transition-colors shadow-xl shadow-primary/25 text-base">
               <Sparkles size={18} /> AI Wellness Check-in
             </button>
-            <Link href="#products"
-              className="inline-flex items-center gap-2 border-2 border-gray-200 text-brand-dark px-8 py-4 rounded-xl font-semibold hover:border-primary hover:text-primary transition-colors text-base">
-              Explore Products <ArrowRight size={18} />
-            </Link>
           </div>
 
-          {/* 3 product pills */}
-          <div className="flex justify-center gap-4 mt-12 flex-wrap">
-            {[
-              { name: 'Neo Balance', sub: 'PCOS Support', color: 'border-primary/30 bg-primary-light text-primary' },
-              { name: 'Neo Prime', sub: 'Daily Vitality', color: 'border-neo-orange/30 bg-orange-50 text-neo-orange' },
-              { name: 'Neo Nidra', sub: 'Calm & Sleep', color: 'border-neo-purple/30 bg-purple-50 text-neo-purple' },
-            ].map((p) => (
-              <div key={p.name} className={`border-2 ${p.color} rounded-2xl px-5 py-3 text-center min-w-28`}>
-                <p className="font-bold text-sm">{p.name}</p>
-                <p className="text-xs opacity-70 mt-0.5">{p.sub}</p>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -210,7 +193,9 @@ export default function HomepageClient({ config, featured }: Props) {
             ))}
           </div>
           {config.community_whatsapp ? (
-            <a href={`https://wa.me/${config.community_whatsapp}`} target="_blank" rel="noopener noreferrer"
+            <a
+              href={config.community_whatsapp.startsWith('http') ? config.community_whatsapp : `https://wa.me/${config.community_whatsapp.replace(/\D/g, '')}`}
+              target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-3 bg-green-500 text-white px-8 py-4 rounded-xl font-semibold hover:bg-green-600 transition-colors text-base shadow-lg shadow-green-500/20">
               <MessageCircle size={20} /> Join WhatsApp Community
             </a>
