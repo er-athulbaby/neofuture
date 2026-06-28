@@ -31,7 +31,7 @@ export default function Footer({
           <div>
             <div className="mb-4">
               {logoUrl ? (
-                <img src={logoUrl} alt={siteName} className="h-10 w-auto max-w-[144px] object-contain brightness-0 invert" />
+                <img src={logoUrl} alt={siteName} className="h-14 w-auto max-w-[200px] object-contain brightness-0 invert" />
               ) : (
                 <span className="font-bold text-xl">
                   <span className="text-neo-orange">neo</span>future<sup className="text-xs text-gray-400">™</sup>
