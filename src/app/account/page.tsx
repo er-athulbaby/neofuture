@@ -100,7 +100,7 @@ export default async function AccountPage() {
                   <p className="text-xs text-brand-gray">
                     Based on your last wellness check-in
                   </p>
-                  <Link href="/" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                  <Link href="/?quiz=1" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
                     Retake Quiz <ChevronRight size={12} />
                   </Link>
                 </div>
@@ -130,7 +130,7 @@ export default async function AccountPage() {
                       </div>
                     ))}
                   </div>
-                  <Link href="/"
+                  <Link href="/?quiz=1"
                     className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-dark transition-colors text-sm shadow-lg shadow-primary/20">
                     <Sparkles size={15} /> Start AI Wellness Check-in
                   </Link>

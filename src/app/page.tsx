@@ -3,8 +3,13 @@ import { query } from '@/lib/db'
 import type { Product } from '@/types'
 import HomepageClient from './HomepageClient'
 
-export default async function HomePage() {
-  const [config, featured] = await Promise.all([
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ quiz?: string }>
+}) {
+  const [params, config, featured] = await Promise.all([
+    searchParams,
     getSiteConfig(),
     query<Product>(
       `SELECT p.*, c.name as category_name,
@@ -20,5 +25,11 @@ export default async function HomePage() {
     ).catch(() => []),
   ])
 
-  return <HomepageClient config={config} featured={featured} />
+  return (
+    <HomepageClient
+      config={config}
+      featured={featured}
+      autoOpenQuiz={params.quiz === '1'}
+    />
+  )
 }

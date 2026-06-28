@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import InstagramFeed from '@/components/ui/InstagramFeed'
 
-interface Props { config: SiteConfig; featured: Product[] }
+interface Props { config: SiteConfig; featured: Product[]; autoOpenQuiz?: boolean }
 
 const DASHBOARD_SLIDES = [
   { label: 'Wellness Score', desc: 'Track your hormone, stress & energy scores daily', color: 'from-primary/10 to-primary/5', icon: <Activity size={32} className="text-primary" /> },
@@ -31,10 +31,10 @@ const TOOLS = [
   { href: '/tools/baby-food', icon: <Stethoscope size={22} className="text-neo-orange" />, title: 'Baby Food Chart', desc: 'Indian foods for 6 months to 2 years' },
 ]
 
-export default function HomepageClient({ config, featured }: Props) {
+export default function HomepageClient({ config, featured, autoOpenQuiz = false }: Props) {
   const { data: session } = useSession()
   const [slide, setSlide] = useState(0)
-  const [quizOpen, setQuizOpen] = useState(false)
+  const [quizOpen, setQuizOpen] = useState(autoOpenQuiz)
   const slideTimer = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {

@@ -5,18 +5,81 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/ToastProvider'
 import { addDays } from '@/lib/utils'
-import { ChevronLeft, ChevronRight, Plus, Trash2, CalendarDays, Droplets } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Trash2, Droplets, Circle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 
 interface PeriodLog { id: number; start_date: string; end_date: string | null; notes: string | null }
 interface Prediction { predicted_start: string; predicted_end: string; avg_cycle_length: number }
 
+type FertilityLevel = 'period' | 'predicted_period' | 'ovulation' | 'high_fertile' | 'low' | 'none'
+
+interface DayInfo {
+  cycleDay: number | null
+  level: FertilityLevel
+  label: string
+  icon?: string
+}
+
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
 function toDateStr(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+}
+
+function getDayInfo(
+  dateStr: string,
+  logs: PeriodLog[],
+  avgCycleLength: number,
+  periodDates: Set<string>,
+  predictDates: Set<string>,
+): DayInfo {
+  const date = new Date(dateStr + 'T00:00:00')
+
+  // Period / predicted period
+  if (periodDates.has(dateStr)) {
+    const log = logs
+      .filter((l) => new Date(l.start_date + 'T00:00:00') <= date)
+      .sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime())[0]
+    if (log) {
+      const periodStart = new Date(log.start_date + 'T00:00:00')
+      const cycleDay = Math.floor((date.getTime() - periodStart.getTime()) / 86400000) + 1
+      return { cycleDay, level: 'period', label: 'Menstruation', icon: '🩸' }
+    }
+  }
+  if (predictDates.has(dateStr)) {
+    return { cycleDay: null, level: 'predicted_period', label: 'Predicted Period', icon: '📅' }
+  }
+
+  // Find most recent period start before this date
+  const recentLog = logs
+    .filter((l) => new Date(l.start_date + 'T00:00:00') <= date)
+    .sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime())[0]
+
+  if (!recentLog) return { cycleDay: null, level: 'none', label: '' }
+
+  const periodStart = new Date(recentLog.start_date + 'T00:00:00')
+  const cycleDay = Math.floor((date.getTime() - periodStart.getTime()) / 86400000) + 1
+
+  // Stop if beyond 2 cycles
+  if (cycleDay > avgCycleLength + 5) return { cycleDay: null, level: 'none', label: '' }
+
+  // Ovulation date: cycle_length - 14 days after period start
+  const ovulationDate = addDays(periodStart, avgCycleLength - 14)
+  const ovulationStr = ovulationDate.toISOString().split('T')[0]
+
+  // Fertile window: 5 days before ovulation to 1 day after
+  const fertileStart = addDays(ovulationDate, -5)
+  const fertileEnd = addDays(ovulationDate, 1)
+
+  if (dateStr === ovulationStr) {
+    return { cycleDay, level: 'ovulation', label: 'Ovulation Day, High - chance of getting pregnant', icon: '🟣' }
+  }
+  if (date >= fertileStart && date <= fertileEnd) {
+    return { cycleDay, level: 'high_fertile', label: 'High - chance of getting pregnant', icon: '✨' }
+  }
+  return { cycleDay, level: 'low', label: 'Low - chance of getting pregnant' }
 }
 
 export default function PeriodCalendarPage() {
@@ -31,6 +94,7 @@ export default function PeriodCalendarPage() {
   const [prediction, setPrediction] = useState<Prediction | null>(null)
   const [addForm, setAddForm] = useState({ show: false, start_date: '', end_date: '', notes: '' })
   const [loading, setLoading] = useState(true)
+  const [selectedDate, setSelectedDate] = useState<string>(today.toISOString().split('T')[0])
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login?callbackUrl=/account/period-calendar')
@@ -67,7 +131,6 @@ export default function PeriodCalendarPage() {
     toast('Entry removed')
   }
 
-  // Compute highlighted date ranges
   const periodDates = new Set<string>()
   const predictDates = new Set<string>()
 
@@ -87,7 +150,20 @@ export default function PeriodCalendarPage() {
     }
   }
 
-  // Build calendar
+  const avgCycleLength = prediction?.avg_cycle_length ?? 28
+
+  // Pre-compute ovulation & fertile dates for this month's calendar rendering
+  const ovulationDates = new Set<string>()
+  const fertileDates = new Set<string>()
+  logs.forEach((log) => {
+    const periodStart = new Date(log.start_date + 'T00:00:00')
+    const ovulationDate = addDays(periodStart, avgCycleLength - 14)
+    ovulationDates.add(ovulationDate.toISOString().split('T')[0])
+    for (let i = -5; i <= 1; i++) {
+      if (i !== 0) fertileDates.add(addDays(ovulationDate, i).toISOString().split('T')[0])
+    }
+  })
+
   const firstDay = new Date(viewYear, viewMonth, 1).getDay()
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
   const todayStr = today.toISOString().split('T')[0]
@@ -100,6 +176,15 @@ export default function PeriodCalendarPage() {
     if (viewMonth === 11) { setViewYear((y) => y + 1); setViewMonth(0) }
     else setViewMonth((m) => m + 1)
   }
+
+  const selectedInfo = selectedDate
+    ? getDayInfo(selectedDate, logs, avgCycleLength, periodDates, predictDates)
+    : null
+
+  const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null
+  const selectedLabel = selectedDateObj
+    ? selectedDateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+    : ''
 
   if (loading) return <div className="py-20 text-center text-brand-gray">Loading...</div>
 
@@ -142,27 +227,70 @@ export default function PeriodCalendarPage() {
               const dateStr = toDateStr(viewYear, viewMonth, d)
               const isPeriod = periodDates.has(dateStr)
               const isPredict = predictDates.has(dateStr)
+              const isOvulation = ovulationDates.has(dateStr)
+              const isFertile = fertileDates.has(dateStr)
               const isToday = dateStr === todayStr
+              const isSelected = dateStr === selectedDate
 
               return (
-                <div key={d}
+                <button key={d} onClick={() => setSelectedDate(dateStr)}
                   className={cn(
-                    'relative aspect-square flex items-center justify-center text-xs font-medium rounded-lg cursor-default transition-all',
-                    isPeriod ? 'bg-primary text-white' : isPredict ? 'bg-primary/20 text-primary' : '',
-                    isToday && !isPeriod ? 'ring-2 ring-primary ring-offset-1' : '',
-                    !isPeriod && !isPredict ? 'text-brand-dark hover:bg-gray-50' : ''
+                    'relative aspect-square flex flex-col items-center justify-center text-xs font-medium rounded-lg transition-all',
+                    isPeriod ? 'bg-primary text-white' :
+                    isPredict ? 'bg-primary/20 text-primary' :
+                    isOvulation ? 'bg-purple-600 text-white' :
+                    isFertile ? 'bg-purple-100 text-purple-700' :
+                    'text-brand-dark hover:bg-gray-50',
+                    isSelected && !isPeriod && !isOvulation ? 'ring-2 ring-offset-1 ring-brand-dark' : '',
+                    isSelected && isPeriod ? 'ring-2 ring-offset-1 ring-primary' : '',
+                    isSelected && isOvulation ? 'ring-2 ring-offset-1 ring-purple-600' : '',
+                    isToday && !isSelected ? 'ring-2 ring-primary/40' : '',
                   )}>
                   {d}
-                </div>
+                  {isOvulation && (
+                    <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-white opacity-80" />
+                  )}
+                </button>
               )
             })}
           </div>
 
           {/* Legend */}
-          <div className="flex gap-4 mt-4 text-xs text-brand-gray">
+          <div className="flex flex-wrap gap-3 mt-4 text-xs text-brand-gray">
             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-primary inline-block" /> Period</span>
             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-primary/20 inline-block" /> Predicted</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-purple-600 inline-block" /> Ovulation</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-purple-100 inline-block" /> Fertile</span>
           </div>
+
+          {/* Selected day info panel */}
+          {selectedDate && selectedInfo && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-2">
+                <p className="font-bold text-brand-dark">{selectedLabel}</p>
+                {selectedInfo.cycleDay && (
+                  <span className="text-xs bg-gray-100 text-brand-gray px-2.5 py-1 rounded-full font-medium">
+                    Cycle day {selectedInfo.cycleDay}
+                  </span>
+                )}
+              </div>
+              {selectedInfo.label ? (
+                <div className={cn(
+                  'flex items-center gap-2 text-sm font-medium rounded-xl px-3 py-2.5',
+                  selectedInfo.level === 'period' ? 'bg-primary/10 text-primary' :
+                  selectedInfo.level === 'predicted_period' ? 'bg-primary/10 text-primary' :
+                  selectedInfo.level === 'ovulation' ? 'bg-purple-50 text-purple-700' :
+                  selectedInfo.level === 'high_fertile' ? 'bg-purple-50 text-purple-600' :
+                  'bg-gray-50 text-brand-gray'
+                )}>
+                  {selectedInfo.icon && <span className="text-base">{selectedInfo.icon}</span>}
+                  <span>{selectedInfo.label}</span>
+                </div>
+              ) : (
+                <p className="text-sm text-brand-gray">Log your first period to see predictions for this day.</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Info + log form */}
@@ -177,6 +305,32 @@ export default function PeriodCalendarPage() {
                 {new Date(prediction.predicted_end).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
               </p>
               <p className="text-xs text-brand-gray mt-1">Avg cycle: {prediction.avg_cycle_length} days</p>
+
+              {/* Ovulation info */}
+              {logs.length > 0 && (() => {
+                const lastLog = [...logs].sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime())[0]
+                const lastStart = new Date(lastLog.start_date + 'T00:00:00')
+                const nextOvulation = addDays(new Date(prediction.predicted_start + 'T00:00:00'), avgCycleLength - 14)
+                const fertileFrom = addDays(nextOvulation, -5)
+                return (
+                  <div className="mt-3 pt-3 border-t border-primary/20 space-y-1">
+                    <p className="text-xs text-brand-gray flex justify-between">
+                      <span>Next ovulation</span>
+                      <span className="font-semibold text-purple-600">
+                        {nextOvulation.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </span>
+                    </p>
+                    <p className="text-xs text-brand-gray flex justify-between">
+                      <span>Fertile window</span>
+                      <span className="font-semibold text-purple-500">
+                        {fertileFrom.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        {' – '}
+                        {addDays(nextOvulation, 1).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </span>
+                    </p>
+                  </div>
+                )
+              })()}
             </div>
           )}
 
