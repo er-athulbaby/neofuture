@@ -177,43 +177,6 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </div>
       </section>
 
-      {/* ── PERIOD TRACKER ── */}
-      <section id="period-tracker" className="py-20 px-4 bg-primary-light">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Mock phone UI */}
-          <div className="order-2 lg:order-1 flex justify-center">
-            <div className="bg-brand-dark rounded-3xl p-1 shadow-2xl w-52">
-              <div className="bg-white rounded-[20px] overflow-hidden">
-                <div className="bg-primary text-white px-4 pt-4 pb-8">
-                  <p className="text-xs font-medium opacity-70">NeoFuture</p>
-                  <p className="font-bold text-lg mt-1">Your Cycle</p>
-                  <p className="text-sm opacity-80 mt-0.5">Day 14 of 28</p>
-                </div>
-                <div className="-mt-4 mx-3 bg-white rounded-xl shadow-md p-3">
-                  <p className="text-xs font-semibold text-brand-dark mb-2">Next Period</p>
-                  <p className="text-lg font-bold text-primary">In 14 days</p>
-                  <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2">
-                    <div className="bg-primary h-1.5 rounded-full" style={{ width: '50%' }} />
-                  </div>
-                </div>
-                <div className="mx-3 mt-2 mb-3 bg-primary-light rounded-xl p-3">
-                  <p className="text-xs font-medium text-primary">🔔 Ovulation window predicted tomorrow</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="order-1 lg:order-2">
-            <span className="text-xs font-bold uppercase tracking-widest text-primary mb-3 block">Period Tracker</span>
-            <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-4">{config.period_title}</h2>
-            <p className="text-brand-gray leading-relaxed mb-6">{config.period_subtitle}</p>
-            <Link href={session ? '/account/period-calendar' : '/signup'}
-              className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-dark transition-colors">
-              {session ? 'Open Period Tracker' : 'Start Tracking Free'} <ArrowRight size={16} />
-            </Link>
-          </div>
-        </div>
-      </section>
 
       {/* ── PERIOD CALENDAR CTA ── */}
       <section className="py-20 px-4 bg-brand-dark">
