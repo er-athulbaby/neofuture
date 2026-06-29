@@ -1,38 +1,34 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/ToastProvider'
 import { formatPrice } from '@/lib/utils'
-import { Plus, Edit2, Trash2, Eye, EyeOff, Star, Search, X, Package } from 'lucide-react'
+import { Plus, Edit2, Trash2, Eye, Star, Search, X, Package, Upload, ImagePlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-
-interface Product {
-  id: number; name: string; slug: string; category_name: string
-  price: number; sale_price: number | null; stock: number
-  is_active: boolean; is_featured: boolean; images: string[]
-}
+import type { ProductRow } from './page'
 
 interface Category { id: number; name: string }
-
-interface Props { products: Product[]; categories: Category[] }
+interface Props { products: ProductRow[]; categories: Category[] }
 
 const EMPTY_FORM = {
   name: '', category_id: '', price: '', sale_price: '', stock: '', sku: '',
   short_description: '', description: '', ingredients: '', how_to_use: '',
-  flavor: '', images: '', is_active: true, is_featured: false,
+  flavor: '', weight: '', images: '', is_active: true, is_featured: false,
 }
 
 export default function AdminProductsClient({ products: initial, categories }: Props) {
   const router = useRouter()
   const { toast } = useToast()
-  const [products, setProducts] = useState<Product[]>(initial)
+  const [products, setProducts] = useState<ProductRow[]>(initial)
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const filtered = products.filter(
     (p) => p.name.toLowerCase().includes(search.toLowerCase()) || p.category_name?.toLowerCase().includes(search.toLowerCase())
@@ -44,17 +40,50 @@ export default function AdminProductsClient({ products: initial, categories }: P
     setShowForm(true)
   }
 
-  function openEdit(p: Product) {
+  function openEdit(p: ProductRow) {
     setEditId(p.id)
     setForm({
-      name: p.name, category_id: '', price: String(p.price),
+      name: p.name,
+      category_id: p.category_id ? String(p.category_id) : '',
+      price: String(p.price),
       sale_price: p.sale_price ? String(p.sale_price) : '',
-      stock: String(p.stock), sku: '', short_description: '', description: '',
-      ingredients: '', how_to_use: '', flavor: '',
+      stock: String(p.stock),
+      sku: p.sku ?? '',
+      short_description: p.short_description ?? '',
+      description: p.description ?? '',
+      ingredients: p.ingredients ?? '',
+      how_to_use: p.how_to_use ?? '',
+      flavor: p.flavor ?? '',
+      weight: p.weight ?? '',
       images: p.images?.join(', ') ?? '',
-      is_active: p.is_active, is_featured: p.is_featured,
+      is_active: p.is_active,
+      is_featured: p.is_featured,
     })
     setShowForm(true)
+  }
+
+  async function uploadImages(files: FileList) {
+    setUploading(true)
+    const urls: string[] = []
+    for (const file of Array.from(files)) {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      if (res.ok) {
+        const data = await res.json()
+        urls.push(data.url)
+      } else {
+        toast(`Failed to upload ${file.name}`, 'error')
+      }
+    }
+    setUploading(false)
+    if (urls.length) {
+      setForm((f) => ({
+        ...f,
+        images: f.images ? f.images + ', ' + urls.join(', ') : urls.join(', '),
+      }))
+      toast(`${urls.length} image(s) uploaded`)
+    }
   }
 
   async function save(e: React.FormEvent) {
@@ -74,15 +103,17 @@ export default function AdminProductsClient({ products: initial, categories }: P
       ingredients: form.ingredients || null,
       how_to_use: form.how_to_use || null,
       flavor: form.flavor || null,
+      weight: form.weight || null,
       images: form.images ? form.images.split(',').map((s) => s.trim()).filter(Boolean) : [],
       is_active: form.is_active,
       is_featured: form.is_featured,
     }
 
-    const res = await fetch('/api/admin/products' + (editId ? `/${editId}` : ''), {
+    const url = editId ? `/api/admin/products/${editId}` : '/api/admin/products'
+    const res = await fetch(url, {
       method: editId ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editId ? { id: editId, ...payload } : payload),
+      body: JSON.stringify(payload),
     })
     setSaving(false)
     if (!res.ok) { toast('Failed to save product', 'error'); return }
@@ -92,10 +123,14 @@ export default function AdminProductsClient({ products: initial, categories }: P
   }
 
   async function toggleActive(id: number, current: boolean) {
-    const res = await fetch('/api/admin/products', {
+    const res = await fetch(`/api/admin/products/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, is_active: !current }),
+      body: JSON.stringify({
+        ...products.find((p) => p.id === id),
+        is_active: !current,
+        images: products.find((p) => p.id === id)?.images ?? [],
+      }),
     })
     if (res.ok) {
       setProducts((pp) => pp.map((p) => p.id === id ? { ...p, is_active: !current } : p))
@@ -105,11 +140,7 @@ export default function AdminProductsClient({ products: initial, categories }: P
 
   async function deleteProduct(id: number, name: string) {
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return
-    const res = await fetch('/api/admin/products', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    })
+    const res = await fetch(`/api/admin/products/${id}`, { method: 'DELETE' })
     if (res.ok) {
       setProducts((pp) => pp.filter((p) => p.id !== id))
       toast('Product deleted')
@@ -227,12 +258,14 @@ export default function AdminProductsClient({ products: initial, categories }: P
                 <X size={18} />
               </button>
             </div>
-            <form onSubmit={save} className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+            <form onSubmit={save} className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
                 <div className="sm:col-span-2">
                   <FLabel label="Product Name *" />
-                  <input name="name" value={form.name} onChange={fc} required className={fClass} placeholder="e.g. Neo Balance Sachets" />
+                  <input name="name" value={form.name} onChange={fc} required className={fClass} placeholder="e.g. Menstrual Cup" />
                 </div>
+
                 <div>
                   <FLabel label="Category" />
                   <select name="category_id" value={form.category_id} onChange={fc} className={fClass}>
@@ -240,55 +273,114 @@ export default function AdminProductsClient({ products: initial, categories }: P
                     {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
+
                 <div>
                   <FLabel label="SKU" />
                   <input name="sku" value={form.sku} onChange={fc} className={fClass} placeholder="Optional" />
                 </div>
+
                 <div>
                   <FLabel label="Price (₹) *" />
                   <input name="price" type="number" step="0.01" min="0" value={form.price} onChange={fc} required className={fClass} />
                 </div>
+
                 <div>
                   <FLabel label="Sale Price (₹)" />
                   <input name="sale_price" type="number" step="0.01" min="0" value={form.sale_price} onChange={fc} className={fClass} />
                 </div>
+
                 <div>
                   <FLabel label="Stock" />
                   <input name="stock" type="number" min="0" value={form.stock} onChange={fc} className={fClass} />
                 </div>
+
                 <div>
-                  <FLabel label="Flavor" />
-                  <input name="flavor" value={form.flavor} onChange={fc} className={fClass} placeholder="e.g. Zesty Orange Berry" />
+                  <FLabel label="Flavor / Variant" />
+                  <input name="flavor" value={form.flavor} onChange={fc} className={fClass} placeholder="e.g. XS / Purple" />
                 </div>
+
                 <div className="sm:col-span-2">
                   <FLabel label="Short Description" />
-                  <input name="short_description" value={form.short_description} onChange={fc} className={fClass} />
+                  <input name="short_description" value={form.short_description} onChange={fc} className={fClass} placeholder="One-line summary" />
                 </div>
+
                 <div className="sm:col-span-2">
                   <FLabel label="Full Description" />
-                  <textarea name="description" value={form.description} onChange={fc} rows={3} className={fClass + ' resize-none'} />
+                  <textarea name="description" value={form.description} onChange={fc} rows={4} className={fClass + ' resize-none'} />
                 </div>
+
                 <div className="sm:col-span-2">
-                  <FLabel label="Ingredients" />
+                  <FLabel label="Ingredients / Materials" />
                   <textarea name="ingredients" value={form.ingredients} onChange={fc} rows={2} className={fClass + ' resize-none'} />
                 </div>
+
                 <div className="sm:col-span-2">
                   <FLabel label="How to Use" />
                   <textarea name="how_to_use" value={form.how_to_use} onChange={fc} rows={2} className={fClass + ' resize-none'} />
                 </div>
+
+                {/* Image upload */}
                 <div className="sm:col-span-2">
-                  <FLabel label="Image URLs (comma separated)" />
-                  <input name="images" value={form.images} onChange={fc} className={fClass} placeholder="https://..." />
+                  <FLabel label="Product Images" />
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      name="images"
+                      value={form.images}
+                      onChange={fc}
+                      className={fClass}
+                      placeholder="URLs comma-separated, or upload below"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-brand-dark rounded-xl text-sm font-medium transition-colors flex-shrink-0 disabled:opacity-50"
+                    >
+                      {uploading ? <Upload size={15} className="animate-bounce" /> : <ImagePlus size={15} />}
+                      {uploading ? 'Uploading…' : 'Upload'}
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => { if (e.target.files?.length) uploadImages(e.target.files) }}
+                    />
+                  </div>
+                  {/* Image previews */}
+                  {form.images && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {form.images.split(',').map((url) => url.trim()).filter(Boolean).map((url, i) => (
+                        <div key={i} className="relative group">
+                          <img src={url} alt="" className="w-16 h-16 object-cover rounded-lg border border-gray-200 bg-gray-50" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const urls = form.images.split(',').map((u) => u.trim()).filter(Boolean)
+                              urls.splice(i, 1)
+                              setForm((f) => ({ ...f, images: urls.join(', ') }))
+                            }}
+                            className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                          >×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
                 <div className="flex items-center gap-3">
                   <input type="checkbox" name="is_active" id="is_active" checked={form.is_active} onChange={fc} className="w-4 h-4 accent-primary" />
                   <label htmlFor="is_active" className="text-sm font-medium text-brand-dark">Active (visible in shop)</label>
                 </div>
+
                 <div className="flex items-center gap-3">
                   <input type="checkbox" name="is_featured" id="is_featured" checked={form.is_featured} onChange={fc} className="w-4 h-4 accent-primary" />
                   <label htmlFor="is_featured" className="text-sm font-medium text-brand-dark">Featured (shown on homepage)</label>
                 </div>
+
               </div>
+
               <div className="flex gap-3 pt-2 border-t border-gray-100">
                 <button type="button" onClick={() => setShowForm(false)}
                   className="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm font-medium text-brand-gray hover:bg-gray-50 transition-colors">Cancel</button>

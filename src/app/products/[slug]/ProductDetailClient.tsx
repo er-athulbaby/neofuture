@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useCart } from '@/components/cart/CartProvider'
@@ -103,13 +102,10 @@ export default function ProductDetailClient({ product, reviews, related }: Props
         {/* Image gallery */}
         <div>
           <div className="relative h-96 bg-brand-light rounded-2xl overflow-hidden mb-3">
-            <Image
+            <img
               src={images[activeImage]}
               alt={product.name}
-              fill
-              className="object-contain p-6"
-              priority
-              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="absolute inset-0 w-full h-full object-contain p-6"
             />
             {hasDiscount && (
               <span className="absolute top-4 left-4 bg-primary text-white text-sm font-bold px-3 py-1 rounded-lg">
@@ -123,7 +119,7 @@ export default function ProductDetailClient({ product, reviews, related }: Props
                 <button key={i} onClick={() => setActiveImage(i)}
                   className={cn('flex-shrink-0 w-16 h-16 rounded-xl border-2 overflow-hidden bg-brand-light transition-all',
                     activeImage === i ? 'border-primary' : 'border-gray-200')}>
-                  <Image src={img} alt="" width={64} height={64} className="object-contain p-1 w-full h-full" />
+                  <img src={img} alt="" className="object-contain p-1 w-full h-full" />
                 </button>
               ))}
             </div>

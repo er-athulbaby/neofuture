@@ -16,7 +16,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const {
     name, category_id, price, sale_price, stock, sku,
     short_description, description, ingredients, how_to_use,
-    flavor, images, is_active, is_featured,
+    flavor, weight, images, is_active, is_featured,
   } = await req.json()
 
   const slug = slugify(name)
@@ -25,11 +25,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     `UPDATE products SET
       name=$1, slug=$2, category_id=$3, price=$4, sale_price=$5, stock=$6, sku=$7,
       short_description=$8, description=$9, ingredients=$10, how_to_use=$11,
-      flavor=$12, images=$13, is_active=$14, is_featured=$15, updated_at=NOW()
-     WHERE id=$16`,
+      flavor=$12, weight=$13, images=$14, is_active=$15, is_featured=$16
+     WHERE id=$17`,
     [name, slug, category_id ?? null, price, sale_price ?? null, stock ?? 0, sku ?? null,
      short_description ?? null, description ?? null, ingredients ?? null, how_to_use ?? null,
-     flavor ?? null, JSON.stringify(images ?? []), is_active ?? true, is_featured ?? false, id]
+     flavor ?? null, weight ?? null, JSON.stringify(images ?? []), is_active ?? true, is_featured ?? false, id]
   )
 
   return NextResponse.json({ success: true })
