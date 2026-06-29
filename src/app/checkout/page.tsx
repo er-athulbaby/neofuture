@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useCart } from '@/components/cart/CartProvider'
 import { useToast } from '@/components/ui/ToastProvider'
 import { formatPrice } from '@/lib/utils'
-import { Lock, ChevronLeft, ChevronRight, MapPin, CreditCard } from 'lucide-react'
+import { Lock, ChevronLeft, ChevronRight, MapPin, CreditCard, Truck } from 'lucide-react'
 import Link from 'next/link'
 import type { ShippingAddress } from '@/types'
 
@@ -26,6 +26,8 @@ function CheckoutForm() {
   const couponCode = searchParams.get('coupon') ?? ''
   const [step, setStep] = useState<1 | 2>(1)
   const [loading, setLoading] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay')
+  const [codEnabled, setCodEnabled] = useState(false)
 
   const [address, setAddress] = useState<ShippingAddress>({
     name: session?.user?.name ?? '',
@@ -51,6 +53,19 @@ function CheckoutForm() {
     if (session?.user?.email) setAddress((a) => ({ ...a, email: session.user.email! }))
   }, [session])
 
+  // Fetch COD status from public settings endpoint
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.cod_enabled) {
+          setCodEnabled(true)
+          setPaymentMethod('cod')
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   const fieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setAddress((a) => ({ ...a, [e.target.name]: e.target.value }))
   }
@@ -66,10 +81,27 @@ function CheckoutForm() {
     if (!/^\d{10}$/.test(address.phone)) { toast('Enter a valid 10-digit phone number', 'error'); return }
 
     setLoading(true)
+
+    // COD: place order immediately without Razorpay
+    if (paymentMethod === 'cod') {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, shippingAddress: address, couponCode, payment_method: 'cod' }),
+      })
+      const data = await res.json()
+      setLoading(false)
+      if (!res.ok) { toast(data.error || 'Failed to place order', 'error'); return }
+      clearCart()
+      router.push(`/order/${data.order_id}`)
+      return
+    }
+
+    // Razorpay: create order and go to step 2
     const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items, shippingAddress: address, couponCode }),
+      body: JSON.stringify({ items, shippingAddress: address, couponCode, payment_method: 'razorpay' }),
     })
     const data = await res.json()
     setLoading(false)
@@ -81,7 +113,6 @@ function CheckoutForm() {
   async function initiatePayment() {
     if (!pricing) return
 
-    // Load Razorpay script
     if (!window.Razorpay) {
       await new Promise<void>((resolve) => {
         const s = document.createElement('script')
@@ -143,8 +174,9 @@ function CheckoutForm() {
           <div key={i} className="flex items-center">
             <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors
               ${i + 1 === step ? 'bg-primary text-white' : i + 1 < step ? 'bg-success text-white' : 'bg-gray-100 text-brand-gray'}`}>
-              <span className="w-5 h-5 rounded-full border-2 flex items-center justify-center text-xs font-bold
-                border-current">{i + 1 < step ? '✓' : i + 1}</span>
+              <span className="w-5 h-5 rounded-full border-2 flex items-center justify-center text-xs font-bold border-current">
+                {i + 1 < step ? '✓' : i + 1}
+              </span>
               {label}
             </div>
             {i === 0 && <ChevronRight size={16} className="text-gray-300 mx-1" />}
@@ -156,35 +188,81 @@ function CheckoutForm() {
         {/* Left: form */}
         <div className="lg:col-span-2">
           {step === 1 && (
-            <form onSubmit={proceedToPayment} className="bg-white rounded-2xl border border-gray-100 p-6">
-              <h2 className="font-bold text-brand-dark text-lg mb-5 flex items-center gap-2">
-                <MapPin size={20} className="text-primary" /> Shipping Details
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Full Name" name="name" value={address.name} onChange={fieldChange} required />
-                <Field label="Phone Number" name="phone" value={address.phone} onChange={fieldChange} required placeholder="10-digit mobile" />
-                <div className="sm:col-span-2">
-                  <Field label="Email" name="email" type="email" value={address.email ?? ''} onChange={fieldChange} />
+            <form onSubmit={proceedToPayment} className="space-y-5">
+              {/* Address */}
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <h2 className="font-bold text-brand-dark text-lg mb-5 flex items-center gap-2">
+                  <MapPin size={20} className="text-primary" /> Shipping Details
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="Full Name" name="name" value={address.name} onChange={fieldChange} required />
+                  <Field label="Phone Number" name="phone" value={address.phone} onChange={fieldChange} required placeholder="10-digit mobile" />
+                  <div className="sm:col-span-2">
+                    <Field label="Email" name="email" type="email" value={address.email ?? ''} onChange={fieldChange} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field label="Address Line 1" name="line1" value={address.line1} onChange={fieldChange} required placeholder="House / Flat / Block No." />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field label="Address Line 2 (optional)" name="line2" value={address.line2 ?? ''} onChange={fieldChange} placeholder="Street / Locality" />
+                  </div>
+                  <Field label="City" name="city" value={address.city} onChange={fieldChange} required />
+                  <Field label="State" name="state" value={address.state} onChange={fieldChange} required />
+                  <Field label="Pincode" name="pincode" value={address.pincode} onChange={fieldChange} required placeholder="6-digit PIN" />
+                  <Field label="Country" name="country" value={address.country ?? 'India'} onChange={fieldChange} disabled />
                 </div>
-                <div className="sm:col-span-2">
-                  <Field label="Address Line 1" name="line1" value={address.line1} onChange={fieldChange} required placeholder="House / Flat / Block No." />
-                </div>
-                <div className="sm:col-span-2">
-                  <Field label="Address Line 2 (optional)" name="line2" value={address.line2 ?? ''} onChange={fieldChange} placeholder="Street / Locality" />
-                </div>
-                <Field label="City" name="city" value={address.city} onChange={fieldChange} required />
-                <Field label="State" name="state" value={address.state} onChange={fieldChange} required />
-                <Field label="Pincode" name="pincode" value={address.pincode} onChange={fieldChange} required placeholder="6-digit PIN" />
-                <Field label="Country" name="country" value={address.country ?? 'India'} onChange={fieldChange} disabled />
               </div>
-              <div className="flex gap-3 mt-6">
+
+              {/* Payment method selector */}
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <h2 className="font-bold text-brand-dark text-lg mb-4 flex items-center gap-2">
+                  <CreditCard size={20} className="text-primary" /> Payment Method
+                </h2>
+                <div className="space-y-3">
+                  <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-colors ${paymentMethod === 'razorpay' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="razorpay"
+                      checked={paymentMethod === 'razorpay'}
+                      onChange={() => setPaymentMethod('razorpay')}
+                      className="accent-primary w-4 h-4"
+                    />
+                    <div className="flex-1">
+                      <p className="font-semibold text-brand-dark text-sm">Pay Online</p>
+                      <p className="text-xs text-brand-gray mt-0.5">UPI, Credit / Debit Card, Net Banking via Razorpay</p>
+                    </div>
+                    <Lock size={16} className="text-primary" />
+                  </label>
+
+                  {codEnabled && (
+                    <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="cod"
+                        checked={paymentMethod === 'cod'}
+                        onChange={() => setPaymentMethod('cod')}
+                        className="accent-primary w-4 h-4"
+                      />
+                      <div className="flex-1">
+                        <p className="font-semibold text-brand-dark text-sm">Cash on Delivery (COD)</p>
+                        <p className="text-xs text-brand-gray mt-0.5">Pay in cash when your order arrives</p>
+                      </div>
+                      <Truck size={16} className="text-green-600" />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3">
                 <Link href="/cart"
                   className="flex items-center gap-1.5 px-5 py-3 border border-gray-200 rounded-xl text-sm font-medium text-brand-gray hover:border-gray-300 transition-colors">
                   <ChevronLeft size={16} /> Back to Cart
                 </Link>
                 <button type="submit" disabled={loading}
                   className="flex-1 flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark disabled:opacity-60 transition-colors">
-                  {loading ? 'Processing...' : 'Continue to Payment'}
+                  {loading ? 'Processing...' : paymentMethod === 'cod' ? 'Place Order (COD)' : 'Continue to Payment'}
                   <ChevronRight size={18} />
                 </button>
               </div>
@@ -197,7 +275,6 @@ function CheckoutForm() {
                 <CreditCard size={20} className="text-primary" /> Payment
               </h2>
 
-              {/* Confirm address */}
               <div className="bg-brand-light rounded-xl p-4 mb-6">
                 <p className="text-xs font-semibold text-brand-gray uppercase tracking-wide mb-2">Delivering to</p>
                 <p className="text-sm text-brand-dark font-medium">{address.name}</p>
@@ -207,7 +284,6 @@ function CheckoutForm() {
                 <button onClick={() => setStep(1)} className="text-xs text-primary hover:underline mt-1">Change</button>
               </div>
 
-              {/* Amount breakdown */}
               <div className="space-y-2 text-sm mb-6">
                 <div className="flex justify-between text-brand-gray">
                   <span>Subtotal</span><span>{formatPrice(pricing.subtotal)}</span>

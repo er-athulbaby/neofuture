@@ -14,62 +14,123 @@ function getRazorpay() {
   })
 }
 
+async function isCodEnabled(): Promise<boolean> {
+  try {
+    const row = await queryOne<{ value: string }>(
+      `SELECT value FROM site_settings WHERE key = 'cod_enabled'`,
+      []
+    )
+    return row?.value === 'true'
+  } catch {
+    return false
+  }
+}
+
+async function calcOrder(items: CartItem[], couponCode: string | undefined) {
+  const productIds = items.map((i) => i.product_id)
+  const dbProducts = await query<{ id: number; price: number; sale_price: number | null; stock: number; name: string; images: string[] }>(
+    `SELECT id, price, sale_price, stock, name, images FROM products WHERE id = ANY($1) AND is_active = true`,
+    [productIds]
+  )
+
+  let subtotal = 0
+  const validatedItems = []
+  for (const item of items) {
+    const dbP = dbProducts.find((p) => p.id === item.product_id)
+    if (!dbP) throw new Error(`Product ${item.name} not found`)
+    if (dbP.stock < item.quantity) throw new Error(`Insufficient stock for ${dbP.name}`)
+    const price = dbP.sale_price ?? dbP.price
+    subtotal += price * item.quantity
+    validatedItems.push({ ...item, price, dbProduct: dbP })
+  }
+
+  let discount = 0
+  let couponId: number | null = null
+  if (couponCode) {
+    const coupon = await queryOne<Coupon>(
+      `SELECT * FROM coupons WHERE code = $1 AND is_active = true AND (expires_at IS NULL OR expires_at > NOW()) AND (usage_limit IS NULL OR used_count < usage_limit)`,
+      [couponCode.toUpperCase()]
+    )
+    if (coupon && subtotal >= coupon.min_order) {
+      discount = coupon.type === 'percent'
+        ? Math.round((subtotal * coupon.value) / 100)
+        : Math.min(coupon.value, subtotal)
+      couponId = coupon.id
+    }
+  }
+
+  const shipping = subtotal >= 999 ? 0 : 50
+  const total = subtotal - discount + shipping
+  return { subtotal, discount, shipping, total, couponId, validatedItems }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()
     const body = await req.json()
-    const { items, shippingAddress, couponCode }: {
+    const { items, shippingAddress, couponCode, payment_method }: {
       items: CartItem[]
       shippingAddress: ShippingAddress
       couponCode?: string
+      payment_method?: 'razorpay' | 'cod'
     } = body
 
     if (!items?.length) return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
 
-    // Validate stock and prices from DB
-    const productIds = items.map((i) => i.product_id)
-    const dbProducts = await query<{ id: number; price: number; sale_price: number | null; stock: number; name: string; images: string[] }>(
-      `SELECT id, price, sale_price, stock, name, images FROM products WHERE id = ANY($1) AND is_active = true`,
-      [productIds]
-    )
+    const codEnabled = await isCodEnabled()
 
-    let subtotal = 0
-    const validatedItems = []
-    for (const item of items) {
-      const dbP = dbProducts.find((p) => p.id === item.product_id)
-      if (!dbP) return NextResponse.json({ error: `Product ${item.name} not found` }, { status: 400 })
-      if (dbP.stock < item.quantity) return NextResponse.json({ error: `Insufficient stock for ${dbP.name}` }, { status: 400 })
-      const price = dbP.sale_price ?? dbP.price
-      subtotal += price * item.quantity
-      validatedItems.push({ ...item, price, dbProduct: dbP })
-    }
+    // --- COD path: create order directly ---
+    if (payment_method === 'cod') {
+      if (!codEnabled) return NextResponse.json({ error: 'Cash on Delivery is not available.' }, { status: 400 })
 
-    // Apply coupon
-    let discount = 0
-    let couponId: number | null = null
-    if (couponCode) {
-      const coupon = await queryOne<Coupon>(
-        `SELECT * FROM coupons WHERE code = $1 AND is_active = true AND (expires_at IS NULL OR expires_at > NOW()) AND (usage_limit IS NULL OR used_count < usage_limit)`,
-        [couponCode.toUpperCase()]
+      const { subtotal, discount, shipping, total, couponId, validatedItems } = await calcOrder(items, couponCode)
+      const orderNumber = generateOrderNumber()
+
+      const order = await queryOne<{ id: number }>(
+        `INSERT INTO orders
+          (order_number, user_id, subtotal, discount, shipping, total, coupon_id, status, payment_status, shipping_address)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'confirmed', 'pending', $8)
+         RETURNING id`,
+        [orderNumber, session?.user?.id ?? null, subtotal, discount, shipping, total,
+         couponId ?? null, JSON.stringify(shippingAddress)]
       )
-      if (coupon && subtotal >= coupon.min_order) {
-        discount = coupon.type === 'percent'
-          ? Math.round((subtotal * coupon.value) / 100)
-          : Math.min(coupon.value, subtotal)
-        couponId = coupon.id
+
+      for (const item of validatedItems) {
+        await query(
+          `INSERT INTO order_items (order_id, product_id, product_name, product_image, quantity, price, total)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [order!.id, item.product_id, item.name, item.image ?? null, item.quantity, item.price, item.price * item.quantity]
+        )
+        await query(`UPDATE products SET stock = stock - $1 WHERE id = $2`, [item.quantity, item.product_id])
       }
+
+      if (couponId) await query(`UPDATE coupons SET used_count = used_count + 1 WHERE id = $1`, [couponId])
+
+      const email = session?.user?.email ?? shippingAddress.email
+      if (email) {
+        await sendOrderConfirmation(email, {
+          orderNumber,
+          total,
+          items: validatedItems.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+        }).catch(() => {})
+      }
+
+      await query(
+        `INSERT INTO analytics_events (event_type, user_id, data) VALUES ($1, $2, $3)`,
+        ['purchase', session?.user?.id ?? null, JSON.stringify({ order_number: orderNumber, total, method: 'cod' })]
+      ).catch(() => {})
+
+      return NextResponse.json({ cod: true, success: true, order_id: order!.id, order_number: orderNumber })
     }
 
-    const shipping = subtotal >= 999 ? 0 : 50
-    const total = subtotal - discount + shipping
+    // --- Razorpay path ---
+    const { subtotal, discount, shipping, total, couponId } = await calcOrder(items, couponCode)
 
-    // Validate Razorpay keys
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       console.error('Razorpay keys not configured')
       return NextResponse.json({ error: 'Payment gateway not configured. Please contact support.' }, { status: 500 })
     }
 
-    // Create Razorpay order
     let rzpOrder
     try {
       rzpOrder = await getRazorpay().orders.create({
@@ -91,10 +152,12 @@ export async function POST(req: NextRequest) {
       total,
       coupon_id: couponId,
       key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      cod_enabled: codEnabled,
     })
   } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Failed to create order'
     console.error('Checkout create error:', err)
-    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
 
@@ -119,7 +182,6 @@ export async function PUT(req: NextRequest) {
 
     const orderNumber = generateOrderNumber()
 
-    // Create order in DB
     const order = await queryOne<{ id: number }>(
       `INSERT INTO orders
         (order_number, user_id, subtotal, discount, shipping, total, coupon_id, status, payment_status,
@@ -130,23 +192,19 @@ export async function PUT(req: NextRequest) {
        razorpay_order_id, razorpay_payment_id, razorpay_signature, JSON.stringify(shippingAddress)]
     )
 
-    // Insert order items
     for (const item of items) {
       await query(
         `INSERT INTO order_items (order_id, product_id, product_name, product_image, quantity, price, total)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [order!.id, item.product_id, item.name, item.image ?? null, item.quantity, item.sale_price ?? item.price, (item.sale_price ?? item.price) * item.quantity]
       )
-      // Decrement stock
       await query(`UPDATE products SET stock = stock - $1 WHERE id = $2`, [item.quantity, item.product_id])
     }
 
-    // Increment coupon usage
     if (couponId) {
       await query(`UPDATE coupons SET used_count = used_count + 1 WHERE id = $1`, [couponId])
     }
 
-    // Send confirmation email
     const email = session?.user?.email ?? shippingAddress.email
     if (email) {
       await sendOrderConfirmation(email, {
@@ -156,7 +214,6 @@ export async function PUT(req: NextRequest) {
       }).catch(() => {})
     }
 
-    // Analytics
     await query(
       `INSERT INTO analytics_events (event_type, user_id, data) VALUES ($1, $2, $3)`,
       ['purchase', session?.user?.id ?? null, JSON.stringify({ order_number: orderNumber, total })]

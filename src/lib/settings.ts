@@ -31,6 +31,7 @@ export interface SiteConfig {
   color_neo_orange: string
   color_neo_purple: string
   color_brand_dark: string
+  cod_enabled: string
 }
 
 export const CONFIG_DEFAULTS: SiteConfig = {
@@ -63,6 +64,7 @@ export const CONFIG_DEFAULTS: SiteConfig = {
   color_neo_orange: '#E07B2A',
   color_neo_purple: '#7B35A8',
   color_brand_dark: '#1A1535',
+  cod_enabled: 'false',
 }
 
 export const getSiteConfig = cache(async function getSiteConfigFn(): Promise<SiteConfig> {

@@ -16,6 +16,7 @@ type Cfg = {
   color_primary: string; color_primary_dark: string; color_primary_light: string
   color_neo_orange: string; color_neo_purple: string; color_brand_dark: string
   razorpay_mode: string
+  cod_enabled: string
 }
 
 const D: Cfg = {
@@ -38,6 +39,7 @@ const D: Cfg = {
   color_primary: '#D4236A', color_primary_dark: '#A81B54', color_primary_light: '#FBE8F2',
   color_neo_orange: '#E07B2A', color_neo_purple: '#7B35A8', color_brand_dark: '#1A1535',
   razorpay_mode: 'test',
+  cod_enabled: 'false',
 }
 
 export default function AdminSettingsPage() {
@@ -224,6 +226,24 @@ export default function AdminSettingsPage() {
               <option value="live">Live Mode (use rzp_live_ keys)</option>
             </select>
           </div>
+          <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl border border-gray-100">
+            <div>
+              <p className="text-sm font-semibold text-brand-dark">Cash on Delivery (COD)</p>
+              <p className="text-xs text-brand-gray mt-0.5">Allow customers to pay on delivery. Useful for testing without Razorpay.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setS((x) => ({ ...x, cod_enabled: x.cod_enabled === 'true' ? 'false' : 'true' }))}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${s.cod_enabled === 'true' ? 'bg-primary' : 'bg-gray-200'}`}
+            >
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${s.cod_enabled === 'true' ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+          {s.cod_enabled === 'true' && (
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">
+              ⚠️ COD is currently <strong>enabled</strong>. Customers can place orders without online payment. Disable this before going live if you want to enforce online payment.
+            </p>
+          )}
         </Sec>
 
         <div className="flex justify-end">
