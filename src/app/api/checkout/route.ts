@@ -63,12 +63,25 @@ export async function POST(req: NextRequest) {
     const shipping = subtotal >= 999 ? 0 : 50
     const total = subtotal - discount + shipping
 
+    // Validate Razorpay keys
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      console.error('Razorpay keys not configured')
+      return NextResponse.json({ error: 'Payment gateway not configured. Please contact support.' }, { status: 500 })
+    }
+
     // Create Razorpay order
-    const rzpOrder = await getRazorpay().orders.create({
-      amount: Math.round(total * 100),
-      currency: 'INR',
-      receipt: generateOrderNumber(),
-    })
+    let rzpOrder
+    try {
+      rzpOrder = await getRazorpay().orders.create({
+        amount: Math.round(total * 100),
+        currency: 'INR',
+        receipt: generateOrderNumber(),
+      })
+    } catch (rzpErr: unknown) {
+      const msg = rzpErr instanceof Error ? rzpErr.message : String(rzpErr)
+      console.error('Razorpay order creation failed:', msg)
+      return NextResponse.json({ error: `Payment gateway error: ${msg}` }, { status: 500 })
+    }
 
     return NextResponse.json({
       razorpay_order_id: rzpOrder.id,
