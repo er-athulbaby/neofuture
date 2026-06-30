@@ -3,13 +3,13 @@ import { auth } from '@/lib/auth'
 import { queryOne, query } from '@/lib/db'
 import { formatPrice, formatDate } from '@/lib/utils'
 import Link from 'next/link'
-import { CheckCircle2, Package, Truck, MapPin, Clock } from 'lucide-react'
+import { CheckCircle2, Truck, MapPin, Clock, FileText } from 'lucide-react'
 
 interface Props { params: Promise<{ id: string }> }
 
 interface OrderRow {
   id: number; order_number: string; status: string; payment_status: string
-  subtotal: number; discount: number; shipping: number; total: number
+  subtotal: number; discount: number; shipping: number; tax: number | null; total: number
   created_at: string; shipping_address: string; tracking_number: string | null
   notes: string | null; user_id: string | null
 }
@@ -126,6 +126,11 @@ export default async function OrderPage({ params }: Props) {
               <span>Discount</span><span>−{formatPrice(order.discount)}</span>
             </div>
           )}
+          {(order.tax ?? 0) > 0 && (
+            <div className="flex justify-between text-brand-gray">
+              <span>GST</span><span>{formatPrice(order.tax!)}</span>
+            </div>
+          )}
           <div className="flex justify-between text-brand-gray">
             <span>Shipping</span>
             <span className={order.shipping === 0 ? 'text-success' : ''}>{order.shipping === 0 ? 'Free' : formatPrice(order.shipping)}</span>
@@ -160,6 +165,10 @@ export default async function OrderPage({ params }: Props) {
             View All Orders
           </Link>
         )}
+        <Link href={`/order/${id}/invoice`}
+          className="flex items-center justify-center gap-2 w-full border-2 border-gray-200 text-brand-gray px-6 py-3 rounded-xl font-semibold hover:border-primary hover:text-primary transition-colors text-sm">
+          <FileText size={16} /> Download Invoice
+        </Link>
       </div>
     </div>
   )

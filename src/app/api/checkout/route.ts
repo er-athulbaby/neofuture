@@ -130,8 +130,14 @@ export async function POST(req: NextRequest) {
       if (email) {
         await sendOrderConfirmation(email, {
           orderNumber,
+          orderId: order!.id,
           total,
+          subtotal,
+          discount,
+          shipping,
+          tax,
           items: validatedItems.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+          shippingAddress,
         }).catch(() => {})
       }
 
@@ -236,8 +242,14 @@ export async function PUT(req: NextRequest) {
     if (email) {
       await sendOrderConfirmation(email, {
         orderNumber,
+        orderId: order!.id,
         total,
+        subtotal,
+        discount,
+        shipping,
+        tax: tax ?? 0,
         items: items.map((i: CartItem) => ({ name: i.name, quantity: i.quantity, price: i.sale_price ?? i.price })),
+        shippingAddress,
       }).catch(() => {})
     }
 

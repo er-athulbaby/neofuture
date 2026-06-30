@@ -12,33 +12,105 @@ const transporter = nodemailer.createTransport({
 
 export async function sendOrderConfirmation(
   to: string,
-  order: { orderNumber: string; total: number; items: { name: string; quantity: number; price: number }[] }
+  order: {
+    orderNumber: string
+    orderId?: number
+    total: number
+    subtotal?: number
+    discount?: number
+    shipping?: number
+    tax?: number
+    items: { name: string; quantity: number; price: number }[]
+    shippingAddress?: { name?: string; line1?: string; city?: string; state?: string; pincode?: string }
+  }
 ) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  const invoiceUrl = order.orderId ? `${siteUrl}/order/${order.orderId}/invoice` : null
+
   const itemsHtml = order.items
-    .map(
-      (i) =>
-        `<tr><td>${i.name}</td><td>x${i.quantity}</td><td>₹${i.price}</td></tr>`
-    )
+    .map((i) => `
+      <tr>
+        <td style="padding:10px 8px;border-bottom:1px solid #f0e6f0">${i.name}</td>
+        <td style="padding:10px 8px;border-bottom:1px solid #f0e6f0;text-align:center">×${i.quantity}</td>
+        <td style="padding:10px 8px;border-bottom:1px solid #f0e6f0;text-align:right">₹${(i.price * i.quantity).toLocaleString('en-IN')}</td>
+      </tr>`)
     .join('')
+
+  const subtotal = order.subtotal ?? order.total
+  const discount = order.discount ?? 0
+  const shipping = order.shipping ?? 0
+  const tax = order.tax ?? 0
+
+  const addr = order.shippingAddress
+  const addrHtml = addr ? `
+    <div style="margin:20px 0;padding:14px 16px;background:#f9f4fb;border-radius:8px;font-size:13px">
+      <strong style="color:#555">Shipping To</strong><br/>
+      <span style="color:#333">${addr.name ?? ''}</span><br/>
+      <span style="color:#666">${addr.line1 ?? ''}, ${addr.city ?? ''}, ${addr.state ?? ''} – ${addr.pincode ?? ''}</span>
+    </div>` : ''
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM,
     to,
-    subject: `Order Confirmed — ${order.orderNumber} | NeoFuture`,
+    subject: `Order Confirmed — #${order.orderNumber} | NeoFuture`,
     html: `
-      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-        <h2 style="color:#D4236A">Thank you for your order!</h2>
-        <p>Order number: <strong>${order.orderNumber}</strong></p>
-        <table width="100%" cellpadding="8" style="border-collapse:collapse;margin:16px 0">
-          <thead><tr style="background:#f9e4ef">
-            <th align="left">Product</th><th>Qty</th><th>Price</th>
-          </tr></thead>
-          <tbody>${itemsHtml}</tbody>
-        </table>
-        <p><strong>Total: ₹${order.total}</strong></p>
-        <p style="color:#666">We'll notify you when your order ships. For support, reply to this email.</p>
-        <hr/>
-        <p style="font-size:12px;color:#999">NeoFuture — From trusted hands to quality lives</p>
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;color:#1A1535">
+        <!-- Header -->
+        <div style="background:#D4236A;padding:28px 32px;border-radius:12px 12px 0 0;text-align:center">
+          <p style="color:#fff;font-size:22px;font-weight:800;margin:0">
+            <span style="color:#ffd6ea">neo</span>future™
+          </p>
+          <p style="color:rgba(255,255,255,0.8);font-size:13px;margin:4px 0 0">From trusted hands to quality lives</p>
+        </div>
+
+        <!-- Body -->
+        <div style="background:#fff;padding:32px;border:1px solid #f0e6f0;border-top:none">
+          <h2 style="margin:0 0 8px;font-size:20px">Order Confirmed!</h2>
+          <p style="color:#666;margin:0 0 20px">Thank you for shopping with NeoFuture. Your order is being processed.</p>
+
+          <div style="background:#f9f4fb;border-radius:8px;padding:14px 16px;font-size:14px;margin-bottom:24px">
+            <strong>Order #${order.orderNumber}</strong>
+          </div>
+
+          ${addrHtml}
+
+          <!-- Items -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin-bottom:16px">
+            <thead>
+              <tr style="background:#f9e4ef">
+                <th style="padding:10px 8px;text-align:left;font-weight:600;color:#555">Item</th>
+                <th style="padding:10px 8px;text-align:center;font-weight:600;color:#555">Qty</th>
+                <th style="padding:10px 8px;text-align:right;font-weight:600;color:#555">Amount</th>
+              </tr>
+            </thead>
+            <tbody>${itemsHtml}</tbody>
+          </table>
+
+          <!-- Totals -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin-bottom:24px">
+            ${discount > 0 ? `<tr><td style="padding:5px 8px;color:#666">Discount</td><td style="padding:5px 8px;text-align:right;color:#22c55e">−₹${discount.toLocaleString('en-IN')}</td></tr>` : ''}
+            ${tax > 0 ? `<tr><td style="padding:5px 8px;color:#666">GST</td><td style="padding:5px 8px;text-align:right;color:#666">₹${tax.toLocaleString('en-IN')}</td></tr>` : ''}
+            <tr><td style="padding:5px 8px;color:#666">Shipping</td><td style="padding:5px 8px;text-align:right;color:#666">${shipping === 0 ? 'Free' : `₹${shipping.toLocaleString('en-IN')}`}</td></tr>
+            <tr style="border-top:2px solid #f0e6f0">
+              <td style="padding:10px 8px;font-weight:700;font-size:16px">Total Paid</td>
+              <td style="padding:10px 8px;text-align:right;font-weight:700;font-size:16px;color:#D4236A">₹${order.total.toLocaleString('en-IN')}</td>
+            </tr>
+          </table>
+
+          ${invoiceUrl ? `
+          <div style="text-align:center;margin:24px 0">
+            <a href="${invoiceUrl}" style="display:inline-block;background:#D4236A;color:#fff;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">
+              View & Download Invoice
+            </a>
+          </div>` : ''}
+
+          <p style="color:#888;font-size:13px;margin-top:24px">We'll send you another email when your order ships. For support, just reply to this email.</p>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align:center;padding:20px;font-size:12px;color:#aaa">
+          NeoFuture · From trusted hands to quality lives
+        </div>
       </div>
     `,
   })
