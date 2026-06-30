@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { query } from '@/lib/db'
 import type { Product, Category } from '@/types'
 import ShopClient from './ShopClient'
@@ -20,5 +21,9 @@ export default async function ShopPage() {
     query<Category>('SELECT * FROM categories ORDER BY display_order').catch(() => []),
   ])
 
-  return <ShopClient initialProducts={products} categories={categories} />
+  return (
+    <Suspense fallback={null}>
+      <ShopClient initialProducts={products} categories={categories} />
+    </Suspense>
+  )
 }

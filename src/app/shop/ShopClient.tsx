@@ -1,17 +1,26 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import type { Product, Category } from '@/types'
 import ProductCard from '@/components/products/ProductCard'
+import AIProductAdvisor from '@/components/ai/AIProductAdvisor'
 import { Search, SlidersHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useSearchParams } from 'next/navigation'
 
 const PAGE_SIZE = 12
 
 interface Props { initialProducts: Product[]; categories: Category[] }
 
 export default function ShopClient({ initialProducts, categories }: Props) {
-  const [search, setSearch] = useState('')
+  const searchParams = useSearchParams()
+  const [search, setSearch] = useState(searchParams.get('q') ?? '')
+
+  // Sync URL ?q param (set by AI advisor)
+  useEffect(() => {
+    const q = searchParams.get('q')
+    if (q) setSearch(q)
+  }, [searchParams])
   const [category, setCategory] = useState<string | null>(null)
   const [sort, setSort] = useState('featured')
   const [minPrice, setMinPrice] = useState('')
@@ -77,7 +86,7 @@ export default function ShopClient({ initialProducts, categories }: Props) {
         {/* Products grid */}
         <div className="flex-1">
           {/* Top bar */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <div className="flex-1 relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-gray" />
               <input type="text" placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)}
@@ -90,6 +99,7 @@ export default function ShopClient({ initialProducts, categories }: Props) {
               <option value="price_desc">Price: High to Low</option>
               <option value="rating">Top Rated</option>
             </select>
+            <AIProductAdvisor />
           </div>
 
           <p className="text-sm text-brand-gray mb-4">{filtered.length} products</p>
