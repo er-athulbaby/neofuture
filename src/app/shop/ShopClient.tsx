@@ -6,6 +6,8 @@ import ProductCard from '@/components/products/ProductCard'
 import { Search, SlidersHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+const PAGE_SIZE = 12
+
 interface Props { initialProducts: Product[]; categories: Category[] }
 
 export default function ShopClient({ initialProducts, categories }: Props) {
@@ -14,8 +16,10 @@ export default function ShopClient({ initialProducts, categories }: Props) {
   const [sort, setSort] = useState('featured')
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const filtered = useMemo(() => {
+    setVisibleCount(PAGE_SIZE)
     let products = [...initialProducts]
     if (category) products = products.filter((p) => p.category_slug === category)
     if (search) products = products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
@@ -91,9 +95,22 @@ export default function ShopClient({ initialProducts, categories }: Props) {
           <p className="text-sm text-brand-gray mb-4">{filtered.length} products</p>
 
           {filtered.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-              {filtered.map((p) => <ProductCard key={p.id} product={p} />)}
-            </div>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                {filtered.slice(0, visibleCount).map((p) => <ProductCard key={p.id} product={p} />)}
+              </div>
+              {visibleCount < filtered.length && (
+                <div className="flex flex-col items-center mt-10 gap-2">
+                  <p className="text-sm text-brand-gray">Showing {Math.min(visibleCount, filtered.length)} of {filtered.length} products</p>
+                  <button
+                    onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
+                    className="px-8 py-3 border-2 border-primary text-primary rounded-xl font-semibold hover:bg-primary hover:text-white transition-colors"
+                  >
+                    Load More
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="text-center py-20 text-brand-gray">
               <p className="text-lg font-medium">No products found</p>

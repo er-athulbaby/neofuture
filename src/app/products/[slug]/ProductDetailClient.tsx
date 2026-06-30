@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useCart } from '@/components/cart/CartProvider'
@@ -24,6 +24,16 @@ export default function ProductDetailClient({ product, reviews, related }: Props
 
   const [activeImage, setActiveImage] = useState(0)
   const [qty, setQty] = useState(1)
+
+  // Track recently viewed in localStorage
+  useEffect(() => {
+    try {
+      const key = 'nf_recently_viewed'
+      const stored: number[] = JSON.parse(localStorage.getItem(key) ?? '[]')
+      const updated = [product.id, ...stored.filter((id) => id !== product.id)].slice(0, 10)
+      localStorage.setItem(key, JSON.stringify(updated))
+    } catch {}
+  }, [product.id])
   const [activeTab, setActiveTab] = useState<'description' | 'ingredients' | 'how_to_use' | 'reviews'>('description')
   const [reviewForm, setReviewForm] = useState({ rating: 0, comment: '' })
   const [submittingReview, setSubmittingReview] = useState(false)

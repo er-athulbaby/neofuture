@@ -44,6 +44,27 @@ export async function sendOrderConfirmation(
   })
 }
 
+export async function sendPasswordReset(to: string, resetUrl: string) {
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM,
+    to,
+    subject: 'Reset your NeoFuture password',
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <h2 style="color:#D4236A">Password Reset Request</h2>
+        <p>We received a request to reset your NeoFuture account password.</p>
+        <p>Click the button below to choose a new password. This link expires in <strong>1 hour</strong>.</p>
+        <a href="${resetUrl}" style="display:inline-block;background:#D4236A;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0">
+          Reset My Password
+        </a>
+        <p style="color:#666;font-size:13px">If you didn't request this, you can safely ignore this email. Your password will not change.</p>
+        <hr/>
+        <p style="font-size:12px;color:#999">NeoFuture — From trusted hands to quality lives</p>
+      </div>
+    `,
+  })
+}
+
 export async function sendShippingUpdate(
   to: string,
   order: { orderNumber: string; trackingNumber: string }

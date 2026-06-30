@@ -101,7 +101,12 @@ export async function POST(req: NextRequest) {
            VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [order!.id, item.product_id, item.name, item.image ?? null, item.quantity, item.price, item.price * item.quantity]
         )
-        await query(`UPDATE products SET stock = stock - $1 WHERE id = $2`, [item.quantity, item.product_id])
+        // Atomic stock decrement — fails if stock is now insufficient (race condition guard)
+        const updated = await query(
+          `UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $1 RETURNING id`,
+          [item.quantity, item.product_id]
+        )
+        if (updated.length === 0) throw new Error(`${item.name} just went out of stock. Please remove it from your cart.`)
       }
 
       if (couponId) await query(`UPDATE coupons SET used_count = used_count + 1 WHERE id = $1`, [couponId])
@@ -198,7 +203,11 @@ export async function PUT(req: NextRequest) {
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [order!.id, item.product_id, item.name, item.image ?? null, item.quantity, item.sale_price ?? item.price, (item.sale_price ?? item.price) * item.quantity]
       )
-      await query(`UPDATE products SET stock = stock - $1 WHERE id = $2`, [item.quantity, item.product_id])
+      const upd = await query(
+        `UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $1 RETURNING id`,
+        [item.quantity, item.product_id]
+      )
+      if (upd.length === 0) throw new Error(`${item.product_name ?? item.name} just went out of stock`)
     }
 
     if (couponId) {
