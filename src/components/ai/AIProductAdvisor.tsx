@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Sparkles, SendHorizonal, X, ChevronDown, Loader2 } from 'lucide-react'
+import { Sparkles, SendHorizonal, X, ChevronDown, Loader2, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
@@ -13,26 +13,35 @@ const SUGGESTIONS = [
   'Pregnant and want support products',
 ]
 
+const LS_KEY = 'nf_ai_recommendation'
+
+interface Saved { response: string; product: string | null; concern: string }
+
 export default function AIProductAdvisor() {
   const [open, setOpen] = useState(false)
   const [concern, setConcern] = useState('')
   const [response, setResponse] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
+  const [saved, setSaved] = useState<Saved | null>(null)
   const responseRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // Auto-scroll response area as text streams in
+  // Load previous recommendation from localStorage on mount
   useEffect(() => {
-    if (responseRef.current) {
-      responseRef.current.scrollTop = responseRef.current.scrollHeight
-    }
+    try {
+      const stored = localStorage.getItem(LS_KEY)
+      if (stored) setSaved(JSON.parse(stored))
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    if (responseRef.current) responseRef.current.scrollTop = responseRef.current.scrollHeight
   }, [response])
 
-  // Focus input when panel opens
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 150)
-  }, [open])
+    if (open && !saved && !done) setTimeout(() => inputRef.current?.focus(), 150)
+  }, [open, saved, done])
 
   async function ask(text?: string) {
     const q = (text ?? concern).trim()
@@ -64,12 +73,17 @@ export default function AIProductAdvisor() {
       while (true) {
         const { value, done: streamDone } = await reader.read()
         if (streamDone) break
-        const chunk = decoder.decode(value, { stream: true })
-        full += chunk
+        full += decoder.decode(value, { stream: true })
         setResponse(full)
       }
 
       setDone(true)
+
+      // Persist so panel won't restart on next open
+      const product = full.match(/👉 I recommend:\s*\*?\*?([^*\n]+)\*?\*?/i)?.[1]?.trim() ?? null
+      const entry: Saved = { response: full, product, concern: q }
+      setSaved(entry)
+      try { localStorage.setItem(LS_KEY, JSON.stringify(entry)) } catch {}
     } catch {
       setResponse('Could not reach the AI advisor. Please try again.')
       setDone(true)
@@ -77,17 +91,32 @@ export default function AIProductAdvisor() {
     setLoading(false)
   }
 
-  // Extract recommended product name from response (after "👉 I recommend: ")
-  const recommendedProduct = done
-    ? response.match(/👉 I recommend:\s*\*?\*?([^*\n]+)\*?\*?/i)?.[1]?.trim()
-    : null
-
-  function reset() {
+  function startFresh() {
     setConcern('')
     setResponse('')
     setDone(false)
     setLoading(false)
+    setSaved(null)
+    try { localStorage.removeItem(LS_KEY) } catch {}
     setTimeout(() => inputRef.current?.focus(), 100)
+  }
+
+  // Determine what to show in the trigger button
+  const buttonLabel = saved?.product
+    ? `✓ Aria: ${saved.product.length > 22 ? saved.product.slice(0, 22) + '…' : saved.product}`
+    : 'AI Advisor'
+
+  // Active display: saved result or current streaming result
+  const displayResponse = saved?.response ?? response
+  const displayDone = !!saved || done
+  const displayProduct = saved?.product ?? (done ? response.match(/👉 I recommend:\s*\*?\*?([^*\n]+)\*?\*?/i)?.[1]?.trim() : null)
+
+  function renderResponse(text: string) {
+    return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+      part.startsWith('**') && part.endsWith('**')
+        ? <strong key={i}>{part.slice(2, -2)}</strong>
+        : part
+    )
   }
 
   return (
@@ -96,14 +125,16 @@ export default function AIProductAdvisor() {
       <button
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all border-2',
+          'flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all border-2 whitespace-nowrap',
           open
             ? 'bg-primary text-white border-primary'
-            : 'bg-white text-primary border-primary hover:bg-primary hover:text-white'
+            : saved
+              ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary hover:text-white hover:border-primary'
+              : 'bg-white text-primary border-primary hover:bg-primary hover:text-white'
         )}
       >
         <Sparkles size={16} />
-        AI Advisor
+        {buttonLabel}
         <ChevronDown size={14} className={cn('transition-transform', open ? 'rotate-180' : '')} />
       </button>
 
@@ -127,8 +158,8 @@ export default function AIProductAdvisor() {
           </div>
 
           <div className="p-4 space-y-4">
-            {/* Intro */}
-            {!response && !loading && (
+            {/* Show questionnaire only if no previous recommendation */}
+            {!saved && !response && !loading && (
               <div>
                 <p className="text-sm text-brand-gray mb-3">
                   Hi! Tell me about your health concern or what you&apos;re looking for — I&apos;ll recommend the best NeoFuture product for you.
@@ -147,49 +178,55 @@ export default function AIProductAdvisor() {
               </div>
             )}
 
-            {/* Response */}
-            {(response || loading) && (
+            {/* Streaming or saved response */}
+            {(displayResponse || loading) && (
               <div
                 ref={responseRef}
                 className="bg-brand-light rounded-xl p-4 text-sm text-brand-dark leading-relaxed max-h-64 overflow-y-auto"
               >
-                {loading && !response && (
+                {loading && !displayResponse ? (
                   <div className="flex items-center gap-2 text-brand-gray">
                     <Loader2 size={15} className="animate-spin" />
                     <span>Aria is thinking...</span>
                   </div>
-                )}
-                {response && (
+                ) : (
                   <div className="whitespace-pre-wrap">
-                    {/* Render bold text */}
-                    {response.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
-                      part.startsWith('**') && part.endsWith('**')
-                        ? <strong key={i}>{part.slice(2, -2)}</strong>
-                        : part
-                    )}
+                    {renderResponse(displayResponse)}
                     {loading && <span className="inline-block w-1 h-4 bg-primary animate-pulse ml-0.5 align-middle" />}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Recommended product shop link */}
-            {recommendedProduct && (
+            {/* Previous concern label */}
+            {saved && (
+              <p className="text-xs text-brand-gray">
+                Your concern: <em>&ldquo;{saved.concern}&rdquo;</em>
+              </p>
+            )}
+
+            {/* CTA buttons once done */}
+            {displayDone && displayProduct && (
               <div className="flex items-center gap-2">
                 <Link
-                  href={`/shop?q=${encodeURIComponent(recommendedProduct)}`}
+                  href={`/shop?q=${encodeURIComponent(displayProduct)}`}
+                  onClick={() => setOpen(false)}
                   className="flex-1 text-center bg-primary text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors"
                 >
-                  Shop {recommendedProduct} →
+                  Shop {displayProduct} →
                 </Link>
-                <button onClick={reset} className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-brand-gray hover:bg-gray-50 transition-colors">
-                  Ask again
+                <button
+                  onClick={startFresh}
+                  title="Start a new recommendation"
+                  className="p-2.5 border border-gray-200 rounded-xl text-brand-gray hover:bg-gray-50 hover:text-primary transition-colors"
+                >
+                  <RotateCcw size={15} />
                 </button>
               </div>
             )}
 
-            {/* Input */}
-            {!done && (
+            {/* Input — only shown when not yet done and no saved result */}
+            {!displayDone && (
               <div className="flex gap-2">
                 <textarea
                   ref={inputRef}
