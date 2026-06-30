@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+
 import { useCart } from '@/components/cart/CartProvider'
 import { useToast } from '@/components/ui/ToastProvider'
 import { formatPrice } from '@/lib/utils'
@@ -65,10 +65,10 @@ export default function CartPage() {
         {/* Cart items */}
         <div className="lg:col-span-2 space-y-3">
           {items.map((item) => (
-            <div key={item.product_id} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-4">
+            <div key={`${item.product_id}_${item.variant_id ?? ''}`} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-4">
               {/* Image */}
-              <div className="relative w-20 h-20 bg-brand-light rounded-xl flex-shrink-0 overflow-hidden">
-                <Image src={item.image || '/images/placeholder.png'} alt={item.name} fill className="object-contain p-2" />
+              <div className="w-20 h-20 bg-brand-light rounded-xl flex-shrink-0 overflow-hidden">
+                <img src={item.image || '/images/placeholder.png'} alt={item.name} className="w-full h-full object-contain p-2" />
               </div>
 
               {/* Info */}
@@ -77,14 +77,17 @@ export default function CartPage() {
                   className="font-semibold text-brand-dark hover:text-primary transition-colors line-clamp-2">
                   {item.name}
                 </Link>
+                {item.variant_label && (
+                  <p className="text-xs text-brand-gray mt-0.5">{item.variant_label}</p>
+                )}
 
                 <div className="flex items-center justify-between mt-2">
                   {/* Qty control */}
                   <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                    <button onClick={() => updateItem(item.product_id, item.quantity - 1)}
+                    <button onClick={() => updateItem(item.product_id, item.quantity - 1, item.variant_id)}
                       className="px-2.5 py-1.5 hover:bg-gray-50 text-brand-dark font-bold transition-colors">−</button>
                     <span className="px-3 text-sm font-semibold text-brand-dark">{item.quantity}</span>
-                    <button onClick={() => updateItem(item.product_id, item.quantity + 1)}
+                    <button onClick={() => updateItem(item.product_id, item.quantity + 1, item.variant_id)}
                       disabled={item.quantity >= item.stock}
                       className="px-2.5 py-1.5 hover:bg-gray-50 text-brand-dark font-bold transition-colors disabled:opacity-40">+</button>
                   </div>
@@ -100,7 +103,7 @@ export default function CartPage() {
               </div>
 
               {/* Remove */}
-              <button onClick={() => { removeItem(item.product_id); toast(`${item.name} removed`) }}
+              <button onClick={() => { removeItem(item.product_id, item.variant_id); toast(`${item.name} removed`) }}
                 className="flex-shrink-0 p-2 text-gray-400 hover:text-danger hover:bg-red-50 rounded-lg transition-colors">
                 <Trash2 size={16} />
               </button>

@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useCart } from '@/components/cart/CartProvider'
 import { useToast } from '@/components/ui/ToastProvider'
 import ProductCard from '@/components/products/ProductCard'
-import type { Product, Review } from '@/types'
+import type { Product, Review, ProductVariant } from '@/types'
 import { formatPrice, formatDate } from '@/lib/utils'
 import { ShoppingCart, Heart, Star, Check, Package, Truck, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -15,15 +15,19 @@ interface Props {
   product: Product
   reviews: Review[]
   related: Product[]
+  variants: ProductVariant[]
 }
 
-export default function ProductDetailClient({ product, reviews, related }: Props) {
+export default function ProductDetailClient({ product, reviews, related, variants }: Props) {
   const { data: session } = useSession()
   const { addItem } = useCart()
   const { toast } = useToast()
 
   const [activeImage, setActiveImage] = useState(0)
   const [qty, setQty] = useState(1)
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
+    variants.length > 0 ? variants[0] : null
+  )
 
   // Track recently viewed in localStorage
   useEffect(() => {
@@ -40,23 +44,33 @@ export default function ProductDetailClient({ product, reviews, related }: Props
   const [wishlisted, setWishlisted] = useState(false)
 
   const images = product.images?.length ? product.images : ['/images/placeholder.png']
-  const price = product.sale_price ?? product.price
-  const hasDiscount = product.sale_price && product.sale_price < product.price
-  const discountPct = hasDiscount ? Math.round(((product.price - product.sale_price!) / product.price) * 100) : 0
+
+  // When variant selected, use its price/stock; fall back to product
+  const effectivePrice = selectedVariant?.price ?? product.price
+  const effectiveSalePrice = selectedVariant !== null
+    ? (selectedVariant.sale_price ?? (selectedVariant.price !== null ? null : product.sale_price))
+    : product.sale_price
+  const effectiveStock = selectedVariant !== null ? selectedVariant.stock : product.stock
+
+  const price = effectiveSalePrice ?? effectivePrice
+  const hasDiscount = effectiveSalePrice !== null && effectiveSalePrice !== undefined && effectiveSalePrice < effectivePrice
+  const discountPct = hasDiscount ? Math.round(((effectivePrice - effectiveSalePrice!) / effectivePrice) * 100) : 0
 
   function handleAddToCart() {
-    if (product.stock <= 0) return
+    if (effectiveStock <= 0) return
     addItem({
       product_id: product.id,
       name: product.name,
       slug: product.slug,
       image: images[0],
-      price: product.price,
-      sale_price: product.sale_price,
+      price: effectivePrice,
+      sale_price: effectiveSalePrice ?? undefined,
       quantity: qty,
-      stock: product.stock,
+      stock: effectiveStock,
+      variant_id: selectedVariant?.id,
+      variant_label: selectedVariant?.label,
     })
-    toast(`${product.name} added to cart!`)
+    toast(`${product.name}${selectedVariant ? ` (${selectedVariant.label})` : ''} added to cart!`)
   }
 
   async function toggleWishlist() {
@@ -162,8 +176,8 @@ export default function ProductDetailClient({ product, reviews, related }: Props
           {/* Price */}
           <div className="flex items-baseline gap-3 mb-5">
             <span className="text-3xl font-bold text-brand-dark">{formatPrice(price)}</span>
-            {hasDiscount && <span className="text-lg text-brand-gray line-through">{formatPrice(product.price)}</span>}
-            {hasDiscount && <span className="text-sm font-semibold text-success">Save {formatPrice(product.price - price)}</span>}
+            {hasDiscount && <span className="text-lg text-brand-gray line-through">{formatPrice(effectivePrice)}</span>}
+            {hasDiscount && <span className="text-sm font-semibold text-success">Save {formatPrice(effectivePrice - price)}</span>}
           </div>
 
           {/* Short description */}
@@ -171,13 +185,42 @@ export default function ProductDetailClient({ product, reviews, related }: Props
             <p className="text-brand-gray leading-relaxed mb-5">{product.short_description}</p>
           )}
 
+          {/* Variant selector */}
+          {variants.length > 0 && (
+            <div className="mb-5">
+              <p className="text-sm font-semibold text-brand-dark mb-2">
+                Select Variant: <span className="font-normal text-brand-gray">{selectedVariant?.label}</span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {variants.map((v) => (
+                  <button
+                    key={v.id}
+                    onClick={() => { setSelectedVariant(v); setQty(1) }}
+                    disabled={v.stock <= 0}
+                    className={cn(
+                      'px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all',
+                      selectedVariant?.id === v.id
+                        ? 'border-primary bg-primary text-white'
+                        : v.stock <= 0
+                          ? 'border-gray-200 text-gray-300 line-through cursor-not-allowed'
+                          : 'border-gray-200 text-brand-dark hover:border-primary hover:text-primary'
+                    )}
+                  >
+                    {v.label}
+                    {v.stock <= 0 && ' (sold out)'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Stock */}
           <div className="flex items-center gap-2 mb-5">
-            {product.stock > 0 ? (
+            {effectiveStock > 0 ? (
               <>
                 <span className="w-2 h-2 rounded-full bg-success" />
                 <span className="text-sm text-success font-medium">
-                  {product.stock <= 10 ? `Only ${product.stock} left!` : 'In Stock'}
+                  {effectiveStock <= 10 ? `Only ${effectiveStock} left!` : 'In Stock'}
                 </span>
               </>
             ) : (
@@ -189,13 +232,13 @@ export default function ProductDetailClient({ product, reviews, related }: Props
           </div>
 
           {/* Qty + Add to cart */}
-          {product.stock > 0 && (
+          {effectiveStock > 0 && (
             <div className="flex gap-3 mb-4">
               <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden">
                 <button onClick={() => setQty(Math.max(1, qty - 1))}
                   className="px-3 py-3 hover:bg-gray-50 text-brand-dark font-bold text-lg transition-colors">−</button>
                 <span className="px-4 font-semibold text-brand-dark min-w-10 text-center">{qty}</span>
-                <button onClick={() => setQty(Math.min(product.stock, qty + 1))}
+                <button onClick={() => setQty(Math.min(effectiveStock, qty + 1))}
                   className="px-3 py-3 hover:bg-gray-50 text-brand-dark font-bold text-lg transition-colors">+</button>
               </div>
               <button onClick={handleAddToCart}

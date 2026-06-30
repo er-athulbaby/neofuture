@@ -1,16 +1,18 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/ToastProvider'
 import { formatPrice } from '@/lib/utils'
-import { Plus, Edit2, Trash2, Eye, Star, Search, X, Package, Upload, ImagePlus } from 'lucide-react'
+import { Plus, Edit2, Trash2, Eye, Star, Search, X, Package, Upload, ImagePlus, Layers } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import type { ProductRow } from './page'
 
 interface Category { id: number; name: string }
 interface Props { products: ProductRow[]; categories: Category[] }
+interface Variant { id: number; label: string; price: number | null; sale_price: number | null; stock: number; sku: string | null }
+const EMPTY_VARIANT = { label: '', price: '', sale_price: '', stock: '0', sku: '' }
 
 const EMPTY_FORM = {
   name: '', category_id: '', price: '', sale_price: '', stock: '', sku: '',
@@ -29,10 +31,58 @@ export default function AdminProductsClient({ products: initial, categories }: P
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [variants, setVariants] = useState<Variant[]>([])
+  const [variantForm, setVariantForm] = useState(EMPTY_VARIANT)
+  const [addingVariant, setAddingVariant] = useState(false)
+  const [showVariants, setShowVariants] = useState(false)
 
   const filtered = products.filter(
     (p) => p.name.toLowerCase().includes(search.toLowerCase()) || p.category_name?.toLowerCase().includes(search.toLowerCase())
   )
+
+  useEffect(() => {
+    if (!editId) { setVariants([]); setShowVariants(false); return }
+    fetch(`/api/admin/products/${editId}/variants`)
+      .then((r) => r.json())
+      .then((d) => setVariants(d.variants ?? []))
+      .catch(() => {})
+  }, [editId])
+
+  async function addVariant() {
+    if (!editId || !variantForm.label) return
+    setAddingVariant(true)
+    const res = await fetch(`/api/admin/products/${editId}/variants`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        label: variantForm.label,
+        price: variantForm.price || null,
+        sale_price: variantForm.sale_price || null,
+        stock: variantForm.stock,
+        sku: variantForm.sku || null,
+      }),
+    })
+    setAddingVariant(false)
+    if (res.ok) {
+      const data = await res.json()
+      setVariants((v) => [...v, data.variant])
+      setVariantForm(EMPTY_VARIANT)
+      toast('Variant added!')
+    } else {
+      toast('Failed to add variant', 'error')
+    }
+  }
+
+  async function deleteVariant(variantId: number) {
+    if (!editId) return
+    await fetch(`/api/admin/products/${editId}/variants`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ variant_id: variantId }),
+    })
+    setVariants((v) => v.filter((x) => x.id !== variantId))
+    toast('Variant removed')
+  }
 
   function openAdd() {
     setEditId(null)
@@ -380,6 +430,105 @@ export default function AdminProductsClient({ products: initial, categories }: P
                 </div>
 
               </div>
+
+              {/* Variants section (edit mode only) */}
+              {editId && (
+                <div className="border border-gray-100 rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowVariants((v) => !v)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-sm font-semibold text-brand-dark"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Layers size={15} className="text-primary" />
+                      Variants ({variants.length})
+                    </span>
+                    <span className="text-brand-gray text-xs">{showVariants ? '▲ hide' : '▼ show'}</span>
+                  </button>
+
+                  {showVariants && (
+                    <div className="p-4 space-y-3">
+                      {variants.length > 0 && (
+                        <table className="w-full text-xs border-collapse mb-2">
+                          <thead>
+                            <tr className="border-b border-gray-100">
+                              <th className="text-left py-1.5 text-brand-gray font-semibold">Label</th>
+                              <th className="text-right py-1.5 text-brand-gray font-semibold">Price</th>
+                              <th className="text-right py-1.5 text-brand-gray font-semibold">Stock</th>
+                              <th />
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {variants.map((v) => (
+                              <tr key={v.id} className="border-b border-gray-50">
+                                <td className="py-1.5 font-medium text-brand-dark">{v.label}</td>
+                                <td className="py-1.5 text-right text-brand-gray">
+                                  {v.price ? `₹${v.price}` : '(base)'}
+                                  {v.sale_price ? ` / ₹${v.sale_price} sale` : ''}
+                                </td>
+                                <td className="py-1.5 text-right text-brand-gray">{v.stock}</td>
+                                <td className="py-1.5 text-right">
+                                  <button type="button" onClick={() => deleteVariant(v.id)}
+                                    className="p-1 text-gray-400 hover:text-danger transition-colors">
+                                    <Trash2 size={12} />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+
+                      <p className="text-xs font-semibold text-brand-gray uppercase tracking-wide">Add Variant</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="col-span-2">
+                          <input
+                            value={variantForm.label}
+                            onChange={(e) => setVariantForm((f) => ({ ...f, label: e.target.value }))}
+                            placeholder="Label (e.g. XS - Purple) *"
+                            className={fClass}
+                          />
+                        </div>
+                        <input
+                          value={variantForm.price}
+                          onChange={(e) => setVariantForm((f) => ({ ...f, price: e.target.value }))}
+                          placeholder="Price ₹ (blank=base)"
+                          type="number" min="0" step="0.01"
+                          className={fClass}
+                        />
+                        <input
+                          value={variantForm.sale_price}
+                          onChange={(e) => setVariantForm((f) => ({ ...f, sale_price: e.target.value }))}
+                          placeholder="Sale price ₹ (opt)"
+                          type="number" min="0" step="0.01"
+                          className={fClass}
+                        />
+                        <input
+                          value={variantForm.stock}
+                          onChange={(e) => setVariantForm((f) => ({ ...f, stock: e.target.value }))}
+                          placeholder="Stock"
+                          type="number" min="0"
+                          className={fClass}
+                        />
+                        <input
+                          value={variantForm.sku}
+                          onChange={(e) => setVariantForm((f) => ({ ...f, sku: e.target.value }))}
+                          placeholder="SKU (optional)"
+                          className={fClass}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={addVariant}
+                        disabled={addingVariant || !variantForm.label}
+                        className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary-dark disabled:opacity-50 transition-colors"
+                      >
+                        <Plus size={13} /> {addingVariant ? 'Adding...' : 'Add Variant'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex gap-3 pt-2 border-t border-gray-100">
                 <button type="button" onClick={() => setShowForm(false)}

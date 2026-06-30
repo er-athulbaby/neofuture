@@ -17,6 +17,7 @@ type Cfg = {
   color_neo_orange: string; color_neo_purple: string; color_brand_dark: string
   razorpay_mode: string
   cod_enabled: string
+  gst_rate: string
 }
 
 const D: Cfg = {
@@ -40,6 +41,7 @@ const D: Cfg = {
   color_neo_orange: '#E07B2A', color_neo_purple: '#7B35A8', color_brand_dark: '#1A1535',
   razorpay_mode: 'test',
   cod_enabled: 'false',
+  gst_rate: '0',
 }
 
 export default function AdminSettingsPage() {
@@ -225,6 +227,23 @@ export default function AdminSettingsPage() {
               <option value="test">Test Mode (use rzp_test_ keys)</option>
               <option value="live">Live Mode (use rzp_live_ keys)</option>
             </select>
+          </div>
+          <div>
+            <label className={lbl}>GST Rate (%)</label>
+            <input
+              name="gst_rate"
+              type="number"
+              min="0"
+              max="28"
+              step="1"
+              value={s.gst_rate}
+              onChange={fc}
+              className={inp}
+              placeholder="0 = GST not shown, 18 = 18% GST included in price"
+            />
+            <p className="text-xs text-brand-gray mt-1">
+              Set to 18 to show &quot;GST Incl. (18%)&quot; breakdown in checkout. Prices are treated as GST-inclusive.
+            </p>
           </div>
           <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl border border-gray-100">
             <div>

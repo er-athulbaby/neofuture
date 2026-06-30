@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { query, queryOne } from '@/lib/db'
-import type { Product, Review } from '@/types'
+import type { Product, Review, ProductVariant } from '@/types'
 import ProductDetailClient from './ProductDetailClient'
 import type { Metadata } from 'next'
 
@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params
 
-  const [product, reviews, related] = await Promise.all([
+  const [product, reviews, related, variants] = await Promise.all([
     queryOne<Product>(
       `SELECT p.*, c.name as category_name, c.slug as category_slug,
         COALESCE(AVG(r.rating),0)::numeric(3,1) as avg_rating,
@@ -51,9 +51,13 @@ export default async function ProductPage({ params }: Props) {
        ORDER BY p.is_featured DESC LIMIT 4`,
       [slug]
     ).catch(() => []),
+    query<ProductVariant>(
+      `SELECT * FROM product_variants WHERE product_id = (SELECT id FROM products WHERE slug = $1) AND is_active = true ORDER BY id`,
+      [slug]
+    ).catch(() => []),
   ])
 
   if (!product) notFound()
 
-  return <ProductDetailClient product={product} reviews={reviews} related={related} />
+  return <ProductDetailClient product={product} reviews={reviews} related={related} variants={variants} />
 }

@@ -65,6 +65,41 @@ export async function sendPasswordReset(to: string, resetUrl: string) {
   })
 }
 
+export async function sendAbandonedCartEmail(
+  to: string,
+  cart: { items: { name: string; quantity: number; price: number; image?: string }[]; subtotal: number; siteUrl: string }
+) {
+  const itemsHtml = cart.items
+    .map((i) => `<tr><td style="padding:8px 0">${i.name}</td><td style="padding:8px 0;text-align:right">×${i.quantity}</td><td style="padding:8px 0;text-align:right">₹${i.price}</td></tr>`)
+    .join('')
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM,
+    to,
+    subject: 'You left something behind 🛍️ | NeoFuture',
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <h2 style="color:#D4236A">Your cart misses you!</h2>
+        <p>You left some items in your cart. They're still waiting for you.</p>
+        <table width="100%" cellpadding="0" style="border-collapse:collapse;margin:16px 0;border-top:1px solid #eee">
+          ${itemsHtml}
+          <tr style="border-top:2px solid #eee">
+            <td colspan="2" style="padding:10px 0;font-weight:bold">Total</td>
+            <td style="padding:10px 0;font-weight:bold;text-align:right">₹${cart.subtotal}</td>
+          </tr>
+        </table>
+        <a href="${cart.siteUrl}/cart" style="display:inline-block;background:#D4236A;color:#fff;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:15px;margin:8px 0">
+          Complete My Order →
+        </a>
+        <p style="color:#999;font-size:12px;margin-top:24px">
+          If you've already placed your order, please ignore this email.<br/>
+          NeoFuture — From trusted hands to quality lives
+        </p>
+      </div>
+    `,
+  })
+}
+
 export async function sendShippingUpdate(
   to: string,
   order: { orderNumber: string; trackingNumber: string }

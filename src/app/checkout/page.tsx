@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useCart } from '@/components/cart/CartProvider'
 import { useToast } from '@/components/ui/ToastProvider'
 import { formatPrice } from '@/lib/utils'
-import { Lock, ChevronLeft, ChevronRight, MapPin, CreditCard, Truck } from 'lucide-react'
+import { Lock, ChevronLeft, ChevronRight, MapPin, CreditCard, Truck, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import type { ShippingAddress } from '@/types'
 
@@ -28,6 +28,8 @@ function CheckoutForm() {
   const [loading, setLoading] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay')
   const [codEnabled, setCodEnabled] = useState(false)
+  const [gstRate, setGstRate] = useState(0)
+  const [pincodeLoading, setPincodeLoading] = useState(false)
 
   const [address, setAddress] = useState<ShippingAddress>({
     name: session?.user?.name ?? '',
@@ -47,27 +49,59 @@ function CheckoutForm() {
   } | null>(null)
 
   const shipping = subtotal >= 999 ? 0 : 50
+  const gstAmount = gstRate > 0 ? Math.round((subtotal * gstRate) / (100 + gstRate)) : 0
 
   useEffect(() => {
     if (session?.user?.name) setAddress((a) => ({ ...a, name: session.user.name! }))
     if (session?.user?.email) setAddress((a) => ({ ...a, email: session.user.email! }))
   }, [session])
 
-  // Fetch COD status from public settings endpoint
+  // Fetch public settings (COD + GST)
   useEffect(() => {
     fetch('/api/settings')
       .then((r) => r.json())
       .then((d) => {
-        if (d.cod_enabled) {
-          setCodEnabled(true)
-          setPaymentMethod('cod')
-        }
+        if (d.cod_enabled) { setCodEnabled(true); setPaymentMethod('cod') }
+        if (d.gst_rate > 0) setGstRate(d.gst_rate)
       })
       .catch(() => {})
   }, [])
 
+  // Save cart as abandoned cart candidate on mount (non-fatal)
+  useEffect(() => {
+    if (!items.length) return
+    const email = session?.user?.email ?? address.email
+    fetch('/api/cart/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items, email, subtotal }),
+    }).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // only on mount
+
+  // Pincode autocomplete via India Post free API
+  const lookupPincode = useCallback(async (pin: string) => {
+    if (!/^\d{6}$/.test(pin)) return
+    setPincodeLoading(true)
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`)
+      const data = await res.json()
+      if (data?.[0]?.Status === 'Success' && data[0].PostOffice?.length) {
+        const po = data[0].PostOffice[0]
+        setAddress((a) => ({
+          ...a,
+          city: a.city || po.District || po.Name,
+          state: a.state || po.State,
+        }))
+      }
+    } catch {}
+    finally { setPincodeLoading(false) }
+  }, [])
+
   const fieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setAddress((a) => ({ ...a, [e.target.name]: e.target.value }))
+    const { name, value } = e.target
+    setAddress((a) => ({ ...a, [name]: value }))
+    if (name === 'pincode' && value.length === 6) lookupPincode(value)
   }
 
   async function proceedToPayment(e: React.FormEvent) {
@@ -80,9 +114,18 @@ function CheckoutForm() {
     if (!/^\d{6}$/.test(address.pincode)) { toast('Enter a valid 6-digit pincode', 'error'); return }
     if (!/^\d{10}$/.test(address.phone)) { toast('Enter a valid 10-digit phone number', 'error'); return }
 
+    // Update abandoned cart with email once user fills it in
+    const email = address.email ?? session?.user?.email
+    if (email) {
+      fetch('/api/cart/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, email, subtotal }),
+      }).catch(() => {})
+    }
+
     setLoading(true)
 
-    // COD: place order immediately without Razorpay
     if (paymentMethod === 'cod') {
       const res = await fetch('/api/checkout', {
         method: 'POST',
@@ -92,12 +135,14 @@ function CheckoutForm() {
       const data = await res.json()
       setLoading(false)
       if (!res.ok) { toast(data.error || 'Failed to place order', 'error'); return }
+      // Mark abandoned cart as converted
+      fetch('/api/cart/save', { method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }) }).catch(() => {})
       clearCart()
       router.push(`/order/${data.order_id}`)
       return
     }
 
-    // Razorpay: create order and go to step 2
     const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -150,6 +195,9 @@ function CheckoutForm() {
         const vData = await verify.json()
         setLoading(false)
         if (!verify.ok) { toast(vData.error || 'Payment verification failed', 'error'); return }
+        // Mark abandoned cart as converted
+        fetch('/api/cart/save', { method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: address.email }) }).catch(() => {})
         clearCart()
         router.push(`/order/${vData.order_id}`)
       },
@@ -206,9 +254,34 @@ function CheckoutForm() {
                   <div className="sm:col-span-2">
                     <Field label="Address Line 2 (optional)" name="line2" value={address.line2 ?? ''} onChange={fieldChange} placeholder="Street / Locality" />
                   </div>
+
+                  {/* Pincode with autocomplete spinner */}
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-brand-dark mb-1.5">
+                      Pincode<span className="text-danger ml-0.5">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        name="pincode"
+                        value={address.pincode}
+                        onChange={fieldChange}
+                        required
+                        maxLength={6}
+                        placeholder="6-digit PIN"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors pr-9"
+                      />
+                      {pincodeLoading && (
+                        <Loader2 size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-primary animate-spin" />
+                      )}
+                    </div>
+                    {address.pincode.length === 6 && !pincodeLoading && address.city && (
+                      <p className="text-xs text-success mt-1">✓ Location found</p>
+                    )}
+                  </div>
+
                   <Field label="City" name="city" value={address.city} onChange={fieldChange} required />
                   <Field label="State" name="state" value={address.state} onChange={fieldChange} required />
-                  <Field label="Pincode" name="pincode" value={address.pincode} onChange={fieldChange} required placeholder="6-digit PIN" />
                   <Field label="Country" name="country" value={address.country ?? 'India'} onChange={fieldChange} disabled />
                 </div>
               </div>
@@ -220,14 +293,9 @@ function CheckoutForm() {
                 </h2>
                 <div className="space-y-3">
                   <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-colors ${paymentMethod === 'razorpay' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="razorpay"
-                      checked={paymentMethod === 'razorpay'}
-                      onChange={() => setPaymentMethod('razorpay')}
-                      className="accent-primary w-4 h-4"
-                    />
+                    <input type="radio" name="paymentMethod" value="razorpay"
+                      checked={paymentMethod === 'razorpay'} onChange={() => setPaymentMethod('razorpay')}
+                      className="accent-primary w-4 h-4" />
                     <div className="flex-1">
                       <p className="font-semibold text-brand-dark text-sm">Pay Online</p>
                       <p className="text-xs text-brand-gray mt-0.5">UPI, Credit / Debit Card, Net Banking via Razorpay</p>
@@ -237,14 +305,9 @@ function CheckoutForm() {
 
                   {codEnabled && (
                     <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="cod"
-                        checked={paymentMethod === 'cod'}
-                        onChange={() => setPaymentMethod('cod')}
-                        className="accent-primary w-4 h-4"
-                      />
+                      <input type="radio" name="paymentMethod" value="cod"
+                        checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')}
+                        className="accent-primary w-4 h-4" />
                       <div className="flex-1">
                         <p className="font-semibold text-brand-dark text-sm">Cash on Delivery (COD)</p>
                         <p className="text-xs text-brand-gray mt-0.5">Pay in cash when your order arrives</p>
@@ -288,6 +351,12 @@ function CheckoutForm() {
                 <div className="flex justify-between text-brand-gray">
                   <span>Subtotal</span><span>{formatPrice(pricing.subtotal)}</span>
                 </div>
+                {gstRate > 0 && (
+                  <div className="flex justify-between text-brand-gray text-xs">
+                    <span>GST Incl. ({gstRate}%)</span>
+                    <span>{formatPrice(Math.round((pricing.subtotal * gstRate) / (100 + gstRate)))}</span>
+                  </div>
+                )}
                 {pricing.discount > 0 && (
                   <div className="flex justify-between text-success">
                     <span>Coupon Discount</span><span>−{formatPrice(pricing.discount)}</span>
@@ -323,19 +392,35 @@ function CheckoutForm() {
             <h3 className="font-bold text-brand-dark mb-4">Order Summary ({items.length} items)</h3>
             <div className="space-y-3 mb-4">
               {items.map((item) => (
-                <div key={item.product_id} className="flex justify-between text-sm">
-                  <span className="text-brand-gray line-clamp-1 flex-1 mr-2">{item.name} × {item.quantity}</span>
+                <div key={`${item.product_id}_${item.variant_id ?? ''}`} className="flex justify-between text-sm">
+                  <div className="flex-1 mr-2 min-w-0">
+                    <p className="text-brand-gray line-clamp-1">{item.name} × {item.quantity}</p>
+                    {item.variant_label && <p className="text-xs text-brand-gray/70">{item.variant_label}</p>}
+                  </div>
                   <span className="font-medium text-brand-dark flex-shrink-0">{formatPrice((item.sale_price ?? item.price) * item.quantity)}</span>
                 </div>
               ))}
             </div>
-            <div className="border-t border-gray-100 pt-3 flex justify-between font-bold text-brand-dark">
-              <span>Subtotal</span>
-              <span>{formatPrice(subtotal)}</span>
-            </div>
-            <div className="flex justify-between text-sm text-brand-gray mt-1">
-              <span>Shipping</span>
-              <span className={shipping === 0 ? 'text-success' : ''}>{shipping === 0 ? 'Free' : formatPrice(shipping)}</span>
+            <div className="border-t border-gray-100 pt-3 space-y-2 text-sm">
+              <div className="flex justify-between font-bold text-brand-dark">
+                <span>Subtotal</span>
+                <span>{formatPrice(subtotal)}</span>
+              </div>
+              {gstRate > 0 && (
+                <div className="flex justify-between text-brand-gray text-xs">
+                  <span>GST Incl. ({gstRate}%)</span>
+                  <span>{formatPrice(gstAmount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-brand-gray">
+                <span>Shipping</span>
+                <span className={shipping === 0 ? 'text-success' : ''}>{shipping === 0 ? 'Free' : formatPrice(shipping)}</span>
+              </div>
+              {shipping > 0 && subtotal > 0 && (
+                <p className="text-xs text-brand-gray bg-brand-light rounded-lg px-3 py-2">
+                  Add {formatPrice(999 - subtotal)} more for free shipping
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -356,13 +441,8 @@ function Field({
         {label}{required && <span className="text-danger ml-0.5">*</span>}
       </label>
       <input
-        type={type}
-        name={name}
-        value={value}
-        onChange={onChange}
-        required={required}
-        disabled={disabled}
-        placeholder={placeholder}
+        type={type} name={name} value={value} onChange={onChange}
+        required={required} disabled={disabled} placeholder={placeholder}
         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary disabled:bg-gray-50 disabled:text-brand-gray transition-colors"
       />
     </div>

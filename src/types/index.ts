@@ -63,6 +63,21 @@ export interface CartItem {
   sale_price?: number
   quantity: number
   stock: number
+  variant_id?: number
+  variant_label?: string
+}
+
+export interface ProductVariant {
+  id: number
+  product_id: number
+  label: string
+  options: Record<string, string>
+  price: number | null
+  sale_price: number | null
+  stock: number
+  sku: string | null
+  is_active: boolean
+  created_at: string
 }
 
 export interface Order {
