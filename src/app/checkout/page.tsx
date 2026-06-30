@@ -43,13 +43,24 @@ function CheckoutForm() {
     country: 'India',
   })
 
+  const [gstType, setGstType] = useState<'inclusive' | 'exclusive'>('inclusive')
   const [pricing, setPricing] = useState<{
-    subtotal: number; discount: number; shipping: number; total: number;
+    subtotal: number; discount: number; shipping: number; tax: number; total: number;
     razorpay_order_id: string; coupon_id: number | null; key_id: string
+    gst_rate: number; gst_type: string
   } | null>(null)
 
   const shipping = subtotal >= 999 ? 0 : 50
-  const gstAmount = gstRate > 0 ? Math.round((subtotal * gstRate) / (100 + gstRate)) : 0
+  // Inclusive: GST is part of the price (show breakdown only)
+  // Exclusive: GST added on top (changes the displayed total)
+  const gstAmount = gstRate > 0
+    ? gstType === 'exclusive'
+      ? Math.round(subtotal * gstRate / 100)
+      : Math.round((subtotal * gstRate) / (100 + gstRate))
+    : 0
+  const displayTotal = gstType === 'exclusive'
+    ? subtotal + gstAmount + shipping
+    : subtotal + shipping
 
   useEffect(() => {
     if (session?.user?.name) setAddress((a) => ({ ...a, name: session.user.name! }))
@@ -63,6 +74,7 @@ function CheckoutForm() {
       .then((d) => {
         if (d.cod_enabled) { setCodEnabled(true); setPaymentMethod('cod') }
         if (d.gst_rate > 0) setGstRate(d.gst_rate)
+        if (d.gst_type) setGstType(d.gst_type)
       })
       .catch(() => {})
   }, [])
@@ -188,6 +200,7 @@ function CheckoutForm() {
             subtotal: pricing.subtotal,
             discount: pricing.discount,
             shipping: pricing.shipping,
+            tax: pricing.tax,
             total: pricing.total,
             couponId: pricing.coupon_id,
           }),
@@ -351,10 +364,10 @@ function CheckoutForm() {
                 <div className="flex justify-between text-brand-gray">
                   <span>Subtotal</span><span>{formatPrice(pricing.subtotal)}</span>
                 </div>
-                {gstRate > 0 && (
+                {(pricing.gst_rate ?? gstRate) > 0 && (
                   <div className="flex justify-between text-brand-gray text-xs">
-                    <span>GST Incl. ({gstRate}%)</span>
-                    <span>{formatPrice(Math.round((pricing.subtotal * gstRate) / (100 + gstRate)))}</span>
+                    <span>{(pricing.gst_type ?? gstType) === 'exclusive' ? `GST (${pricing.gst_rate ?? gstRate}%)` : `GST Incl. (${pricing.gst_rate ?? gstRate}%)`}</span>
+                    <span>{(pricing.gst_type ?? gstType) === 'exclusive' ? '+' : ''}{formatPrice(pricing.tax ?? 0)}</span>
                   </div>
                 )}
                 {pricing.discount > 0 && (
@@ -402,14 +415,14 @@ function CheckoutForm() {
               ))}
             </div>
             <div className="border-t border-gray-100 pt-3 space-y-2 text-sm">
-              <div className="flex justify-between font-bold text-brand-dark">
+              <div className="flex justify-between text-brand-dark">
                 <span>Subtotal</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
               {gstRate > 0 && (
                 <div className="flex justify-between text-brand-gray text-xs">
-                  <span>GST Incl. ({gstRate}%)</span>
-                  <span>{formatPrice(gstAmount)}</span>
+                  <span>{gstType === 'exclusive' ? `GST (${gstRate}%)` : `GST Incl. (${gstRate}%)`}</span>
+                  <span>{gstType === 'exclusive' ? '+' : ''}{formatPrice(gstAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-brand-gray">
@@ -421,6 +434,10 @@ function CheckoutForm() {
                   Add {formatPrice(999 - subtotal)} more for free shipping
                 </p>
               )}
+              <div className="flex justify-between font-bold text-brand-dark border-t border-gray-100 pt-2">
+                <span>Total</span>
+                <span>{formatPrice(displayTotal)}</span>
+              </div>
             </div>
           </div>
         </div>

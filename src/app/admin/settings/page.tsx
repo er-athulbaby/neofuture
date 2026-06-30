@@ -18,6 +18,7 @@ type Cfg = {
   razorpay_mode: string
   cod_enabled: string
   gst_rate: string
+  gst_type: string
 }
 
 const D: Cfg = {
@@ -42,6 +43,7 @@ const D: Cfg = {
   razorpay_mode: 'test',
   cod_enabled: 'false',
   gst_rate: '0',
+  gst_type: 'inclusive',
 }
 
 export default function AdminSettingsPage() {
@@ -228,22 +230,56 @@ export default function AdminSettingsPage() {
               <option value="live">Live Mode (use rzp_live_ keys)</option>
             </select>
           </div>
-          <div>
-            <label className={lbl}>GST Rate (%)</label>
-            <input
-              name="gst_rate"
-              type="number"
-              min="0"
-              max="28"
-              step="1"
-              value={s.gst_rate}
-              onChange={fc}
-              className={inp}
-              placeholder="0 = GST not shown, 18 = 18% GST included in price"
-            />
-            <p className="text-xs text-brand-gray mt-1">
-              Set to 18 to show &quot;GST Incl. (18%)&quot; breakdown in checkout. Prices are treated as GST-inclusive.
-            </p>
+          <div className="space-y-3">
+            <div>
+              <label className={lbl}>GST Rate (%)</label>
+              <input
+                name="gst_rate"
+                type="number"
+                min="0"
+                max="28"
+                step="1"
+                value={s.gst_rate}
+                onChange={fc}
+                className={inp}
+                placeholder="0 = disabled, 5 / 12 / 18 / 28"
+              />
+            </div>
+            {Number(s.gst_rate) > 0 && (
+              <div>
+                <label className={lbl}>GST Pricing Type</label>
+                <div className="flex gap-3">
+                  <label className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 cursor-pointer transition-colors flex-1 ${s.gst_type === 'inclusive' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input
+                      type="radio"
+                      name="gst_type"
+                      value="inclusive"
+                      checked={s.gst_type === 'inclusive'}
+                      onChange={fc}
+                      className="accent-primary"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-brand-dark">Inclusive</p>
+                      <p className="text-xs text-brand-gray">Price already includes GST. Shown as breakdown (no change to total).</p>
+                    </div>
+                  </label>
+                  <label className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 cursor-pointer transition-colors flex-1 ${s.gst_type === 'exclusive' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input
+                      type="radio"
+                      name="gst_type"
+                      value="exclusive"
+                      checked={s.gst_type === 'exclusive'}
+                      onChange={fc}
+                      className="accent-primary"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-brand-dark">Exclusive</p>
+                      <p className="text-xs text-brand-gray">GST added on top at checkout. Total increases by {s.gst_rate}%.</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl border border-gray-100">
             <div>

@@ -33,6 +33,7 @@ export interface SiteConfig {
   color_brand_dark: string
   cod_enabled: string
   gst_rate: string
+  gst_type: string
 }
 
 export const CONFIG_DEFAULTS: SiteConfig = {
@@ -67,6 +68,7 @@ export const CONFIG_DEFAULTS: SiteConfig = {
   color_brand_dark: '#1A1535',
   cod_enabled: 'false',
   gst_rate: '0',
+  gst_type: 'inclusive',
 }
 
 export const getSiteConfig = cache(async function getSiteConfigFn(): Promise<SiteConfig> {
