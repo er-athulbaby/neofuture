@@ -91,8 +91,12 @@ export async function POST(req: NextRequest) {
 
     const [codEnabled, gst] = await Promise.all([isCodEnabled(), getGSTSettings()])
 
-    // Ensure tax column exists (idempotent)
-    await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS tax NUMERIC(10,2) DEFAULT 0`, []).catch(() => {})
+    // Ensure tax + subscription columns exist (idempotent)
+    await Promise.all([
+      query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS tax NUMERIC(10,2) DEFAULT 0`, []).catch(() => {}),
+      query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS subscription_plan_id INTEGER`, []).catch(() => {}),
+      query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS subscription_months INTEGER`, []).catch(() => {}),
+    ])
 
     // --- COD path: create order directly ---
     if (payment_method === 'cod') {
@@ -101,13 +105,16 @@ export async function POST(req: NextRequest) {
       const { subtotal, discount, shipping, tax, total, couponId, validatedItems } = await calcOrder(items, couponCode, gst)
       const orderNumber = generateOrderNumber()
 
+      const subPlanId = items.find((i) => i.subscription_plan_id)?.subscription_plan_id ?? null
+      const subMonths = items.find((i) => i.subscription_months)?.subscription_months ?? null
+
       const order = await queryOne<{ id: number }>(
         `INSERT INTO orders
-          (order_number, user_id, subtotal, discount, shipping, tax, total, coupon_id, status, payment_status, shipping_address)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'confirmed', 'pending', $9)
+          (order_number, user_id, subtotal, discount, shipping, tax, total, coupon_id, status, payment_status, shipping_address, subscription_plan_id, subscription_months)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'confirmed', 'pending', $9, $10, $11)
          RETURNING id`,
         [orderNumber, session?.user?.id ?? null, subtotal, discount, shipping, tax, total,
-         couponId ?? null, JSON.stringify(shippingAddress)]
+         couponId ?? null, JSON.stringify(shippingAddress), subPlanId, subMonths]
       )
 
       for (const item of validatedItems) {
@@ -211,14 +218,17 @@ export async function PUT(req: NextRequest) {
 
     const orderNumber = generateOrderNumber()
 
+    const subPlanId = items.find((i: CartItem) => i.subscription_plan_id)?.subscription_plan_id ?? null
+    const subMonths = items.find((i: CartItem) => i.subscription_months)?.subscription_months ?? null
+
     const order = await queryOne<{ id: number }>(
       `INSERT INTO orders
         (order_number, user_id, subtotal, discount, shipping, tax, total, coupon_id, status, payment_status,
-         razorpay_order_id, razorpay_payment_id, razorpay_signature, shipping_address)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'confirmed', 'paid', $9, $10, $11, $12)
+         razorpay_order_id, razorpay_payment_id, razorpay_signature, shipping_address, subscription_plan_id, subscription_months)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'confirmed', 'paid', $9, $10, $11, $12, $13, $14)
        RETURNING id`,
       [orderNumber, session?.user?.id ?? null, subtotal, discount, shipping, tax ?? 0, total, couponId ?? null,
-       razorpay_order_id, razorpay_payment_id, razorpay_signature, JSON.stringify(shippingAddress)]
+       razorpay_order_id, razorpay_payment_id, razorpay_signature, JSON.stringify(shippingAddress), subPlanId, subMonths]
     )
 
     for (const item of items) {

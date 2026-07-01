@@ -23,7 +23,8 @@ const NAV_LINKS = [
       { href: '/tools/baby-food', icon: <Stethoscope size={14} />, label: 'Baby Food Chart' },
     ]
   },
-  { href: '/shop', label: 'Products' },
+  { href: '/#products', label: 'Nutraceuticals', scrollId: 'products' },
+  { href: '/shop', label: 'Shop' },
   { href: '#about', label: 'About Us', scroll: true },
 ]
 
@@ -109,6 +110,16 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
                         </div>
                       )}
                     </div>
+                  )
+                }
+
+                if (link.scrollId) {
+                  return (
+                    <button key={link.label}
+                      onClick={() => scrollTo(`#${link.scrollId}`)}
+                      className="px-3 py-2 rounded-lg text-brand-gray hover:text-primary hover:bg-primary-light transition-colors">
+                      {link.label}
+                    </button>
                   )
                 }
 
@@ -217,7 +228,8 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
             <MobileLink href="/tools/vaccination" label="Vaccination Schedule" onClick={() => setMenuOpen(false)} />
             <MobileLink href="/tools/growth-chart" label="Baby Growth Chart" onClick={() => setMenuOpen(false)} />
             <MobileLink href="/tools/baby-food" label="Baby Food Chart" onClick={() => setMenuOpen(false)} />
-            <MobileLink href="/shop" label="Products" onClick={() => setMenuOpen(false)} active={pathname.startsWith('/shop')} />
+            <button onClick={() => { setMenuOpen(false); scrollTo('#products') }} className="block w-full text-left text-sm font-medium text-brand-dark hover:text-primary py-2.5 px-2 rounded-lg hover:bg-primary-light transition-colors">Nutraceuticals</button>
+            <MobileLink href="/shop" label="Shop" onClick={() => setMenuOpen(false)} active={pathname.startsWith('/shop')} />
             <button onClick={() => scrollTo('#about')} className="block w-full text-left text-sm font-medium text-brand-dark hover:text-primary py-2.5 px-2 rounded-lg hover:bg-primary-light transition-colors">About Us</button>
             {!session && (
               <div className="pt-2">

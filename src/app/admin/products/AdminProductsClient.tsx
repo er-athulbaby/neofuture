@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/ToastProvider'
 import { formatPrice } from '@/lib/utils'
-import { Plus, Edit2, Trash2, Eye, Star, Search, X, Package, Upload, ImagePlus, Layers } from 'lucide-react'
+import { Plus, Edit2, Trash2, Eye, Star, Search, X, Package, Upload, ImagePlus, Layers, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import type { ProductRow } from './page'
@@ -13,6 +13,15 @@ interface Category { id: number; name: string }
 interface Props { products: ProductRow[]; categories: Category[] }
 interface Variant { id: number; label: string; price: number | null; sale_price: number | null; stock: number; sku: string | null }
 const EMPTY_VARIANT = { label: '', price: '', sale_price: '', stock: '0', sku: '' }
+
+interface SubPlan { id: number; duration_months: number; label: string; price: number; is_active: boolean }
+const PLAN_DURATIONS = [
+  { months: 1, label: '1 Month' },
+  { months: 3, label: '3 Months' },
+  { months: 6, label: '6 Months' },
+  { months: 12, label: '12 Months' },
+]
+const EMPTY_PLAN = { duration_months: '1', label: '', price: '' }
 
 function toSlug(s: string) {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -42,15 +51,28 @@ export default function AdminProductsClient({ products: initial, categories }: P
   const [addingVariant, setAddingVariant] = useState(false)
   const [showVariants, setShowVariants] = useState(false)
 
+  const [subPlans, setSubPlans] = useState<SubPlan[]>([])
+  const [subPlanForm, setSubPlanForm] = useState(EMPTY_PLAN)
+  const [savingPlan, setSavingPlan] = useState(false)
+  const [showSubPlans, setShowSubPlans] = useState(false)
+
   const filtered = products.filter(
     (p) => p.name.toLowerCase().includes(search.toLowerCase()) || p.category_name?.toLowerCase().includes(search.toLowerCase())
   )
 
   useEffect(() => {
-    if (!editId) { setVariants([]); setShowVariants(false); return }
+    if (!editId) {
+      setVariants([]); setShowVariants(false)
+      setSubPlans([]); setShowSubPlans(false)
+      return
+    }
     fetch(`/api/admin/products/${editId}/variants`)
       .then((r) => r.json())
       .then((d) => setVariants(d.variants ?? []))
+      .catch(() => {})
+    fetch(`/api/admin/products/${editId}/subscription-plans`)
+      .then((r) => r.json())
+      .then((d) => setSubPlans(d.plans ?? []))
       .catch(() => {})
   }, [editId])
 
@@ -88,6 +110,39 @@ export default function AdminProductsClient({ products: initial, categories }: P
     })
     setVariants((v) => v.filter((x) => x.id !== variantId))
     toast('Variant removed')
+  }
+
+  async function addSubPlan() {
+    if (!editId || !subPlanForm.price) return
+    setSavingPlan(true)
+    const duration = parseInt(subPlanForm.duration_months)
+    const label = subPlanForm.label || PLAN_DURATIONS.find((d) => d.months === duration)?.label || `${duration} Month${duration > 1 ? 's' : ''}`
+    const res = await fetch(`/api/admin/products/${editId}/subscription-plans`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ duration_months: duration, label, price: parseFloat(subPlanForm.price) }),
+    })
+    setSavingPlan(false)
+    if (res.ok) {
+      const data = await res.json()
+      setSubPlans((p) => {
+        const idx = p.findIndex((x) => x.duration_months === data.plan.duration_months)
+        return idx >= 0 ? p.map((x, i) => i === idx ? data.plan : x) : [...p, data.plan].sort((a, b) => a.duration_months - b.duration_months)
+      })
+      setSubPlanForm(EMPTY_PLAN)
+      toast('Plan saved!')
+    } else { toast('Failed to save plan', 'error') }
+  }
+
+  async function deleteSubPlan(planId: number) {
+    if (!editId) return
+    await fetch(`/api/admin/products/${editId}/subscription-plans`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan_id: planId }),
+    })
+    setSubPlans((p) => p.filter((x) => x.id !== planId))
+    toast('Plan removed')
   }
 
   function openAdd() {
@@ -567,6 +622,90 @@ export default function AdminProductsClient({ products: initial, categories }: P
                       >
                         <Plus size={13} /> {addingVariant ? 'Adding...' : 'Add Variant'}
                       </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Subscription Plans section (edit mode only) */}
+              {editId && (
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <button type="button"
+                    onClick={() => setShowSubPlans((v) => !v)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <span className="text-sm font-semibold text-brand-dark flex items-center gap-2">
+                      <RotateCcw size={15} className="text-primary" />
+                      Subscription Plans ({subPlans.length})
+                    </span>
+                    <span className="text-brand-gray text-xs">{showSubPlans ? '▲ hide' : '▼ show'}</span>
+                  </button>
+
+                  {showSubPlans && (
+                    <div className="p-4 space-y-4">
+                      {/* Existing plans */}
+                      {subPlans.length > 0 && (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="border-b border-gray-100">
+                                <th className="text-left py-2 text-brand-gray font-medium">Duration</th>
+                                <th className="text-left py-2 text-brand-gray font-medium">Label</th>
+                                <th className="text-right py-2 text-brand-gray font-medium">Price (₹)</th>
+                                <th />
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {subPlans.map((p) => (
+                                <tr key={p.id} className="border-b border-gray-50">
+                                  <td className="py-2 text-brand-gray">{p.duration_months}mo</td>
+                                  <td className="py-2 font-medium text-brand-dark">{p.label}</td>
+                                  <td className="py-2 text-right font-semibold text-brand-dark">₹{p.price}</td>
+                                  <td className="py-2 pl-2">
+                                    <button type="button" onClick={() => deleteSubPlan(p.id)}
+                                      className="text-danger hover:text-red-700 text-xs">✕</button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      {/* Add plan form */}
+                      <div>
+                        <p className="text-xs font-semibold text-brand-gray uppercase tracking-wide mb-2">Add / Update Plan</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          <div>
+                            <FLabel label="Duration" />
+                            <select value={subPlanForm.duration_months}
+                              onChange={(e) => setSubPlanForm((f) => ({ ...f, duration_months: e.target.value, label: PLAN_DURATIONS.find((d) => d.months === parseInt(e.target.value))?.label ?? '' }))}
+                              className={fClass}>
+                              {PLAN_DURATIONS.map((d) => (
+                                <option key={d.months} value={d.months}>{d.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <FLabel label="Label (optional)" />
+                            <input value={subPlanForm.label}
+                              onChange={(e) => setSubPlanForm((f) => ({ ...f, label: e.target.value }))}
+                              placeholder="3 Months" className={fClass} />
+                          </div>
+                          <div>
+                            <FLabel label="Price (₹) *" />
+                            <input type="number" min="0" step="0.01" value={subPlanForm.price}
+                              onChange={(e) => setSubPlanForm((f) => ({ ...f, price: e.target.value }))}
+                              placeholder="2099" className={fClass} />
+                          </div>
+                          <div className="flex items-end">
+                            <button type="button" onClick={addSubPlan} disabled={savingPlan || !subPlanForm.price}
+                              className="w-full flex items-center justify-center gap-1 bg-primary text-white py-2 rounded-xl text-xs font-semibold hover:bg-primary-dark disabled:opacity-60 transition-colors">
+                              <Plus size={13} /> {savingPlan ? 'Saving...' : 'Save Plan'}
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-xs text-brand-gray mt-2">Saving a plan for a duration that already exists will update its price.</p>
+                      </div>
                     </div>
                   )}
                 </div>

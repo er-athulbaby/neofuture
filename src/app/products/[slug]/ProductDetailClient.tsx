@@ -6,9 +6,9 @@ import { useSession } from 'next-auth/react'
 import { useCart } from '@/components/cart/CartProvider'
 import { useToast } from '@/components/ui/ToastProvider'
 import ProductCard from '@/components/products/ProductCard'
-import type { Product, Review, ProductVariant } from '@/types'
+import type { Product, Review, ProductVariant, SubscriptionPlan } from '@/types'
 import { formatPrice, formatDate } from '@/lib/utils'
-import { ShoppingCart, Heart, Star, Check, Package, Truck, RefreshCw } from 'lucide-react'
+import { ShoppingCart, Heart, Star, Check, Package, Truck, RefreshCw, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -28,6 +28,23 @@ export default function ProductDetailClient({ product, reviews, related, variant
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     variants.length > 0 ? variants[0] : null
   )
+
+  // Subscription state
+  const [purchaseMode, setPurchaseMode] = useState<'one-time' | 'subscribe'>('one-time')
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([])
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null)
+
+  useEffect(() => {
+    fetch(`/api/products/${product.id}/subscription-plans`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.plans?.length) {
+          setPlans(d.plans)
+          setSelectedPlan(d.plans[0])
+        }
+      })
+      .catch(() => {})
+  }, [product.id])
 
   // Track recently viewed in localStorage
   useEffect(() => {
@@ -52,9 +69,11 @@ export default function ProductDetailClient({ product, reviews, related, variant
     : product.sale_price
   const effectiveStock = selectedVariant !== null ? selectedVariant.stock : product.stock
 
-  const price = effectiveSalePrice ?? effectivePrice
-  const hasDiscount = effectiveSalePrice !== null && effectiveSalePrice !== undefined && effectiveSalePrice < effectivePrice
-  const discountPct = hasDiscount ? Math.round(((effectivePrice - effectiveSalePrice!) / effectivePrice) * 100) : 0
+  const subscribePrice = purchaseMode === 'subscribe' && selectedPlan ? selectedPlan.price : null
+  const displayPrice = subscribePrice ?? (effectiveSalePrice ?? effectivePrice)
+  const displayOriginalPrice = subscribePrice ? (effectiveSalePrice ?? effectivePrice) : effectivePrice
+  const hasDiscount = displayPrice < displayOriginalPrice
+  const discountPct = hasDiscount ? Math.round(((displayOriginalPrice - displayPrice) / displayOriginalPrice) * 100) : 0
 
   function handleAddToCart() {
     if (effectiveStock <= 0) return
@@ -64,13 +83,17 @@ export default function ProductDetailClient({ product, reviews, related, variant
       slug: product.slug,
       image: images[0],
       price: effectivePrice,
-      sale_price: effectiveSalePrice ?? undefined,
+      sale_price: subscribePrice ?? effectiveSalePrice ?? undefined,
       quantity: qty,
       stock: effectiveStock,
       variant_id: selectedVariant?.id,
       variant_label: selectedVariant?.label,
+      subscription_plan_id: purchaseMode === 'subscribe' ? selectedPlan?.id : undefined,
+      subscription_months: purchaseMode === 'subscribe' ? selectedPlan?.duration_months : undefined,
+      subscription_label: purchaseMode === 'subscribe' ? selectedPlan?.label : undefined,
     })
-    toast(`${product.name}${selectedVariant ? ` (${selectedVariant.label})` : ''} added to cart!`)
+    const sub = purchaseMode === 'subscribe' && selectedPlan ? ` — ${selectedPlan.label}` : ''
+    toast(`${product.name}${selectedVariant ? ` (${selectedVariant.label})` : ''}${sub} added to cart!`)
   }
 
   async function toggleWishlist() {
@@ -175,9 +198,9 @@ export default function ProductDetailClient({ product, reviews, related, variant
 
           {/* Price */}
           <div className="flex items-baseline gap-3 mb-5">
-            <span className="text-3xl font-bold text-brand-dark">{formatPrice(price)}</span>
-            {hasDiscount && <span className="text-lg text-brand-gray line-through">{formatPrice(effectivePrice)}</span>}
-            {hasDiscount && <span className="text-sm font-semibold text-success">Save {formatPrice(effectivePrice - price)}</span>}
+            <span className="text-3xl font-bold text-brand-dark">{formatPrice(displayPrice)}</span>
+            {hasDiscount && <span className="text-lg text-brand-gray line-through">{formatPrice(displayOriginalPrice)}</span>}
+            {hasDiscount && <span className="text-sm font-semibold text-success">Save {formatPrice(displayOriginalPrice - displayPrice)}</span>}
           </div>
 
           {/* Short description */}
@@ -211,6 +234,72 @@ export default function ProductDetailClient({ product, reviews, related, variant
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Subscribe & Save */}
+          {plans.length > 0 && (
+            <div className="mb-5 border-2 border-gray-100 rounded-2xl overflow-hidden">
+              {/* Toggle */}
+              <div className="grid grid-cols-2">
+                <button
+                  onClick={() => setPurchaseMode('one-time')}
+                  className={cn(
+                    'py-3 text-sm font-semibold transition-colors',
+                    purchaseMode === 'one-time'
+                      ? 'bg-brand-dark text-white'
+                      : 'bg-gray-50 text-brand-gray hover:bg-gray-100'
+                  )}
+                >
+                  One-time Purchase
+                </button>
+                <button
+                  onClick={() => setPurchaseMode('subscribe')}
+                  className={cn(
+                    'py-3 text-sm font-semibold transition-colors flex items-center justify-center gap-1.5',
+                    purchaseMode === 'subscribe'
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-50 text-brand-gray hover:bg-gray-100'
+                  )}
+                >
+                  <RotateCcw size={14} /> Subscribe & Save
+                </button>
+              </div>
+
+              {/* Plan selector */}
+              {purchaseMode === 'subscribe' && (
+                <div className="p-4 bg-primary/5 border-t border-primary/10">
+                  <p className="text-xs font-semibold text-brand-gray uppercase tracking-wide mb-3">Choose your plan</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {plans.map((plan) => (
+                      <button
+                        key={plan.id}
+                        onClick={() => setSelectedPlan(plan)}
+                        className={cn(
+                          'flex flex-col items-center p-3 rounded-xl border-2 transition-all text-center',
+                          selectedPlan?.id === plan.id
+                            ? 'border-primary bg-primary text-white'
+                            : 'border-gray-200 bg-white hover:border-primary text-brand-dark'
+                        )}
+                      >
+                        <span className="font-bold text-sm">{plan.label}</span>
+                        <span className={cn('text-xs mt-1', selectedPlan?.id === plan.id ? 'text-white/80' : 'text-brand-gray')}>
+                          {formatPrice(plan.price)}
+                        </span>
+                        {(effectiveSalePrice ?? effectivePrice) > plan.price && (
+                          <span className={cn('text-xs font-semibold mt-1', selectedPlan?.id === plan.id ? 'text-white' : 'text-success')}>
+                            Save {Math.round(((effectiveSalePrice ?? effectivePrice) - plan.price) / (effectiveSalePrice ?? effectivePrice) * 100)}%
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-brand-gray mt-3 flex items-center gap-1">
+                    <Check size={12} className="text-success" />
+                    One-time payment · No auto-renewal · Cancel anytime
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

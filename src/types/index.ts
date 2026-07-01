@@ -65,6 +65,16 @@ export interface CartItem {
   stock: number
   variant_id?: number
   variant_label?: string
+  subscription_plan_id?: number
+  subscription_months?: number
+  subscription_label?: string
+}
+
+export interface SubscriptionPlan {
+  id: number
+  duration_months: number
+  label: string
+  price: number
 }
 
 export interface ProductVariant {
