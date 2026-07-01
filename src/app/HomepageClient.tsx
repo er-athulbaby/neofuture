@@ -367,13 +367,61 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </div>
       </section>
 
+      {/* ── NUTRACEUTICAL INTRO ── */}
+      <section className="py-20 px-4 bg-gradient-to-br from-brand-dark via-[#2a1a4a] to-[#1a1535] overflow-hidden relative">
+        {/* Decorative blobs */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-neo-purple/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4 pointer-events-none" />
+
+        <div className="max-w-5xl mx-auto relative">
+          <div className="flex flex-col lg:flex-row items-center gap-12">
+            {/* Text */}
+            <div className="flex-1 text-center lg:text-left">
+              <span className="inline-block text-xs font-bold uppercase tracking-widest text-primary bg-primary/15 px-3 py-1.5 rounded-full mb-5">
+                Nutraceuticals
+              </span>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight mb-5">
+                The Future of Women's Wellness{' '}
+                <span className="text-primary">Begins Before Illness.</span>
+              </h2>
+              <p className="text-white/70 text-lg leading-relaxed mb-4">
+                Your wellness isn't just about treating problems — it's about caring for yourself every day.
+              </p>
+              <p className="text-white/55 leading-relaxed mb-8">
+                NeoFuture nutraceuticals provide targeted nutritional support to help maintain your body's natural balance, energy, sleep, and overall well-being, so you can continue doing what you love with confidence.
+              </p>
+              <Link href="/shop"
+                className="inline-flex items-center gap-2 bg-primary text-white px-7 py-3.5 rounded-xl font-semibold hover:bg-primary-dark transition-colors">
+                Explore Nutraceuticals <ArrowRight size={16} />
+              </Link>
+            </div>
+
+            {/* Stat cards */}
+            <div className="flex-shrink-0 grid grid-cols-2 gap-4 w-full max-w-xs lg:max-w-none lg:w-72">
+              {[
+                { label: 'Natural Balance', icon: '🌿', desc: 'Hormone & gut harmony' },
+                { label: 'Daily Energy', icon: '⚡', desc: 'Sustained vitality' },
+                { label: 'Better Sleep', icon: '🌙', desc: 'Restorative rest' },
+                { label: 'Overall Wellbeing', icon: '💗', desc: 'Body & mind care' },
+              ].map((s) => (
+                <div key={s.label} className="bg-white/8 backdrop-blur-sm border border-white/10 rounded-2xl p-4 text-center">
+                  <div className="text-2xl mb-2">{s.icon}</div>
+                  <p className="text-white font-semibold text-sm">{s.label}</p>
+                  <p className="text-white/50 text-xs mt-0.5">{s.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── PRODUCTS ── */}
       <section id="products" className="py-20 px-4 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10">
             <span className="text-xs font-bold uppercase tracking-widest text-primary mb-3 block">Our Products</span>
-            <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-2">Nutraceuticals & Wellness</h2>
-            <p className="text-brand-gray">Science-backed products trusted by women across India</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-2">Nutraceuticals</h2>
+            <p className="text-brand-gray">Science-backed nutritional support trusted by women across India</p>
           </div>
           {featured.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
