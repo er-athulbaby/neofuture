@@ -14,12 +14,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params
   const {
-    name, category_id, price, sale_price, stock, sku,
+    name, slug: customSlug, category_id, price, sale_price, stock, sku,
     short_description, description, ingredients, how_to_use,
     flavor, weight, images, is_active, is_featured,
   } = await req.json()
 
-  const slug = slugify(name)
+  const slug = customSlug || slugify(name)
+
+  // Check slug uniqueness (exclude current product)
+  const duplicate = await query<{ id: number }>(
+    `SELECT id FROM products WHERE slug = $1 AND id != $2`, [slug, id]
+  )
+  if (duplicate.length > 0) {
+    return NextResponse.json({ error: `URL "${slug}" is already used by another product` }, { status: 409 })
+  }
 
   await query(
     `UPDATE products SET

@@ -14,11 +14,17 @@ interface Props { products: ProductRow[]; categories: Category[] }
 interface Variant { id: number; label: string; price: number | null; sale_price: number | null; stock: number; sku: string | null }
 const EMPTY_VARIANT = { label: '', price: '', sale_price: '', stock: '0', sku: '' }
 
+function toSlug(s: string) {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
 const EMPTY_FORM = {
-  name: '', category_id: '', price: '', sale_price: '', stock: '', sku: '',
+  name: '', slug: '', category_id: '', price: '', sale_price: '', stock: '', sku: '',
   short_description: '', description: '', ingredients: '', how_to_use: '',
   flavor: '', weight: '', images: '', is_active: true, is_featured: false,
 }
+
+type FormKey = keyof typeof EMPTY_FORM
 
 export default function AdminProductsClient({ products: initial, categories }: Props) {
   const router = useRouter()
@@ -87,6 +93,7 @@ export default function AdminProductsClient({ products: initial, categories }: P
   function openAdd() {
     setEditId(null)
     setForm(EMPTY_FORM)
+    setSlugEdited(false)
     setShowForm(true)
   }
 
@@ -94,6 +101,7 @@ export default function AdminProductsClient({ products: initial, categories }: P
     setEditId(p.id)
     setForm({
       name: p.name,
+      slug: p.slug ?? '',
       category_id: p.category_id ? String(p.category_id) : '',
       price: String(p.price),
       sale_price: p.sale_price ? String(p.sale_price) : '',
@@ -143,6 +151,7 @@ export default function AdminProductsClient({ products: initial, categories }: P
 
     const payload = {
       name: form.name,
+      slug: form.slug || toSlug(form.name),
       category_id: form.category_id ? Number(form.category_id) : null,
       price: Number(form.price),
       sale_price: form.sale_price ? Number(form.sale_price) : null,
@@ -166,7 +175,11 @@ export default function AdminProductsClient({ products: initial, categories }: P
       body: JSON.stringify(payload),
     })
     setSaving(false)
-    if (!res.ok) { toast('Failed to save product', 'error'); return }
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      toast(d.error ?? 'Failed to save product', 'error')
+      return
+    }
     toast(editId ? 'Product updated!' : 'Product created!')
     setShowForm(false)
     router.refresh()
@@ -197,9 +210,19 @@ export default function AdminProductsClient({ products: initial, categories }: P
     }
   }
 
+  const [slugEdited, setSlugEdited] = useState(false)
+
   const fc = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const t = e.target as HTMLInputElement
-    setForm((f) => ({ ...f, [t.name]: t.type === 'checkbox' ? t.checked : t.value }))
+    const value = t.type === 'checkbox' ? t.checked : t.value
+    if (t.name === 'slug') {
+      setSlugEdited(true)
+      setForm((f) => ({ ...f, slug: toSlug(String(value)) }))
+    } else if (t.name === 'name' && !slugEdited && !editId) {
+      setForm((f) => ({ ...f, name: String(value), slug: toSlug(String(value)) }))
+    } else {
+      setForm((f) => ({ ...f, [t.name as FormKey]: value }))
+    }
   }
 
   return (
@@ -313,7 +336,26 @@ export default function AdminProductsClient({ products: initial, categories }: P
 
                 <div className="sm:col-span-2">
                   <FLabel label="Product Name *" />
-                  <input name="name" value={form.name} onChange={fc} required className={fClass} placeholder="e.g. Menstrual Cup" />
+                  <input name="name" value={form.name} onChange={fc} required className={fClass} placeholder="e.g. Neo Balance" />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <FLabel label="URL Slug (custom URL)" />
+                  <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:border-primary">
+                    <span className="px-3 py-2.5 text-sm text-brand-gray bg-gray-50 border-r border-gray-200 whitespace-nowrap select-none">
+                      /products/
+                    </span>
+                    <input
+                      name="slug"
+                      value={form.slug}
+                      onChange={fc}
+                      className="flex-1 px-3 py-2.5 text-sm focus:outline-none bg-white font-mono"
+                      placeholder="neo-balance"
+                    />
+                  </div>
+                  <p className="text-xs text-brand-gray mt-1">
+                    Auto-filled from name. Only lowercase letters, numbers, and hyphens.
+                  </p>
                 </div>
 
                 <div>

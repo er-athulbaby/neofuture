@@ -22,7 +22,12 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   if (!await adminGuard()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const body = await req.json()
-  const slug = slugify(body.name)
+  const slug = body.slug ? body.slug : slugify(body.name)
+
+  // Check slug uniqueness
+  const existing = await queryOne<{ id: number }>(`SELECT id FROM products WHERE slug = $1`, [slug])
+  if (existing) return NextResponse.json({ error: `URL "${slug}" is already used by another product` }, { status: 409 })
+
   const product = await queryOne(
     `INSERT INTO products (name, slug, description, short_description, price, sale_price, images, category_id, stock, is_featured, is_active, ingredients, how_to_use, flavor, weight, sku, tags)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
@@ -36,7 +41,11 @@ export async function PUT(req: NextRequest) {
   if (!await adminGuard()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const body = await req.json()
   const { id, ...fields } = body
-  if (fields.name) fields.slug = slugify(fields.name)
+  if (fields.slug) {
+    fields.slug = fields.slug // already sanitized by client
+  } else if (fields.name) {
+    fields.slug = slugify(fields.name)
+  }
   if (fields.images) fields.images = JSON.stringify(fields.images)
   if (fields.tags) fields.tags = JSON.stringify(fields.tags)
 
