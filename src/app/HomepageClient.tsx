@@ -402,19 +402,13 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
                 <div key={i} className={`bg-gradient-to-br ${founder.accent} border ${founder.border} rounded-3xl p-8`}>
                   <div className="flex items-start gap-5">
                     {/* Photo / Avatar */}
-                    <div className="flex-shrink-0">
-                      {founder.image ? (
-                        <img
-                          src={founder.image}
-                          alt={founder.name}
-                          className={`w-24 h-24 rounded-2xl object-cover shadow-lg ring-4 ${founder.ring}`}
-                        />
-                      ) : (
-                        <div className={`w-24 h-24 rounded-2xl flex items-center justify-center text-2xl font-bold text-white shadow-lg ring-4 ${founder.ring} ${i === 0 ? 'bg-gradient-to-br from-primary to-primary-dark' : 'bg-gradient-to-br from-neo-purple to-purple-700'}`}>
-                          {founder.initials}
-                        </div>
-                      )}
-                    </div>
+                    <FounderAvatar
+                      image={founder.image}
+                      name={founder.name}
+                      initials={founder.initials}
+                      ring={founder.ring}
+                      colorClass={i === 0 ? 'bg-gradient-to-br from-primary to-primary-dark' : 'bg-gradient-to-br from-neo-purple to-purple-700'}
+                    />
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
@@ -563,5 +557,29 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </section>
       )}
     </>
+  )
+}
+
+function FounderAvatar({ image, name, initials, ring, colorClass }: {
+  image: string; name: string; initials: string; ring: string; colorClass: string
+}) {
+  const [broken, setBroken] = useState(false)
+  const showFallback = !image?.trim() || broken
+
+  return (
+    <div className="flex-shrink-0">
+      {!showFallback ? (
+        <img
+          src={image}
+          alt={name}
+          onError={() => setBroken(true)}
+          className={`w-24 h-24 rounded-2xl object-cover shadow-lg ring-4 ${ring}`}
+        />
+      ) : (
+        <div className={`w-24 h-24 rounded-2xl flex items-center justify-center text-2xl font-bold text-white shadow-lg ring-4 ${ring} ${colorClass}`}>
+          {initials}
+        </div>
+      )}
+    </div>
   )
 }
