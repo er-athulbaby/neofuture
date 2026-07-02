@@ -34,6 +34,14 @@ export interface SiteConfig {
   cod_enabled: string
   gst_rate: string
   gst_type: string
+  founder1_name: string
+  founder1_title: string
+  founder1_bio: string
+  founder1_image: string
+  founder2_name: string
+  founder2_title: string
+  founder2_bio: string
+  founder2_image: string
 }
 
 export const CONFIG_DEFAULTS: SiteConfig = {
@@ -69,6 +77,14 @@ export const CONFIG_DEFAULTS: SiteConfig = {
   cod_enabled: 'false',
   gst_rate: '0',
   gst_type: 'inclusive',
+  founder1_name: 'Dr Alma Baby',
+  founder1_title: 'Co-founder & Chief Medical Education Officer (CMEO)',
+  founder1_bio: 'The trusted medical voice of NeoFuture & Neobloom, Dr. Alma Baby is dedicated to simplifying women\'s health through evidence-based education and compassionate communication. She makes women\'s health easy to understand, helping every woman embrace informed choices with confidence, clarity, and peace of mind.',
+  founder1_image: '',
+  founder2_name: 'Dr Sachin Vengat',
+  founder2_title: 'Co-founder & Chief Executive Officer (CEO)',
+  founder2_bio: 'With a vision to redefine the future of healthcare, Dr. Sachin Vengat leads NeoFuture at the intersection of medicine, technology, and innovation. He drives the development of AI-powered solutions that enhance healthcare experiences, empowering women with smarter, more personalized, and accessible care.',
+  founder2_image: '',
 }
 
 export const getSiteConfig = cache(async function getSiteConfigFn(): Promise<SiteConfig> {

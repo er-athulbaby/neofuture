@@ -367,6 +367,69 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </div>
       </section>
 
+      {/* ── FOUNDERS ── */}
+      {(config.founder1_name || config.founder2_name) && (
+        <section className="py-20 px-4 bg-white">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12">
+              <span className="text-xs font-bold uppercase tracking-widest text-primary mb-3 block">Leadership</span>
+              <h2 className="text-3xl md:text-4xl font-bold text-brand-dark">Meet Our Founders</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {[
+                {
+                  name: config.founder1_name,
+                  title: config.founder1_title,
+                  bio: config.founder1_bio,
+                  image: config.founder1_image,
+                  accent: 'from-primary/10 to-primary/5',
+                  border: 'border-primary/20',
+                  ring: 'ring-primary/30',
+                  initials: config.founder1_name?.split(' ').map((w: string) => w[0]).join('').slice(0, 2),
+                },
+                {
+                  name: config.founder2_name,
+                  title: config.founder2_title,
+                  bio: config.founder2_bio,
+                  image: config.founder2_image,
+                  accent: 'from-neo-purple/10 to-neo-purple/5',
+                  border: 'border-neo-purple/20',
+                  ring: 'ring-neo-purple/30',
+                  initials: config.founder2_name?.split(' ').map((w: string) => w[0]).join('').slice(0, 2),
+                },
+              ].filter((f) => f.name).map((founder, i) => (
+                <div key={i} className={`bg-gradient-to-br ${founder.accent} border ${founder.border} rounded-3xl p-8`}>
+                  <div className="flex items-start gap-5">
+                    {/* Photo / Avatar */}
+                    <div className="flex-shrink-0">
+                      {founder.image ? (
+                        <img
+                          src={founder.image}
+                          alt={founder.name}
+                          className={`w-24 h-24 rounded-2xl object-cover shadow-lg ring-4 ${founder.ring}`}
+                        />
+                      ) : (
+                        <div className={`w-24 h-24 rounded-2xl flex items-center justify-center text-2xl font-bold text-white shadow-lg ring-4 ${founder.ring} ${i === 0 ? 'bg-gradient-to-br from-primary to-primary-dark' : 'bg-gradient-to-br from-neo-purple to-purple-700'}`}>
+                          {founder.initials}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-xl font-bold text-brand-dark leading-tight">{founder.name}</h3>
+                      <p className={`text-sm font-semibold mt-1 mb-3 ${i === 0 ? 'text-primary' : 'text-neo-purple'}`}>{founder.title}</p>
+                      <p className="text-brand-gray text-sm leading-relaxed">{founder.bio}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ── NUTRACEUTICAL INTRO ── */}
       <section className="py-20 px-4 bg-gradient-to-br from-brand-dark via-[#2a1a4a] to-[#1a1535] overflow-hidden relative">
         {/* Decorative blobs */}

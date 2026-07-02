@@ -11,6 +11,8 @@ type Cfg = {
   period_title: string; period_subtitle: string
   community_title: string; community_subtitle: string; community_whatsapp: string
   about_title: string; about_text: string; about_image: string
+  founder1_name: string; founder1_title: string; founder1_bio: string; founder1_image: string
+  founder2_name: string; founder2_title: string; founder2_bio: string; founder2_image: string
   contact_email: string; contact_phone: string; whatsapp_number: string; address: string
   instagram_url: string; facebook_url: string; instagram_posts: string
   color_primary: string; color_primary_dark: string; color_primary_light: string
@@ -36,6 +38,14 @@ const D: Cfg = {
   about_title: 'About NeoFuture',
   about_text: 'We are a team of passionate women, doctors, and wellness experts.',
   about_image: '',
+  founder1_name: 'Dr Alma Baby',
+  founder1_title: 'Co-founder & Chief Medical Education Officer (CMEO)',
+  founder1_bio: 'The trusted medical voice of NeoFuture & Neobloom, Dr. Alma Baby is dedicated to simplifying women\'s health through evidence-based education and compassionate communication. She makes women\'s health easy to understand, helping every woman embrace informed choices with confidence, clarity, and peace of mind.',
+  founder1_image: '',
+  founder2_name: 'Dr Sachin Vengat',
+  founder2_title: 'Co-founder & Chief Executive Officer (CEO)',
+  founder2_bio: 'With a vision to redefine the future of healthcare, Dr. Sachin Vengat leads NeoFuture at the intersection of medicine, technology, and innovation. He drives the development of AI-powered solutions that enhance healthcare experiences, empowering women with smarter, more personalized, and accessible care.',
+  founder2_image: '',
   contact_email: '', contact_phone: '', whatsapp_number: '', address: '',
   instagram_url: '', facebook_url: '', instagram_posts: '',
   color_primary: '#D4236A', color_primary_dark: '#A81B54', color_primary_light: '#FBE8F2',
@@ -55,6 +65,8 @@ export default function AdminSettingsPage() {
   const logoRef = useRef<HTMLInputElement>(null)
   const aboutRef = useRef<HTMLInputElement>(null)
   const faviconRef = useRef<HTMLInputElement>(null)
+  const founder1Ref = useRef<HTMLInputElement>(null)
+  const founder2Ref = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetch('/api/admin/settings')
@@ -172,6 +184,57 @@ export default function AdminSettingsPage() {
               </button>
             </div>
             {s.about_image && <img src={s.about_image} alt="preview" className="mt-2 h-20 object-cover rounded-xl border border-gray-100" />}
+          </div>
+        </Sec>
+
+        {/* Founders */}
+        <Sec icon={<Type size={16} />} title="Meet the Founders">
+          <p className="text-xs text-brand-gray -mt-1 mb-2">These appear in the 'Meet Our Founders' section on the homepage.</p>
+
+          {/* Founder 1 */}
+          <div className="border border-gray-100 rounded-xl p-4 space-y-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-primary">Founder 1</p>
+            <Row>
+              <F label="Name" name="founder1_name" value={s.founder1_name} onChange={fc} placeholder="Dr Alma Baby" />
+              <F label="Title / Role" name="founder1_title" value={s.founder1_title} onChange={fc} placeholder="Co-founder & CMEO" />
+            </Row>
+            <TextA label="Bio" name="founder1_bio" value={s.founder1_bio} onChange={fc} rows={3} />
+            <div>
+              <label className={lbl}>Photo</label>
+              <div className="flex gap-2">
+                <input ref={founder1Ref} type="file" accept="image/*" className="hidden"
+                  onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], 'founder1_image')} />
+                <input name="founder1_image" value={s.founder1_image} onChange={fc} placeholder="/uploads/dr-alma.jpg" className={inp} />
+                <button type="button" onClick={() => founder1Ref.current?.click()}
+                  className="flex-shrink-0 flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-brand-dark px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">
+                  <Upload size={14} /> {uploading === 'founder1_image' ? '...' : 'Upload'}
+                </button>
+              </div>
+              {s.founder1_image && <img src={s.founder1_image} alt="preview" className="mt-2 h-20 w-20 object-cover rounded-full border-2 border-primary/20" />}
+            </div>
+          </div>
+
+          {/* Founder 2 */}
+          <div className="border border-gray-100 rounded-xl p-4 space-y-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-neo-purple">Founder 2</p>
+            <Row>
+              <F label="Name" name="founder2_name" value={s.founder2_name} onChange={fc} placeholder="Dr Sachin Vengat" />
+              <F label="Title / Role" name="founder2_title" value={s.founder2_title} onChange={fc} placeholder="Co-founder & CEO" />
+            </Row>
+            <TextA label="Bio" name="founder2_bio" value={s.founder2_bio} onChange={fc} rows={3} />
+            <div>
+              <label className={lbl}>Photo</label>
+              <div className="flex gap-2">
+                <input ref={founder2Ref} type="file" accept="image/*" className="hidden"
+                  onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], 'founder2_image')} />
+                <input name="founder2_image" value={s.founder2_image} onChange={fc} placeholder="/uploads/dr-sachin.jpg" className={inp} />
+                <button type="button" onClick={() => founder2Ref.current?.click()}
+                  className="flex-shrink-0 flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-brand-dark px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">
+                  <Upload size={14} /> {uploading === 'founder2_image' ? '...' : 'Upload'}
+                </button>
+              </div>
+              {s.founder2_image && <img src={s.founder2_image} alt="preview" className="mt-2 h-20 w-20 object-cover rounded-full border-2 border-neo-purple/20" />}
+            </div>
           </div>
         </Sec>
 
