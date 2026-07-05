@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useCart } from '@/components/cart/CartProvider'
 import { useToast } from '@/components/ui/ToastProvider'
 import { formatPrice } from '@/lib/utils'
-import { Lock, ChevronLeft, ChevronRight, MapPin, CreditCard, Truck, Loader2 } from 'lucide-react'
+import { Lock, ChevronLeft, ChevronRight, MapPin, CreditCard, Truck, Loader2, Zap } from 'lucide-react'
 import Link from 'next/link'
 import type { ShippingAddress } from '@/types'
 
@@ -43,6 +43,10 @@ function CheckoutForm() {
     country: 'India',
   })
 
+  const [npBalance, setNpBalance] = useState(0)
+  const [npToRedeem, setNpToRedeem] = useState(0)
+  const npDiscount = Math.round(subtotal * (npToRedeem / 100) / 100)
+
   const [gstType, setGstType] = useState<'inclusive' | 'exclusive'>('inclusive')
   const [pricing, setPricing] = useState<{
     subtotal: number; discount: number; shipping: number; tax: number; total: number;
@@ -59,8 +63,8 @@ function CheckoutForm() {
       : Math.round((subtotal * gstRate) / (100 + gstRate))
     : 0
   const displayTotal = gstType === 'exclusive'
-    ? subtotal + gstAmount + shipping
-    : subtotal + shipping
+    ? subtotal + gstAmount + shipping - npDiscount
+    : subtotal + shipping - npDiscount
 
   useEffect(() => {
     if (session?.user?.name) setAddress((a) => ({ ...a, name: session.user.name! }))
@@ -78,6 +82,15 @@ function CheckoutForm() {
       })
       .catch(() => {})
   }, [])
+
+  // Fetch NP balance for logged-in users
+  useEffect(() => {
+    if (!session?.user) return
+    fetch('/api/neopulse/balance')
+      .then((r) => r.json())
+      .then((d) => setNpBalance(d.balance ?? 0))
+      .catch(() => {})
+  }, [session])
 
   // Save cart as abandoned cart candidate on mount (non-fatal)
   useEffect(() => {
@@ -142,7 +155,7 @@ function CheckoutForm() {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, shippingAddress: address, couponCode, payment_method: 'cod' }),
+        body: JSON.stringify({ items, shippingAddress: address, couponCode, payment_method: 'cod', neopulse_points: npToRedeem }),
       })
       const data = await res.json()
       setLoading(false)
@@ -158,7 +171,7 @@ function CheckoutForm() {
     const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items, shippingAddress: address, couponCode, payment_method: 'razorpay' }),
+      body: JSON.stringify({ items, shippingAddress: address, couponCode, payment_method: 'razorpay', neopulse_points: npToRedeem }),
     })
     const data = await res.json()
     setLoading(false)
@@ -299,6 +312,40 @@ function CheckoutForm() {
                 </div>
               </div>
 
+              {/* NeoPulse redemption */}
+              {session?.user && npBalance >= 100 && (
+                <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                  <h2 className="font-bold text-brand-dark text-lg mb-3 flex items-center gap-2">
+                    <Zap size={20} className="text-primary" /> Use NeoPulse Points
+                  </h2>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm text-brand-gray">Your balance: <span className="font-bold text-primary">{npBalance} NP</span></p>
+                    <p className="text-xs text-brand-gray">100 NP = 1% off</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {[0, 100, 200, 300, 500].filter((v) => v <= npBalance).map((pts) => (
+                      <button
+                        key={pts}
+                        type="button"
+                        onClick={() => setNpToRedeem(pts)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                          npToRedeem === pts
+                            ? 'bg-primary text-white border-primary'
+                            : 'border-gray-200 text-brand-gray hover:border-primary hover:text-primary'
+                        }`}
+                      >
+                        {pts === 0 ? 'None' : `${pts} NP (${pts / 100}% off)`}
+                      </button>
+                    ))}
+                  </div>
+                  {npToRedeem > 0 && (
+                    <p className="text-sm text-green-600 font-medium">
+                      ✓ Saving {formatPrice(npDiscount)} with {npToRedeem} NP
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Payment method selector */}
               <div className="bg-white rounded-2xl border border-gray-100 p-6">
                 <h2 className="font-bold text-brand-dark text-lg mb-4 flex items-center gap-2">
@@ -433,6 +480,12 @@ function CheckoutForm() {
                 <p className="text-xs text-brand-gray bg-brand-light rounded-lg px-3 py-2">
                   Add {formatPrice(999 - subtotal)} more for free shipping
                 </p>
+              )}
+              {npDiscount > 0 && (
+                <div className="flex justify-between text-primary text-sm font-medium">
+                  <span className="flex items-center gap-1"><Zap size={12} /> NeoPulse ({npToRedeem} NP)</span>
+                  <span>−{formatPrice(npDiscount)}</span>
+                </div>
               )}
               <div className="flex justify-between font-bold text-brand-dark border-t border-gray-100 pt-2">
                 <span>Total</span>

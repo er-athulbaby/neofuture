@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Tag, Settings,
-  ChevronLeft, ChevronRight, MessageSquare, ExternalLink, HelpCircle, FolderOpen, RotateCcw
+  ChevronLeft, ChevronRight, MessageSquare, ExternalLink, HelpCircle, FolderOpen, RotateCcw, Zap
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -17,6 +17,7 @@ const NAV = [
   { href: '/admin/subscriptions', label: 'Subscriptions', icon: RotateCcw },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/leads', label: 'Leads', icon: MessageSquare },
+  { href: '/admin/neopulse', label: 'NeoPulse', icon: Zap },
   { href: '/admin/coupons', label: 'Coupons', icon: Tag },
   { href: '/admin/quiz', label: 'Quiz Config', icon: HelpCircle },
   { href: '/admin/settings', label: 'Settings', icon: Settings },

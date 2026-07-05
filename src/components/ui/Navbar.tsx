@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { useCart } from '@/components/cart/CartProvider'
 import { useState, useEffect, useRef } from 'react'
-import { ShoppingCart, User, Menu, X, ChevronDown, Calculator, Calendar, Baby, Activity, Stethoscope, Heart, Trash2 } from 'lucide-react'
+import { ShoppingCart, User, Menu, X, ChevronDown, Calculator, Calendar, Baby, Activity, Stethoscope, Heart, Trash2, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePathname } from 'next/navigation'
 import { formatPrice } from '@/lib/utils'
@@ -35,6 +35,8 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
   const [toolsOpen, setToolsOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [npBalance, setNpBalance] = useState<number | null>(null)
+  const [npCheckedIn, setNpCheckedIn] = useState(false)
   const pathname = usePathname()
   const cartRef = useRef<HTMLDivElement>(null)
 
@@ -46,6 +48,15 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
 
   // Close cart drawer on route change
   useEffect(() => { setCartOpen(false); setMenuOpen(false) }, [pathname])
+
+  // Load NP balance for logged-in users
+  useEffect(() => {
+    if (!session?.user) return
+    fetch('/api/neopulse/balance')
+      .then((r) => r.json())
+      .then((d) => { setNpBalance(d.balance ?? 0); setNpCheckedIn(d.checked_in_today ?? false) })
+      .catch(() => {})
+  }, [session])
 
   // Close on outside click
   useEffect(() => {
@@ -145,6 +156,17 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
 
             {/* Right side */}
             <div className="flex items-center gap-2">
+              {/* NeoPulse badge */}
+              {session?.user && npBalance !== null && (
+                <Link href="/neopulse" className="relative hidden sm:flex items-center gap-1.5 bg-gradient-to-r from-primary to-neo-purple text-white text-xs font-bold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity">
+                  <Zap size={12} />
+                  {npBalance} NP
+                  {!npCheckedIn && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border border-white animate-pulse" />
+                  )}
+                </Link>
+              )}
+
               {/* Cart icon — opens mini-cart drawer */}
               <button
                 onClick={() => setCartOpen((o) => !o)}
@@ -175,6 +197,10 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
                       <p className="text-sm font-medium text-brand-dark truncate">{session.user.name}</p>
                     </div>
                     <Link href="/account" className="block px-4 py-2 text-sm text-brand-dark hover:bg-primary-light hover:text-primary">My Dashboard</Link>
+                    <Link href="/neopulse" className="flex items-center justify-between px-4 py-2 text-sm text-brand-dark hover:bg-primary-light hover:text-primary">
+                      <span className="flex items-center gap-1.5"><Zap size={13} className="text-primary" /> NeoPulse</span>
+                      {npBalance !== null && <span className="text-xs font-bold text-primary">{npBalance} NP</span>}
+                    </Link>
                     <Link href="/account/orders" className="block px-4 py-2 text-sm text-brand-dark hover:bg-primary-light hover:text-primary">My Orders</Link>
                     <Link href="/account/wishlist" className="flex items-center gap-2 px-4 py-2 text-sm text-brand-dark hover:bg-primary-light hover:text-primary">
                       <Heart size={13} /> Wishlist

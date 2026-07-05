@@ -6,6 +6,7 @@ import crypto from 'crypto'
 import { generateOrderNumber } from '@/lib/utils'
 import { sendOrderConfirmation } from '@/lib/email'
 import type { CartItem, ShippingAddress, Coupon } from '@/types'
+import { awardPoints, hasEverDone, ensureNeopulseTables } from '@/lib/neopulse'
 
 function getRazorpay() {
   return new Razorpay({
@@ -32,6 +33,13 @@ async function getGSTSettings() {
     rate: Number(rateRow?.value ?? '0'),
     type: (typeRow?.value ?? 'inclusive') as 'inclusive' | 'exclusive',
   }
+}
+
+async function calcNpDiscount(userId: number | null | undefined, neopulsePoints: number, subtotal: number): Promise<number> {
+  if (!userId || !neopulsePoints || neopulsePoints < 100) return 0
+  const user = await queryOne<{ neopulse_balance: number }>(`SELECT neopulse_balance FROM users WHERE id = $1`, [userId])
+  if (!user || user.neopulse_balance < neopulsePoints) return 0
+  return Math.round(subtotal * (neopulsePoints / 100) / 100)
 }
 
 async function calcOrder(items: CartItem[], couponCode: string | undefined, gst?: { rate: number; type: 'inclusive' | 'exclusive' }) {
@@ -80,16 +88,18 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth()
     const body = await req.json()
-    const { items, shippingAddress, couponCode, payment_method }: {
+    const { items, shippingAddress, couponCode, payment_method, neopulse_points }: {
       items: CartItem[]
       shippingAddress: ShippingAddress
       couponCode?: string
       payment_method?: 'razorpay' | 'cod'
+      neopulse_points?: number
     } = body
 
     if (!items?.length) return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
 
     const [codEnabled, gst] = await Promise.all([isCodEnabled(), getGSTSettings()])
+    await ensureNeopulseTables().catch(() => {})
 
     // Ensure tax + subscription columns exist (idempotent)
     await Promise.all([
@@ -102,7 +112,10 @@ export async function POST(req: NextRequest) {
     if (payment_method === 'cod') {
       if (!codEnabled) return NextResponse.json({ error: 'Cash on Delivery is not available.' }, { status: 400 })
 
-      const { subtotal, discount, shipping, tax, total, couponId, validatedItems } = await calcOrder(items, couponCode, gst)
+      const { subtotal, discount, shipping, tax, total: baseTotal, couponId, validatedItems } = await calcOrder(items, couponCode, gst)
+      const npPoints = Number(neopulse_points ?? 0)
+      const npDiscountAmt = await calcNpDiscount(session?.user?.id ? Number(session.user.id) : null, npPoints, subtotal)
+      const total = Math.max(0, baseTotal - npDiscountAmt)
       const orderNumber = generateOrderNumber()
 
       const subPlanId = items.find((i) => i.subscription_plan_id)?.subscription_plan_id ?? null
@@ -133,6 +146,21 @@ export async function POST(req: NextRequest) {
 
       if (couponId) await query(`UPDATE coupons SET used_count = used_count + 1 WHERE id = $1`, [couponId])
 
+      // Deduct NP if used
+      if (npDiscountAmt > 0 && session?.user?.id) {
+        await query(
+          `INSERT INTO neopulse_transactions (user_id, action, points, description, reference_id) VALUES ($1, 'redemption', $2, $3, $4)`,
+          [session.user.id, -npPoints, `Redeemed ${npPoints} NP — ${npPoints / 100}% discount on order ${orderNumber}`, orderNumber]
+        ).catch(() => {})
+        await query(`UPDATE users SET neopulse_balance = neopulse_balance - $1 WHERE id = $2`, [npPoints, session.user.id]).catch(() => {})
+      }
+
+      // Award first-purchase bonus
+      if (session?.user?.id) {
+        const isFirst = !(await hasEverDone(Number(session.user.id), 'first_purchase'))
+        if (isFirst) await awardPoints(Number(session.user.id), 'first_purchase', orderNumber).catch(() => {})
+      }
+
       const email = session?.user?.email ?? shippingAddress.email
       if (email) {
         await sendOrderConfirmation(email, {
@@ -157,7 +185,10 @@ export async function POST(req: NextRequest) {
     }
 
     // --- Razorpay path ---
-    const { subtotal, discount, shipping, tax, total, couponId } = await calcOrder(items, couponCode, gst)
+    const { subtotal, discount, shipping, tax, total: rzpBase, couponId } = await calcOrder(items, couponCode, gst)
+    const npPts = Number(neopulse_points ?? 0)
+    const npDisc = await calcNpDiscount(session?.user?.id ? Number(session.user.id) : null, npPts, subtotal)
+    const total = Math.max(0, rzpBase - npDisc)
 
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       console.error('Razorpay keys not configured')
@@ -189,6 +220,8 @@ export async function POST(req: NextRequest) {
       cod_enabled: codEnabled,
       gst_rate: gst.rate,
       gst_type: gst.type,
+      neopulse_points: npPts,
+      neopulse_discount: npDisc,
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed to create order'
@@ -204,6 +237,7 @@ export async function PUT(req: NextRequest) {
     const {
       razorpay_order_id, razorpay_payment_id, razorpay_signature,
       items, shippingAddress, subtotal, discount, shipping, tax, total, couponId,
+      neopulse_points: rzpNpPoints,
     } = body
 
     // Verify signature
@@ -246,6 +280,22 @@ export async function PUT(req: NextRequest) {
 
     if (couponId) {
       await query(`UPDATE coupons SET used_count = used_count + 1 WHERE id = $1`, [couponId])
+    }
+
+    // Deduct NP if used
+    const rzpNpPts = Number(rzpNpPoints ?? 0)
+    if (rzpNpPts > 0 && session?.user?.id) {
+      await query(
+        `INSERT INTO neopulse_transactions (user_id, action, points, description, reference_id) VALUES ($1, 'redemption', $2, $3, $4)`,
+        [session.user.id, -rzpNpPts, `Redeemed ${rzpNpPts} NP — ${rzpNpPts / 100}% discount on order ${orderNumber}`, orderNumber]
+      ).catch(() => {})
+      await query(`UPDATE users SET neopulse_balance = neopulse_balance - $1 WHERE id = $2`, [rzpNpPts, session.user.id]).catch(() => {})
+    }
+
+    // Award first-purchase bonus
+    if (session?.user?.id) {
+      const isFirst = !(await hasEverDone(Number(session.user.id), 'first_purchase').catch(() => true))
+      if (isFirst) await awardPoints(Number(session.user.id), 'first_purchase', orderNumber).catch(() => {})
     }
 
     const email = session?.user?.email ?? shippingAddress.email
