@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { query, queryOne } from '@/lib/db'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-import { Sparkles, ShoppingBag, Calendar, Baby, Scale, Utensils, BarChart3, Droplets, ArrowRight, ChevronRight } from 'lucide-react'
+import { Sparkles, ShoppingBag, Calendar, Baby, Scale, Utensils, BarChart3, Droplets, ArrowRight, ChevronRight, Zap } from 'lucide-react'
 import AccountPeriodWidget from './AccountPeriodWidget'
 
 export const metadata = { title: 'My Dashboard' }
@@ -12,7 +12,7 @@ export default async function AccountPage() {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const [latestScore, recentOrders] = await Promise.all([
+  const [latestScore, recentOrders, npData, todayCheckin, wellnessStreak] = await Promise.all([
     queryOne<{ hormone_score: number; stress_score: number; energy_score: number; created_at: string }>(
       'SELECT hormone_score, stress_score, energy_score, created_at FROM wellness_scores WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1',
       [session.user.id]
@@ -21,7 +21,23 @@ export default async function AccountPage() {
       'SELECT id, order_number, total, status, created_at FROM orders WHERE user_id = $1 ORDER BY created_at DESC LIMIT 3',
       [session.user.id]
     ).catch(() => []),
+    queryOne<{ neopulse_balance: number; referral_code: string | null }>(
+      'SELECT neopulse_balance, referral_code FROM users WHERE id = $1',
+      [session.user.id]
+    ).catch(() => null),
+    queryOne<{ wellness_score: string; sleep_score: number; energy_score: number; stress_level: number }>(
+      'SELECT wellness_score, sleep_score, energy_score, stress_level FROM wellness_checkins WHERE user_id = $1 AND check_in_date = CURRENT_DATE',
+      [String(session.user.id)]
+    ).catch(() => null),
+    queryOne<{ cnt: string }>(
+      'SELECT COUNT(*)::text AS cnt FROM wellness_checkins WHERE user_id = $1 AND check_in_date >= CURRENT_DATE - INTERVAL \'7 days\'',
+      [String(session.user.id)]
+    ).catch(() => null),
   ])
+
+  const npBalance = npData?.neopulse_balance ?? 0
+  const checkedInToday = !!todayCheckin
+  const streakDays = parseInt(wellnessStreak?.cnt ?? '0')
 
   // Compute overall wellness score (avg of available scores)
   const scores: number[] = []
@@ -191,8 +207,83 @@ export default async function AccountPage() {
           </div>
         </div>
 
-        {/* ── RIGHT COLUMN: Tools ── */}
-        <div>
+        {/* ── RIGHT COLUMN ── */}
+        <div className="space-y-5">
+
+          {/* ── NEOPULSE CARD ── */}
+          <div className="rounded-2xl overflow-hidden shadow-sm border border-pink-100">
+            {/* Gradient header */}
+            <div className="bg-gradient-to-br from-[#D4236A] via-[#9B2D8B] to-[#7B35A8] px-5 pt-5 pb-6 text-white">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5">
+                  <Zap size={15} className="text-yellow-300" />
+                  <span className="text-xs font-bold uppercase tracking-widest opacity-80">NeoPulse</span>
+                </div>
+                {checkedInToday && (
+                  <span className="text-xs bg-white/20 rounded-full px-2 py-0.5 font-medium">✓ Checked in</span>
+                )}
+              </div>
+              <p className="text-4xl font-black leading-none">{npBalance}</p>
+              <p className="text-sm opacity-70 mt-0.5">Points Balance</p>
+              {npBalance >= 100 && (
+                <p className="text-xs mt-2 bg-white/15 rounded-lg px-3 py-1.5 inline-block">
+                  🎁 Redeem {Math.floor(npBalance / 100) * 100} NP → {Math.floor(npBalance / 100)}% off your next order
+                </p>
+              )}
+            </div>
+
+            {/* Body */}
+            <div className="bg-white px-5 py-4 space-y-3">
+              {/* 7-day streak */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-brand-gray">7-day check-ins</span>
+                <div className="flex gap-1">
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-4 h-4 rounded-full ${i < streakDays ? 'bg-primary' : 'bg-gray-100'}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Today's wellness score if checked in */}
+              {checkedInToday && todayCheckin && (
+                <div className="bg-gray-50 rounded-xl p-3 grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p className="text-base">🌙</p>
+                    <p className="text-xs font-bold text-brand-dark">{todayCheckin.sleep_score}/10</p>
+                    <p className="text-xs text-brand-gray">Sleep</p>
+                  </div>
+                  <div>
+                    <p className="text-base">⚡</p>
+                    <p className="text-xs font-bold text-brand-dark">{todayCheckin.energy_score}/10</p>
+                    <p className="text-xs text-brand-gray">Energy</p>
+                  </div>
+                  <div>
+                    <p className="text-base">🧘</p>
+                    <p className="text-xs font-bold text-brand-dark">{todayCheckin.stress_level}/10</p>
+                    <p className="text-xs text-brand-gray">Stress</p>
+                  </div>
+                </div>
+              )}
+
+              {/* CTA */}
+              {!checkedInToday ? (
+                <Link href="/neopulse"
+                  className="flex items-center justify-center gap-2 w-full bg-primary text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors">
+                  <Zap size={14} /> Check In — Earn 10 NP
+                </Link>
+              ) : (
+                <Link href="/neopulse"
+                  className="flex items-center justify-center gap-2 w-full border border-primary text-primary py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-light transition-colors">
+                  View NeoPulse Dashboard
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* ── WELLNESS TOOLS ── */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <h2 className="font-bold text-brand-dark mb-4 text-sm uppercase tracking-wide text-brand-gray">Wellness Tools</h2>
             <div className="space-y-1.5">
