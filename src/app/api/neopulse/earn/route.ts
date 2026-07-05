@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   }
 
-  const userId = Number(session.user.id)
+  const userId = String(session.user.id)
 
   // Daily actions: only once per day
   if (action === 'daily_checkin' || action === 'social_share') {

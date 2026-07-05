@@ -157,17 +157,24 @@ export default function NeoPulsePage() {
 
   async function submitCheckin() {
     setSubmitting(true)
-    const res = await fetch('/api/wellness/checkin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sleep_score: sleep, energy_score: energy, stress_level: stress }),
-    })
-    const data = await res.json()
-    setSubmitting(false)
-    if (res.ok) {
+    try {
+      const res = await fetch('/api/wellness/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sleep_score: sleep, energy_score: energy, stress_level: stress }),
+      })
+      const data = await res.json()
+      setSubmitting(false)
+      if (!res.ok) {
+        alert(data.error || 'Failed to save check-in. Please try again.')
+        return
+      }
       setResult({ wellness_score: data.wellness_score, np_awarded: data.np_awarded })
       setStep('done')
       loadData()
+    } catch (err) {
+      setSubmitting(false)
+      alert('Network error. Please check your connection and try again.')
     }
   }
 

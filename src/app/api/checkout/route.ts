@@ -150,15 +150,15 @@ export async function POST(req: NextRequest) {
       if (npDiscountAmt > 0 && session?.user?.id) {
         await query(
           `INSERT INTO neopulse_transactions (user_id, action, points, description, reference_id) VALUES ($1, 'redemption', $2, $3, $4)`,
-          [session.user.id, -npPoints, `Redeemed ${npPoints} NP — ${npPoints / 100}% discount on order ${orderNumber}`, orderNumber]
+          [String(session.user.id), -npPoints, `Redeemed ${npPoints} NP — ${npPoints / 100}% discount on order ${orderNumber}`, orderNumber]
         ).catch(() => {})
         await query(`UPDATE users SET neopulse_balance = neopulse_balance - $1 WHERE id = $2`, [npPoints, session.user.id]).catch(() => {})
       }
 
       // Award first-purchase bonus
       if (session?.user?.id) {
-        const isFirst = !(await hasEverDone(Number(session.user.id), 'first_purchase'))
-        if (isFirst) await awardPoints(Number(session.user.id), 'first_purchase', orderNumber).catch(() => {})
+        const isFirst = !(await hasEverDone(String(session.user.id), 'first_purchase'))
+        if (isFirst) await awardPoints(String(session.user.id), 'first_purchase', orderNumber).catch(() => {})
       }
 
       const email = session?.user?.email ?? shippingAddress.email
@@ -287,15 +287,15 @@ export async function PUT(req: NextRequest) {
     if (rzpNpPts > 0 && session?.user?.id) {
       await query(
         `INSERT INTO neopulse_transactions (user_id, action, points, description, reference_id) VALUES ($1, 'redemption', $2, $3, $4)`,
-        [session.user.id, -rzpNpPts, `Redeemed ${rzpNpPts} NP — ${rzpNpPts / 100}% discount on order ${orderNumber}`, orderNumber]
+        [String(session.user.id), -rzpNpPts, `Redeemed ${rzpNpPts} NP — ${rzpNpPts / 100}% discount on order ${orderNumber}`, orderNumber]
       ).catch(() => {})
       await query(`UPDATE users SET neopulse_balance = neopulse_balance - $1 WHERE id = $2`, [rzpNpPts, session.user.id]).catch(() => {})
     }
 
     // Award first-purchase bonus
     if (session?.user?.id) {
-      const isFirst = !(await hasEverDone(Number(session.user.id), 'first_purchase').catch(() => true))
-      if (isFirst) await awardPoints(Number(session.user.id), 'first_purchase', orderNumber).catch(() => {})
+      const isFirst = !(await hasEverDone(String(session.user.id), 'first_purchase').catch(() => true))
+      if (isFirst) await awardPoints(String(session.user.id), 'first_purchase', orderNumber).catch(() => {})
     }
 
     const email = session?.user?.email ?? shippingAddress.email

@@ -26,39 +26,50 @@ export const ACTION_LABELS: Record<EarnAction, string> = {
   social_share: 'Shared on social media',
 }
 
+// Sequential migrations — no parallel ALTER TABLE on the same table
 export async function ensureNeopulseTables() {
-  await Promise.all([
-    query(`CREATE TABLE IF NOT EXISTS neopulse_transactions (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      action VARCHAR(50) NOT NULL,
-      points INTEGER NOT NULL,
-      description TEXT,
-      reference_id VARCHAR(200),
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )`, []).catch(() => {}),
-    query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS neopulse_balance INTEGER NOT NULL DEFAULT 0`, []).catch(() => {}),
-    query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(20)`, []).catch(() => {}),
-    query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by_user_id INTEGER`, []).catch(() => {}),
-    query(`CREATE INDEX IF NOT EXISTS idx_neopulse_user_id ON neopulse_transactions(user_id, created_at DESC)`, []).catch(() => {}),
-  ])
+  // Create transactions table first (no FK — avoids type mismatch with NextAuth users.id)
+  await query(`CREATE TABLE IF NOT EXISTS neopulse_transactions (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    action VARCHAR(50) NOT NULL,
+    points INTEGER NOT NULL,
+    description TEXT,
+    reference_id VARCHAR(200),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`, []).catch((e) => console.error('[neopulse] create table error:', e?.message))
+
+  // Add columns to users table one at a time to avoid lock contention
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS neopulse_balance INTEGER NOT NULL DEFAULT 0`, [])
+    .catch((e) => console.error('[neopulse] add neopulse_balance error:', e?.message))
+
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(20)`, [])
+    .catch((e) => console.error('[neopulse] add referral_code error:', e?.message))
+
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by_user_id TEXT`, [])
+    .catch((e) => console.error('[neopulse] add referred_by error:', e?.message))
+
+  // Index (non-critical, ignore failure)
+  await query(`CREATE INDEX IF NOT EXISTS idx_neopulse_user_id ON neopulse_transactions(user_id, created_at DESC)`, [])
+    .catch(() => {})
 }
 
 export async function ensureWellnessTables() {
-  await Promise.all([
-    query(`CREATE TABLE IF NOT EXISTS wellness_checkins (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      check_in_date DATE NOT NULL DEFAULT CURRENT_DATE,
-      sleep_score INTEGER NOT NULL,
-      energy_score INTEGER NOT NULL,
-      stress_level INTEGER NOT NULL,
-      wellness_score NUMERIC(4,1) NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      UNIQUE(user_id, check_in_date)
-    )`, []).catch(() => {}),
-    query(`CREATE INDEX IF NOT EXISTS idx_wellness_user_date ON wellness_checkins(user_id, check_in_date DESC)`, []).catch(() => {}),
-  ])
+  // No FK reference — avoids type mismatch with NextAuth users.id
+  await query(`CREATE TABLE IF NOT EXISTS wellness_checkins (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    check_in_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    sleep_score INTEGER NOT NULL,
+    energy_score INTEGER NOT NULL,
+    stress_level INTEGER NOT NULL,
+    wellness_score NUMERIC(4,1) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, check_in_date)
+  )`, []).catch((e) => console.error('[wellness] create table error:', e?.message))
+
+  await query(`CREATE INDEX IF NOT EXISTS idx_wellness_user_date ON wellness_checkins(user_id, check_in_date DESC)`, [])
+    .catch(() => {})
 }
 
 export function calcWellnessScore(sleep: number, energy: number, stress: number): number {
@@ -66,18 +77,19 @@ export function calcWellnessScore(sleep: number, energy: number, stress: number)
   return Math.round(raw * 10) / 10
 }
 
-export function generateReferralCode(userId: number): string {
+export function generateReferralCode(userId: string | number): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const id = String(userId).replace(/\D/g, '') || '0'
+  const n = parseInt(id.slice(-6)) // take last 6 digits to stay in safe int range
   let code = 'NEO'
-  const seed = userId * 31337
   for (let i = 0; i < 5; i++) {
-    code += chars[(seed * (i + 7) * 13) % chars.length]
+    code += chars[((n * 13 + i * 7 + 3) * 17) % chars.length]
   }
   return code
 }
 
 export async function awardPoints(
-  userId: number,
+  userId: string | number,
   action: EarnAction,
   referenceId?: string,
   customDescription?: string
@@ -89,7 +101,7 @@ export async function awardPoints(
   await query(
     `INSERT INTO neopulse_transactions (user_id, action, points, description, reference_id)
      VALUES ($1, $2, $3, $4, $5)`,
-    [userId, action, points, description, referenceId ?? null]
+    [String(userId), action, points, description, referenceId ?? null]
   )
 
   const updated = await queryOne<{ neopulse_balance: number }>(
@@ -100,19 +112,19 @@ export async function awardPoints(
   return { awarded: points, newBalance: updated?.neopulse_balance ?? 0 }
 }
 
-export async function hasActionToday(userId: number, action: EarnAction): Promise<boolean> {
+export async function hasActionToday(userId: string | number, action: EarnAction): Promise<boolean> {
   const row = await queryOne<{ cnt: string }>(
     `SELECT COUNT(*) as cnt FROM neopulse_transactions
      WHERE user_id = $1 AND action = $2 AND created_at >= CURRENT_DATE`,
-    [userId, action]
+    [String(userId), action]
   )
   return parseInt(row?.cnt ?? '0') > 0
 }
 
-export async function hasEverDone(userId: number, action: EarnAction): Promise<boolean> {
+export async function hasEverDone(userId: string | number, action: EarnAction): Promise<boolean> {
   const row = await queryOne<{ cnt: string }>(
     `SELECT COUNT(*) as cnt FROM neopulse_transactions WHERE user_id = $1 AND action = $2`,
-    [userId, action]
+    [String(userId), action]
   )
   return parseInt(row?.cnt ?? '0') > 0
 }
