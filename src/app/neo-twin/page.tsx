@@ -7,8 +7,8 @@ import { useRouter } from 'next/navigation'
 import {
   Zap, Star, Heart, Activity, Moon, Droplets, Smile, Calendar,
   TrendingUp, TrendingDown, Minus, ChevronRight, Home, CheckSquare,
-  Users, ShoppingBag, Gift, BarChart2, MessageCircle, BookOpen,
-  Target, Mail, X, Menu,
+  Users, ShoppingBag, Gift, BarChart2, MessageCircle,
+  Mail, X, Menu,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -500,41 +500,19 @@ export default function NeoTwinPage() {
             </div>
           </div>
 
-          {/* Row 5: 30-Day Challenge + Monthly Letter */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* 30-Day Challenge */}
-            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-              <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
-                <Target size={16} className="text-[#E07B2A]" /> Personalized 30-Day Challenge
-              </h3>
-              <p className="text-xs text-gray-400 mb-4">Based on your data, your next challenge is:</p>
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                {data.challenges.map((c, i) => (
-                  <div key={i} className="bg-[#FFF5F0] rounded-2xl p-3 text-center border border-orange-100">
-                    <span className="text-2xl">{c.icon}</span>
-                    <p className="text-xs font-medium text-gray-700 mt-1 leading-tight">{c.label}</p>
-                    <p className="text-xs text-gray-400 mt-1">0/30 days</p>
-                  </div>
-                ))}
-              </div>
-              <div className="bg-gradient-to-r from-[#D4236A] to-[#7B35A8] rounded-xl px-4 py-2.5 text-center">
-                <p className="text-white text-sm font-semibold">Complete all &amp; earn 300 Neo Pulse Points! ðŸŽ‰</p>
-              </div>
-            </div>
 
-            {/* Monthly Wellness Letter */}
-            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col">
-              <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <Mail size={16} className="text-[#D4236A]" /> Monthly Wellness Letter
-              </h3>
-              <div className="flex-1 flex gap-4">
-                <div className="flex-1">
-                  <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line line-clamp-8">{data.monthly_story}</p>
-                </div>
-                <div className="flex-shrink-0">
-                  <div className="w-16 h-20 bg-gradient-to-b from-[#FFF5F0] to-[#FFE0F0] rounded-xl border border-pink-100 flex items-center justify-center">
-                    <Heart size={24} className="text-[#D4236A]" fill="currentColor" />
-                  </div>
+          {/* Monthly Wellness Letter */}
+          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+            <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <Mail size={16} className="text-[#D4236A]" /> Monthly Wellness Letter
+            </h3>
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line line-clamp-8">{data.monthly_story}</p>
+              </div>
+              <div className="flex-shrink-0">
+                <div className="w-16 h-20 bg-gradient-to-b from-[#FFF5F0] to-[#FFE0F0] rounded-xl border border-pink-100 flex items-center justify-center">
+                  <Heart size={24} className="text-[#D4236A]" fill="currentColor" />
                 </div>
               </div>
             </div>
