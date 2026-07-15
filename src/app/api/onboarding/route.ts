@@ -6,7 +6,7 @@ async function ensureTables() {
   await query(`
     CREATE TABLE IF NOT EXISTS user_health_profiles (
       id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL,
+      user_id TEXT NOT NULL,
       height_cm NUMERIC(5,1),
       weight_kg NUMERIC(5,1),
       date_of_birth DATE,
@@ -14,6 +14,19 @@ async function ensureTables() {
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
+  `, []).catch(() => {})
+  // Migrate user_id from INTEGER to TEXT if needed (old schema used INTEGER)
+  await query(`
+    DO $$ BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'user_health_profiles'
+          AND column_name = 'user_id'
+          AND data_type = 'integer'
+      ) THEN
+        ALTER TABLE user_health_profiles ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT;
+      END IF;
+    END $$
   `, []).catch(() => {})
   await query(`ALTER TABLE user_health_profiles ADD COLUMN IF NOT EXISTS last_period_date DATE`, []).catch(() => {})
   await query(`ALTER TABLE user_health_profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`, []).catch(() => {})
@@ -27,7 +40,7 @@ export async function GET() {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   await ensureTables()
-  const userId = Number(session.user.id)
+  const userId = String(session.user.id)
 
   const user = await queryOne<{ onboarding_done: boolean; health_data_consent: boolean }>(
     `SELECT onboarding_done, health_data_consent FROM users WHERE id = $1`,
@@ -51,11 +64,7 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   await ensureTables()
-  const userId = Number(session.user.id)
-
-  if (isNaN(userId)) {
-    return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
-  }
+  const userId = String(session.user.id)
 
   try {
     const body = await req.json()

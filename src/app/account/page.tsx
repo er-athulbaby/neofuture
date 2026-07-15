@@ -12,8 +12,7 @@ export default async function AccountPage() {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const userId = session.user.id
-  const userIdNum = Number(userId)
+  const userId = String(session.user.id)
 
   const [latestScore, recentOrders, npData, todayCheckin, wellnessStreak, totalCheckinsRow, healthProfile] = await Promise.all([
     queryOne<{ hormone_score: number; stress_score: number; energy_score: number; created_at: string }>(
@@ -42,7 +41,7 @@ export default async function AccountPage() {
     ).catch(() => null),
     queryOne<{ height_cm: number | null; weight_kg: number | null }>(
       'SELECT height_cm, weight_kg FROM user_health_profiles WHERE user_id = $1 ORDER BY id DESC LIMIT 1',
-      [userIdNum]
+      [userId]
     ).catch(() => null),
   ])
 

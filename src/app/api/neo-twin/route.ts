@@ -210,7 +210,6 @@ export async function GET() {
   await ensureWellnessTables()
 
   const userId = String(session.user.id)
-  const userIdNum = Number(session.user.id)
   const isAdmin = session.user.is_admin === true
 
   // Total check-in count (unlock threshold: 30)
@@ -257,13 +256,13 @@ export async function GET() {
     height_cm: number | null; weight_kg: number | null; date_of_birth: string | null; last_period_date: string | null
   }>(
     `SELECT height_cm, weight_kg, date_of_birth, last_period_date FROM user_health_profiles WHERE user_id = $1 ORDER BY id DESC LIMIT 1`,
-    [userIdNum]
+    [userId]
   ).catch(() => null)
 
   // NP balance
   const npRow = await queryOne<{ neopulse_balance: number; referral_code: string | null }>(
     `SELECT neopulse_balance, referral_code FROM users WHERE id = $1`,
-    [userIdNum]
+    [userId]
   ).catch(() => null)
 
   const latest = rows.length ? rows[rows.length - 1] : null

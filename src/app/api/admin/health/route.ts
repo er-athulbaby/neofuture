@@ -6,7 +6,7 @@ async function ensureTables() {
   await query(`
     CREATE TABLE IF NOT EXISTS user_health_profiles (
       id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL,
+      user_id TEXT NOT NULL,
       height_cm NUMERIC(5,1),
       weight_kg NUMERIC(5,1),
       date_of_birth DATE,
@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
       `SELECT height_cm, weight_kg, date_of_birth, last_period_date, updated_at
        FROM user_health_profiles WHERE user_id = $1
        ORDER BY id DESC LIMIT 1`,
-      [Number(userId)]
+      [String(userId)]
     ).catch(() => [])
 
     return NextResponse.json({ checkins, profile: profile[0] ?? null })
