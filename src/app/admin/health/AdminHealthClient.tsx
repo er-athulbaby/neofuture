@@ -7,6 +7,7 @@ interface HealthUser {
   id: string
   name: string
   email: string
+  is_admin: boolean
   health_data_consent: boolean
   onboarding_done: boolean
   height_cm: number | null
@@ -22,12 +23,14 @@ interface Checkin {
   sleep_score: number
   energy_score: number
   stress_level: number
+  hydration_score: number | null
+  mood_score: number | null
   wellness_score: number
 }
 
 interface UserDetail {
   checkins: Checkin[]
-  profile: { height_cm: number | null; weight_kg: number | null; date_of_birth: string | null; updated_at: string } | null
+  profile: { height_cm: number | null; weight_kg: number | null; date_of_birth: string | null; last_period_date: string | null; updated_at: string } | null
 }
 
 function calcAge(dob: string | null): string {
@@ -75,6 +78,8 @@ export default function AdminHealthClient() {
     u.email?.toLowerCase().includes(search.toLowerCase())
   )
 
+  const totalCheckins = users.reduce((s, u) => s + parseInt(u.checkin_count || '0'), 0)
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -109,6 +114,9 @@ export default function AdminHealthClient() {
           {users.filter((u) => parseInt(u.checkin_count) > 0).length} checked in
         </div>
         <div className="bg-purple-100 text-purple-700 rounded-xl px-4 py-2 text-sm font-semibold">
+          {totalCheckins} total check-ins
+        </div>
+        <div className="bg-orange-100 text-orange-700 rounded-xl px-4 py-2 text-sm font-semibold">
           {users.filter((u) => u.height_cm || u.weight_kg).length} health profiles
         </div>
       </div>
@@ -117,6 +125,12 @@ export default function AdminHealthClient() {
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+          <Heart size={32} className="mx-auto text-gray-200 mb-3" />
+          <p className="text-brand-gray font-medium">No users found</p>
+          <p className="text-sm text-brand-gray mt-1">Users appear here once they sign up. Check-in data populates after first daily check-in.</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -136,14 +150,16 @@ export default function AdminHealthClient() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 && (
-                  <tr><td colSpan={9} className="text-center py-10 text-brand-gray">No users found</td></tr>
-                )}
                 {filtered.map((u) => (
                   <>
                     <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                       <td className="px-4 py-3">
-                        <p className="font-medium text-brand-dark">{u.name}</p>
+                        <p className="font-medium text-brand-dark flex items-center gap-1.5">
+                          {u.name}
+                          {u.is_admin && (
+                            <span className="text-[10px] bg-primary/10 text-primary rounded-full px-1.5 py-0.5 font-semibold">Admin</span>
+                          )}
+                        </p>
                         <p className="text-xs text-brand-gray">{u.email}</p>
                       </td>
                       <td className="px-4 py-3">
@@ -169,14 +185,12 @@ export default function AdminHealthClient() {
                       </td>
                       <td className="px-4 py-3 text-brand-gray text-xs">{u.last_checkin ?? '—'}</td>
                       <td className="px-4 py-3">
-                        {parseInt(u.checkin_count) > 0 && (
-                          <button
-                            onClick={() => toggleUser(u.id)}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-brand-gray"
-                          >
-                            {expanded === u.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-                        )}
+                        <button
+                          onClick={() => toggleUser(u.id)}
+                          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-brand-gray"
+                        >
+                          {expanded === u.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
                       </td>
                     </tr>
 
@@ -190,36 +204,78 @@ export default function AdminHealthClient() {
                               Loading history...
                             </div>
                           ) : details[u.id] ? (
-                            <div className="space-y-3">
-                              <p className="text-xs font-semibold text-brand-gray uppercase tracking-wide flex items-center gap-1.5">
-                                <Activity size={13} /> Last 90 days — {details[u.id].checkins.length} check-ins
-                              </p>
-                              <div className="overflow-x-auto rounded-xl border border-gray-200">
-                                <table className="w-full text-xs">
-                                  <thead className="bg-white border-b border-gray-100">
-                                    <tr>
-                                      <th className="text-left px-3 py-2 font-semibold text-brand-gray">Date</th>
-                                      <th className="text-center px-3 py-2 font-semibold text-brand-gray">😴 Sleep</th>
-                                      <th className="text-center px-3 py-2 font-semibold text-brand-gray">⚡ Energy</th>
-                                      <th className="text-center px-3 py-2 font-semibold text-brand-gray">🧘 Stress</th>
-                                      <th className="text-center px-3 py-2 font-semibold text-brand-gray">Wellness</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {details[u.id].checkins.map((c) => (
-                                      <tr key={c.check_in_date} className="border-b border-gray-50 hover:bg-white/70">
-                                        <td className="px-3 py-1.5 text-brand-gray">{c.check_in_date}</td>
-                                        <td className={`px-3 py-1.5 text-center ${scoreColor(c.sleep_score)}`}>{c.sleep_score}/10</td>
-                                        <td className={`px-3 py-1.5 text-center ${scoreColor(c.energy_score)}`}>{c.energy_score}/10</td>
-                                        <td className={`px-3 py-1.5 text-center ${scoreColor(c.stress_level, true)}`}>{c.stress_level}/10</td>
-                                        <td className={`px-3 py-1.5 text-center ${scoreColor(Number(c.wellness_score))}`}>{Number(c.wellness_score).toFixed(1)}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
+                            <div className="space-y-4">
+                              {/* Health profile summary */}
+                              {details[u.id].profile && (
+                                <div className="flex flex-wrap gap-3">
+                                  {details[u.id].profile!.height_cm && (
+                                    <span className="bg-blue-50 text-blue-700 text-xs px-3 py-1.5 rounded-xl font-medium">
+                                      Height: {details[u.id].profile!.height_cm} cm
+                                    </span>
+                                  )}
+                                  {details[u.id].profile!.weight_kg && (
+                                    <span className="bg-green-50 text-green-700 text-xs px-3 py-1.5 rounded-xl font-medium">
+                                      Weight: {details[u.id].profile!.weight_kg} kg
+                                    </span>
+                                  )}
+                                  {details[u.id].profile!.date_of_birth && (
+                                    <span className="bg-purple-50 text-purple-700 text-xs px-3 py-1.5 rounded-xl font-medium">
+                                      DOB: {details[u.id].profile!.date_of_birth?.slice(0, 10)}
+                                    </span>
+                                  )}
+                                  {details[u.id].profile!.last_period_date && (
+                                    <span className="bg-pink-50 text-pink-700 text-xs px-3 py-1.5 rounded-xl font-medium">
+                                      Last Period: {details[u.id].profile!.last_period_date?.slice(0, 10)}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
+                              {details[u.id].checkins.length === 0 ? (
+                                <p className="text-sm text-brand-gray py-2">No check-in data yet for this user.</p>
+                              ) : (
+                                <div className="space-y-2">
+                                  <p className="text-xs font-semibold text-brand-gray uppercase tracking-wide flex items-center gap-1.5">
+                                    <Activity size={13} /> Last 90 days — {details[u.id].checkins.length} check-ins
+                                  </p>
+                                  <div className="overflow-x-auto rounded-xl border border-gray-200">
+                                    <table className="w-full text-xs">
+                                      <thead className="bg-white border-b border-gray-100">
+                                        <tr>
+                                          <th className="text-left px-3 py-2 font-semibold text-brand-gray">Date</th>
+                                          <th className="text-center px-3 py-2 font-semibold text-brand-gray">😴 Sleep</th>
+                                          <th className="text-center px-3 py-2 font-semibold text-brand-gray">⚡ Energy</th>
+                                          <th className="text-center px-3 py-2 font-semibold text-brand-gray">🧘 Stress</th>
+                                          <th className="text-center px-3 py-2 font-semibold text-brand-gray">💧 Hydration</th>
+                                          <th className="text-center px-3 py-2 font-semibold text-brand-gray">😊 Mood</th>
+                                          <th className="text-center px-3 py-2 font-semibold text-brand-gray">Wellness</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {details[u.id].checkins.map((c) => (
+                                          <tr key={c.check_in_date} className="border-b border-gray-50 hover:bg-white/70">
+                                            <td className="px-3 py-1.5 text-brand-gray">{c.check_in_date}</td>
+                                            <td className={`px-3 py-1.5 text-center ${scoreColor(c.sleep_score)}`}>{c.sleep_score}/10</td>
+                                            <td className={`px-3 py-1.5 text-center ${scoreColor(c.energy_score)}`}>{c.energy_score}/10</td>
+                                            <td className={`px-3 py-1.5 text-center ${scoreColor(c.stress_level, true)}`}>{c.stress_level}/10</td>
+                                            <td className={`px-3 py-1.5 text-center ${c.hydration_score ? scoreColor(c.hydration_score) : 'text-gray-400'}`}>
+                                              {c.hydration_score ? `${c.hydration_score}/10` : '—'}
+                                            </td>
+                                            <td className={`px-3 py-1.5 text-center ${c.mood_score ? scoreColor(c.mood_score) : 'text-gray-400'}`}>
+                                              {c.mood_score ? `${c.mood_score}/10` : '—'}
+                                            </td>
+                                            <td className={`px-3 py-1.5 text-center ${scoreColor(Number(c.wellness_score))}`}>{Number(c.wellness_score).toFixed(1)}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          ) : null}
+                          ) : (
+                            <p className="text-sm text-brand-gray py-2">No data available.</p>
+                          )}
                         </td>
                       </tr>
                     )}

@@ -14,6 +14,7 @@ async function ensureTables() {
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
   `, []).catch(() => {})
+  await query(`ALTER TABLE user_health_profiles ADD COLUMN IF NOT EXISTS last_period_date DATE`, []).catch(() => {})
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS health_data_consent BOOLEAN NOT NULL DEFAULT false`, []).catch(() => {})
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS health_data_consent_at TIMESTAMPTZ`, []).catch(() => {})
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_done BOOLEAN NOT NULL DEFAULT false`, []).catch(() => {})
@@ -28,6 +29,8 @@ async function ensureTables() {
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(user_id, check_in_date)
   )`, []).catch(() => {})
+  await query(`ALTER TABLE wellness_checkins ADD COLUMN IF NOT EXISTS hydration_score INTEGER`, []).catch(() => {})
+  await query(`ALTER TABLE wellness_checkins ADD COLUMN IF NOT EXISTS mood_score INTEGER`, []).catch(() => {})
 }
 
 export async function GET(req: NextRequest) {
@@ -46,9 +49,12 @@ export async function GET(req: NextRequest) {
       sleep_score: number
       energy_score: number
       stress_level: number
+      hydration_score: number | null
+      mood_score: number | null
       wellness_score: number
     }>(
-      `SELECT check_in_date, sleep_score, energy_score, stress_level, wellness_score
+      `SELECT check_in_date, sleep_score, energy_score, stress_level,
+              hydration_score, mood_score, wellness_score
        FROM wellness_checkins WHERE user_id = $1
        ORDER BY check_in_date DESC LIMIT 90`,
       [userId]
@@ -58,9 +64,10 @@ export async function GET(req: NextRequest) {
       height_cm: number | null
       weight_kg: number | null
       date_of_birth: string | null
+      last_period_date: string | null
       updated_at: string
     }>(
-      `SELECT height_cm, weight_kg, date_of_birth, updated_at
+      `SELECT height_cm, weight_kg, date_of_birth, last_period_date, updated_at
        FROM user_health_profiles WHERE user_id = $1
        ORDER BY id DESC LIMIT 1`,
       [Number(userId)]
@@ -69,11 +76,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ checkins, profile: profile[0] ?? null })
   }
 
-  // List view: all users with health summary
+  // List view: ALL users (admins included so admin can see their own data)
   const users = await query<{
     id: string
     name: string
     email: string
+    is_admin: boolean
     health_data_consent: boolean
     health_data_consent_at: string | null
     onboarding_done: boolean
@@ -86,6 +94,7 @@ export async function GET(req: NextRequest) {
   }>(
     `SELECT
        u.id, u.name, u.email,
+       COALESCE(u.is_admin, false) as is_admin,
        COALESCE(u.health_data_consent, false) as health_data_consent,
        u.health_data_consent_at,
        COALESCE(u.onboarding_done, false) as onboarding_done,
@@ -106,8 +115,7 @@ export async function GET(req: NextRequest) {
          ROUND(AVG(wellness_score::numeric), 1)::text as avg_wellness
        FROM wellness_checkins WHERE user_id = u.id::text
      ) wc ON true
-     WHERE u.is_admin = false
-     ORDER BY u.created_at DESC`,
+     ORDER BY wc.checkin_count DESC NULLS LAST, u.created_at DESC`,
     []
   ).catch(() => [])
 

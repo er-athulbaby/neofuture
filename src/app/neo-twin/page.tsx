@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
@@ -35,7 +35,6 @@ interface NeoTwinData {
   forecast: { label: string; description: string; trend: 'up' | 'down' | 'stable' }
   monthly_story: string
   achievements: { label: string; icon: string; earned: boolean }[]
-  challenges: { icon: string; label: string; progress: number }[]
   history: { check_in_date: string; wellness_score: string }[]
 }
 
@@ -46,8 +45,6 @@ const NAV_ITEMS = [
   { icon: CheckSquare, label: 'Check-in', href: '/neopulse' },
   { icon: BarChart2, label: 'Dashboard', href: '/account' },
   { icon: Users, label: 'Community', href: '/#community' },
-  { icon: Target, label: 'Challenges', href: '/neo-twin' },
-  { icon: BookOpen, label: 'Learning', href: '/' },
   { icon: ShoppingBag, label: 'Products', href: '/shop' },
   { icon: Gift, label: 'Rewards', href: '/neopulse' },
 ]
@@ -66,9 +63,9 @@ function ScoreCard({ icon, label, value, sub, color }: { icon: React.ReactNode; 
 }
 
 function PctBadge({ pct }: { pct: number | null }) {
-  if (pct == null) return <span className="text-xs text-gray-400">—</span>
-  if (pct > 0) return <span className="flex items-center gap-0.5 text-xs text-green-600 font-semibold"><TrendingUp size={11} />↑ {pct}%</span>
-  if (pct < 0) return <span className="flex items-center gap-0.5 text-xs text-red-500 font-semibold"><TrendingDown size={11} />↓ {Math.abs(pct)}%</span>
+  if (pct == null) return <span className="text-xs text-gray-400">â€”</span>
+  if (pct > 0) return <span className="flex items-center gap-0.5 text-xs text-green-600 font-semibold"><TrendingUp size={11} />â†‘ {pct}%</span>
+  if (pct < 0) return <span className="flex items-center gap-0.5 text-xs text-red-500 font-semibold"><TrendingDown size={11} />â†“ {Math.abs(pct)}%</span>
   return <span className="flex items-center gap-0.5 text-xs text-gray-400"><Minus size={11} /> 0%</span>
 }
 
@@ -154,7 +151,7 @@ export default function NeoTwinPage() {
 
           <Link href="/neopulse"
             className="w-full block text-center bg-gradient-to-r from-[#D4236A] to-[#7B35A8] text-white py-3.5 rounded-xl font-semibold hover:opacity-90 transition-opacity">
-            Go to Check-in →
+            Go to Check-in â†’
           </Link>
         </div>
       </div>
@@ -204,16 +201,16 @@ export default function NeoTwinPage() {
           <span className="text-xs font-semibold text-gray-700">Neo Pulse Points</span>
         </div>
         <p className="text-2xl font-black text-gray-900">{data.np_balance.toLocaleString()}</p>
-        <p className="text-xs text-gray-500">= ₹{Math.floor(data.np_balance / 100) * 10}</p>
+        <p className="text-xs text-gray-500">= â‚¹{Math.floor(data.np_balance / 100) * 10}</p>
         <Link href="/neopulse" className="mt-2 block text-center text-xs bg-white border border-red-200 text-[#D4236A] py-1.5 rounded-lg font-semibold hover:bg-red-50 transition-colors">
-          View Rewards →
+          View Rewards â†’
         </Link>
       </div>
 
       {/* Streak */}
       <div className="mx-4 mb-3 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl p-4 border border-orange-100">
         <div className="flex items-center gap-1.5 mb-1">
-          <span className="text-base">🔥</span>
+          <span className="text-base">ðŸ”¥</span>
           <span className="text-xs font-semibold text-gray-700">{data.total_checkins} Day Streak</span>
         </div>
         <p className="text-2xl font-black text-[#E07B2A]">{data.total_checkins}</p>
@@ -284,16 +281,16 @@ export default function NeoTwinPage() {
           <div className="bg-gradient-to-br from-[#FFF5F0] to-[#F5F0FF] rounded-3xl p-5 border border-orange-100 flex flex-col sm:flex-row gap-5">
             {/* Left: greeting + wellness circle */}
             <div className="flex-1">
-              <h2 className="text-xl font-bold text-gray-900">{greeting}, {data.name}! 🌸</h2>
+              <h2 className="text-xl font-bold text-gray-900">{greeting}, {data.name}! ðŸŒ¸</h2>
               <p className="text-sm text-gray-500 mb-4">Here&apos;s how your body &amp; mind are doing today.</p>
               {data.latest ? (
                 <WellnessCircle score={wellnessScore} />
               ) : (
                 <div className="flex items-center gap-3 bg-white rounded-2xl p-4 border border-gray-100">
-                  <span className="text-2xl">📋</span>
+                  <span className="text-2xl">ðŸ“‹</span>
                   <div>
                     <p className="font-semibold text-gray-900 text-sm">No check-in today</p>
-                    <Link href="/neopulse" className="text-xs text-[#D4236A] font-medium">Check in now →</Link>
+                    <Link href="/neopulse" className="text-xs text-[#D4236A] font-medium">Check in now â†’</Link>
                   </div>
                 </div>
               )}
@@ -303,7 +300,7 @@ export default function NeoTwinPage() {
             <div className="hidden md:flex flex-col items-center justify-center">
               <div className="w-28 h-32 bg-gradient-to-b from-[#D4236A]/20 to-[#7B35A8]/20 rounded-2xl flex items-center justify-center border-2 border-[#D4236A]/20">
                 <div className="text-center">
-                  <span className="text-4xl">🧘‍♀️</span>
+                  <span className="text-4xl">ðŸ§˜â€â™€ï¸</span>
                   <p className="text-xs text-gray-400 mt-1">Neo Twin</p>
                 </div>
               </div>
@@ -335,20 +332,20 @@ export default function NeoTwinPage() {
                 sub={data.latest.sleep_score >= 8 ? 'Excellent' : data.latest.sleep_score >= 6 ? 'Good' : 'Needs work'}
                 color="#7B35A8" />
               <ScoreCard icon={<Droplets size={16} />} label="Hydration"
-                value={data.latest.hydration_score ?? '—'}
+                value={data.latest.hydration_score ?? 'â€”'}
                 sub={data.latest.hydration_score ? (data.latest.hydration_score >= 7 ? 'Well hydrated' : data.latest.hydration_score >= 5 ? 'Average' : 'Needs work') : 'Not tracked'}
                 color="#0ea5e9" />
               <ScoreCard icon={<Activity size={16} />} label="Stress" value={data.latest.stress_level}
                 sub={data.latest.stress_level <= 3 ? 'Very calm' : data.latest.stress_level <= 5 ? 'Manageable' : data.latest.stress_level <= 7 ? 'High' : 'Very high'}
                 color="#E07B2A" />
               <ScoreCard icon={<Smile size={16} />} label="Mood"
-                value={data.latest.mood_score ?? '—'}
+                value={data.latest.mood_score ?? 'â€”'}
                 sub={data.latest.mood_score ? (data.latest.mood_score >= 8 ? 'Great' : data.latest.mood_score >= 6 ? 'Good' : 'Low') : 'Not tracked'}
                 color="#ec4899" />
               <ScoreCard
                 icon={<Calendar size={16} />}
                 label="Cycle Day"
-                value={data.cycle.day ?? '—'}
+                value={data.cycle.day ?? 'â€”'}
                 sub={data.cycle.phase}
                 color="#8b5cf6"
               />
@@ -360,19 +357,19 @@ export default function NeoTwinPage() {
             {/* Body Pattern Insights */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
               <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span>🧩</span> Body Pattern Insights
+                <span>ðŸ§©</span> Body Pattern Insights
               </h3>
               {data.insights.length > 0 ? (
                 <div className="space-y-3">
                   {data.insights.map((ins, i) => (
                     <div key={i} className="flex gap-3">
-                      <span className="text-base flex-shrink-0">{i === 0 ? '❤️' : i === 1 ? '🌙' : '🌿'}</span>
+                      <span className="text-base flex-shrink-0">{i === 0 ? 'â¤ï¸' : i === 1 ? 'ðŸŒ™' : 'ðŸŒ¿'}</span>
                       <p className="text-sm text-gray-600 leading-relaxed">{ins}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400">Keep checking in daily — patterns emerge after 7+ entries.</p>
+                <p className="text-sm text-gray-400">Keep checking in daily â€” patterns emerge after 7+ entries.</p>
               )}
               <button className="mt-4 text-xs text-[#7B35A8] font-semibold flex items-center gap-1 hover:opacity-80">
                 View all insights <ChevronRight size={12} />
@@ -382,12 +379,12 @@ export default function NeoTwinPage() {
             {/* Strengths + Opportunities */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
               <div className="mb-4">
-                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2"><span>🌿</span> Wellness Strengths</h3>
+                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2"><span>ðŸŒ¿</span> Wellness Strengths</h3>
                 <div className="space-y-2">
                   {data.strengths.map((s, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <span className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                        <span className="text-green-600 text-xs">✓</span>
+                        <span className="text-green-600 text-xs">âœ“</span>
                       </span>
                       <span className="text-sm text-gray-700">{s}</span>
                     </div>
@@ -395,7 +392,7 @@ export default function NeoTwinPage() {
                 </div>
               </div>
               <div className="border-t border-gray-100 pt-4">
-                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2"><span>⭐</span> Growth Opportunities</h3>
+                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2"><span>â­</span> Growth Opportunities</h3>
                 <div className="space-y-2">
                   {data.opportunities.map((o, i) => (
                     <div key={i} className="flex items-center gap-2">
@@ -410,7 +407,7 @@ export default function NeoTwinPage() {
             {/* AI Forecast */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
               <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <span>🔮</span> AI Forecast
+                <span>ðŸ”®</span> AI Forecast
               </h3>
               <div className={cn(
                 'rounded-xl p-3 mb-3',
@@ -449,11 +446,11 @@ export default function NeoTwinPage() {
               </div>
               <div className="space-y-3">
                 {[
-                  { label: 'Energy', icon: '⚡', val: data.cur.energy, pct: data.timeline.energy, color: '#D4236A' },
-                  { label: 'Sleep', icon: '🌙', val: data.cur.sleep, pct: data.timeline.sleep, color: '#7B35A8' },
-                  { label: 'Mood', icon: '😊', val: data.cur.mood, pct: data.timeline.mood, color: '#ec4899' },
-                  { label: 'Hydration', icon: '💧', val: data.cur.hydration, pct: data.timeline.hydration, color: '#0ea5e9' },
-                  { label: 'Stress Mgmt', icon: '🌿', val: 11 - data.cur.stress, pct: data.timeline.stress, color: '#22c55e' },
+                  { label: 'Energy', icon: 'âš¡', val: data.cur.energy, pct: data.timeline.energy, color: '#D4236A' },
+                  { label: 'Sleep', icon: 'ðŸŒ™', val: data.cur.sleep, pct: data.timeline.sleep, color: '#7B35A8' },
+                  { label: 'Mood', icon: 'ðŸ˜Š', val: data.cur.mood, pct: data.timeline.mood, color: '#ec4899' },
+                  { label: 'Hydration', icon: 'ðŸ’§', val: data.cur.hydration, pct: data.timeline.hydration, color: '#0ea5e9' },
+                  { label: 'Stress Mgmt', icon: 'ðŸŒ¿', val: 11 - data.cur.stress, pct: data.timeline.stress, color: '#22c55e' },
                 ].map((m) => (
                   <div key={m.label} className="flex items-center gap-3">
                     <span className="text-base w-5">{m.icon}</span>
@@ -473,7 +470,7 @@ export default function NeoTwinPage() {
             {/* This Month's Story */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col">
               <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <span>📖</span> This Month&apos;s Story
+                <span>ðŸ“–</span> This Month&apos;s Story
               </h3>
               <div className="flex-1 bg-[#FFF5F0] rounded-xl p-4">
                 <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line line-clamp-6">{data.monthly_story}</p>
@@ -486,14 +483,14 @@ export default function NeoTwinPage() {
             {/* Achievements */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
               <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span>🏆</span> Achievements
+                <span>ðŸ†</span> Achievements
               </h3>
               <div className="space-y-2.5">
                 {data.achievements.map((a, i) => (
                   <div key={i} className={cn('flex items-center gap-3 p-2 rounded-xl', a.earned ? 'bg-orange-50' : 'opacity-40')}>
                     <span className="text-xl">{a.icon}</span>
                     <span className={cn('text-sm font-medium', a.earned ? 'text-gray-900' : 'text-gray-500')}>{a.label}</span>
-                    {a.earned && <span className="ml-auto text-xs text-green-600 font-bold">✓</span>}
+                    {a.earned && <span className="ml-auto text-xs text-green-600 font-bold">âœ“</span>}
                   </div>
                 ))}
               </div>
@@ -521,7 +518,7 @@ export default function NeoTwinPage() {
                 ))}
               </div>
               <div className="bg-gradient-to-r from-[#D4236A] to-[#7B35A8] rounded-xl px-4 py-2.5 text-center">
-                <p className="text-white text-sm font-semibold">Complete all &amp; earn 300 Neo Pulse Points! 🎉</p>
+                <p className="text-white text-sm font-semibold">Complete all &amp; earn 300 Neo Pulse Points! ðŸŽ‰</p>
               </div>
             </div>
 
