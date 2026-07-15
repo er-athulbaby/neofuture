@@ -177,6 +177,112 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </div>
       </section>
 
+      {/* NEO TWIN */}
+      <section className="py-20 px-4 bg-brand-light">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-widest text-neo-purple mb-3 block">AI Wellness Twin</span>
+            <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-4 leading-tight">
+              Meet Neo Twin —<br />Your Personal AI Health Mirror
+            </h2>
+            <p className="text-brand-gray leading-relaxed mb-6">
+              After 30 daily check-ins, Neo Twin builds a deep understanding of your body. It analyses your sleep, energy, stress, mood, and cycle to give you personalised insights, predict your wellness trends, and even calculate your Wellness Age.
+            </p>
+            <div className="space-y-3 mb-8">
+              {[
+                { icon: '🧠', text: 'AI insights that learn your unique body patterns' },
+                { icon: '🌿', text: 'Wellness Age — see how old your body really feels' },
+                { icon: '📈', text: 'Weekly forecasts based on your personal history' },
+                { icon: '🏆', text: 'Achievements and streaks to keep you motivated' },
+              ].map((f) => (
+                <div key={f.text} className="flex items-center gap-3">
+                  <span className="text-lg">{f.icon}</span>
+                  <span className="text-brand-gray text-sm">{f.text}</span>
+                </div>
+              ))}
+            </div>
+            <Link href={session ? '/neo-twin' : '/signup'}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-[#D4236A] to-[#7B35A8] text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity">
+              {session ? 'Open Neo Twin' : 'Unlock Neo Twin'} <ArrowRight size={16} />
+            </Link>
+          </div>
+
+          {/* Neo Twin mockup */}
+          <div className="relative">
+            <div className="bg-gradient-to-br from-[#1a0a2e] to-[#2d1155] rounded-3xl shadow-2xl overflow-hidden border border-purple-900/40">
+              {/* Top bar */}
+              <div className="px-5 py-4 flex items-center justify-between border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#D4236A] to-[#7B35A8] flex items-center justify-center">
+                    <span className="text-white font-bold text-xs">N</span>
+                  </div>
+                  <div>
+                    <p className="text-white text-xs font-bold">Neo Twin</p>
+                    <p className="text-white/50 text-[10px]">AI Wellness Mirror</p>
+                  </div>
+                </div>
+                <span className="text-[10px] bg-gradient-to-r from-[#D4236A] to-[#7B35A8] text-white px-2 py-0.5 rounded-full font-bold">AI</span>
+              </div>
+
+              <div className="p-5 space-y-4">
+                {/* Wellness Age */}
+                <div className="bg-gradient-to-r from-green-900/40 to-emerald-900/40 border border-green-500/20 rounded-2xl p-4 flex items-center gap-5">
+                  <div className="text-center">
+                    <p className="text-white/50 text-[10px] mb-0.5">Actual Age</p>
+                    <p className="text-2xl font-black text-white/70">28</p>
+                  </div>
+                  <div className="text-white/30 text-sm">vs</div>
+                  <div className="text-center">
+                    <p className="text-green-400 text-[10px] font-semibold mb-0.5">Wellness Age</p>
+                    <p className="text-2xl font-black text-green-400">24</p>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-green-400 text-xs font-bold">4 years younger!</p>
+                    <p className="text-white/40 text-[10px] mt-0.5">Great sleep &amp; stress habits</p>
+                  </div>
+                </div>
+
+                {/* Wellness score row */}
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: 'Sleep', val: '8.2', color: 'text-purple-300' },
+                    { label: 'Energy', val: '7.8', color: 'text-pink-300' },
+                    { label: 'Stress', val: '3.1', color: 'text-green-400' },
+                  ].map((m) => (
+                    <div key={m.label} className="bg-white/5 rounded-xl p-2.5 text-center">
+                      <p className="text-white/40 text-[10px]">{m.label}</p>
+                      <p className={`text-base font-bold ${m.color}`}>{m.val}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* AI message */}
+                <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span className="text-[10px] text-purple-300 font-semibold">⚡ Neo Twin says</span>
+                  </div>
+                  <p className="text-white/70 text-xs leading-relaxed">
+                    Your stress is lowest on weekends. Your sleep pattern shows a strong mood lift when you sleep 8+ hours.
+                  </p>
+                </div>
+
+                {/* Progress to unlock */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 bg-white/10 rounded-full h-1.5">
+                    <div className="h-full rounded-full bg-gradient-to-r from-[#D4236A] to-[#7B35A8]" style={{ width: '73%' }} />
+                  </div>
+                  <span className="text-white/50 text-[10px] whitespace-nowrap">22/30 check-ins</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Floating badge */}
+            <div className="absolute -top-3 -right-3 bg-gradient-to-r from-[#D4236A] to-[#7B35A8] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+              Unlocks at 30 ✦
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* PERIOD CALENDAR CTA */}
       <section className="py-20 px-4 bg-brand-dark">
@@ -304,113 +410,6 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
                 </Link>
               </div>
             )}
-          </div>
-        </div>
-      </section>
-
-      {/* NEO TWIN */}
-      <section className="py-20 px-4 bg-white">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-neo-purple mb-3 block">AI Wellness Twin</span>
-            <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-4 leading-tight">
-              Meet Neo Twin —<br />Your Personal AI Health Mirror
-            </h2>
-            <p className="text-brand-gray leading-relaxed mb-6">
-              After 30 daily check-ins, Neo Twin builds a deep understanding of your body. It analyses your sleep, energy, stress, mood, and cycle to give you personalised insights, predict your wellness trends, and even calculate your Wellness Age.
-            </p>
-            <div className="space-y-3 mb-8">
-              {[
-                { icon: '🧠', text: 'AI insights that learn your unique body patterns' },
-                { icon: '🌿', text: 'Wellness Age — see how old your body really feels' },
-                { icon: '📈', text: 'Weekly forecasts based on your personal history' },
-                { icon: '🏆', text: 'Achievements and streaks to keep you motivated' },
-              ].map((f) => (
-                <div key={f.text} className="flex items-center gap-3">
-                  <span className="text-lg">{f.icon}</span>
-                  <span className="text-brand-gray text-sm">{f.text}</span>
-                </div>
-              ))}
-            </div>
-            <Link href={session ? '/neo-twin' : '/signup'}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-[#D4236A] to-[#7B35A8] text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity">
-              {session ? 'Open Neo Twin' : 'Unlock Neo Twin'} <ArrowRight size={16} />
-            </Link>
-          </div>
-
-          {/* Neo Twin mockup */}
-          <div className="relative">
-            <div className="bg-gradient-to-br from-[#1a0a2e] to-[#2d1155] rounded-3xl shadow-2xl overflow-hidden border border-purple-900/40">
-              {/* Top bar */}
-              <div className="px-5 py-4 flex items-center justify-between border-b border-white/10">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#D4236A] to-[#7B35A8] flex items-center justify-center">
-                    <span className="text-white font-bold text-xs">N</span>
-                  </div>
-                  <div>
-                    <p className="text-white text-xs font-bold">Neo Twin</p>
-                    <p className="text-white/50 text-[10px]">AI Wellness Mirror</p>
-                  </div>
-                </div>
-                <span className="text-[10px] bg-gradient-to-r from-[#D4236A] to-[#7B35A8] text-white px-2 py-0.5 rounded-full font-bold">AI</span>
-              </div>
-
-              <div className="p-5 space-y-4">
-                {/* Wellness Age */}
-                <div className="bg-gradient-to-r from-green-900/40 to-emerald-900/40 border border-green-500/20 rounded-2xl p-4 flex items-center gap-5">
-                  <div className="text-center">
-                    <p className="text-white/50 text-[10px] mb-0.5">Actual Age</p>
-                    <p className="text-2xl font-black text-white/70">28</p>
-                  </div>
-                  <div className="text-white/30 text-sm">vs</div>
-                  <div className="text-center">
-                    <p className="text-green-400 text-[10px] font-semibold mb-0.5">Wellness Age</p>
-                    <p className="text-2xl font-black text-green-400">24</p>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-green-400 text-xs font-bold">4 years younger!</p>
-                    <p className="text-white/40 text-[10px] mt-0.5">Great sleep &amp; stress habits</p>
-                  </div>
-                </div>
-
-                {/* Wellness score row */}
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { label: 'Sleep', val: '8.2', color: 'text-purple-300' },
-                    { label: 'Energy', val: '7.8', color: 'text-pink-300' },
-                    { label: 'Stress', val: '3.1', color: 'text-green-400' },
-                  ].map((m) => (
-                    <div key={m.label} className="bg-white/5 rounded-xl p-2.5 text-center">
-                      <p className="text-white/40 text-[10px]">{m.label}</p>
-                      <p className={`text-base font-bold ${m.color}`}>{m.val}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* AI message */}
-                <div className="bg-white/5 border border-white/10 rounded-xl p-3">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <span className="text-[10px] text-purple-300 font-semibold">⚡ Neo Twin says</span>
-                  </div>
-                  <p className="text-white/70 text-xs leading-relaxed">
-                    Your stress is lowest on weekends. Your sleep pattern shows a strong mood lift when you sleep 8+ hours.
-                  </p>
-                </div>
-
-                {/* Progress to unlock */}
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 bg-white/10 rounded-full h-1.5">
-                    <div className="h-full rounded-full bg-gradient-to-r from-[#D4236A] to-[#7B35A8]" style={{ width: '73%' }} />
-                  </div>
-                  <span className="text-white/50 text-[10px] whitespace-nowrap">22/30 check-ins</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Floating badge */}
-            <div className="absolute -top-3 -right-3 bg-gradient-to-r from-[#D4236A] to-[#7B35A8] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
-              Unlocks at 30 ✦
-            </div>
           </div>
         </div>
       </section>
