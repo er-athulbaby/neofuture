@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
@@ -21,8 +21,8 @@ interface Props { config: SiteConfig; featured: Product[]; autoOpenQuiz?: boolea
 const TOOLS = [
   { href: '/tools/due-date', icon: <Calendar size={22} className="text-primary" />, title: 'Due Date Calculator', desc: 'Calculate EDD from LMP, conception date or IVF' },
   { href: '/tools/weight-gain', icon: <Heart size={22} className="text-primary" />, title: 'Pregnancy Weight Gain', desc: 'IOM/NRC 2009 guidelines, twin support' },
-  { href: '/tools/vaccination', icon: <Baby size={22} className="text-neo-orange" />, title: 'Vaccination Schedule', desc: 'India NIP â€” 30+ vaccines with checkoff' },
-  { href: '/tools/growth-chart', icon: <Activity size={22} className="text-neo-purple" />, title: 'Baby Growth Chart', desc: 'WHO percentile chart for 0â€“24 months' },
+  { href: '/tools/vaccination', icon: <Baby size={22} className="text-neo-orange" />, title: 'Vaccination Schedule', desc: 'India NIP — 30+ vaccines with checkoff' },
+  { href: '/tools/growth-chart', icon: <Activity size={22} className="text-neo-purple" />, title: 'Baby Growth Chart', desc: 'WHO percentile chart for 0–24 months' },
   { href: '/tools/baby-food', icon: <Stethoscope size={22} className="text-neo-orange" />, title: 'Baby Food Chart', desc: 'Indian foods for 6 months to 2 years' },
 ]
 
@@ -39,7 +39,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
     <>
       <QuizPopup forceOpen={quizOpen} onClose={() => setQuizOpen(false)} />
 
-      {/* â”€â”€ HERO â”€â”€ */}
+      {/* HERO */}
       <section className="relative bg-gradient-to-br from-primary-light via-white to-purple-50 py-20 px-4 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-10 right-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
@@ -65,12 +65,12 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </div>
       </section>
 
-      {/* â”€â”€ TRUST BAR â”€â”€ */}
+      {/* TRUST BAR */}
       <div className="bg-brand-dark text-white py-3">
         <div className="max-w-6xl mx-auto px-4 flex flex-wrap justify-center gap-6 md:gap-10 text-sm">
           {[
             { icon: <ShieldCheck size={15} />, text: '100% Natural Ingredients' },
-            { icon: <Truck size={15} />, text: 'Free Shipping Above â‚¹999' },
+            { icon: <Truck size={15} />, text: 'Free Shipping Above ₹999' },
             { icon: <Stethoscope size={15} />, text: 'Doctor Recommended' },
             { icon: <RefreshCw size={15} />, text: 'Easy Returns' },
           ].map((t) => (
@@ -79,7 +79,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </div>
       </div>
 
-      {/* â”€â”€ AI WELLNESS DASHBOARD â”€â”€ */}
+      {/* AI WELLNESS DASHBOARD */}
       <section id="dashboard" className="py-20 px-4 bg-white">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
@@ -151,7 +151,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
                 <div className="bg-primary-light rounded-2xl px-4 py-3 flex items-center justify-between">
                   <div>
                     <p className="text-xs font-semibold text-primary">Next Period</p>
-                    <p className="text-sm font-bold text-brand-dark">Jul 18 â€“ Jul 23</p>
+                    <p className="text-sm font-bold text-brand-dark">Jul 18 — Jul 23</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-brand-gray">Ovulation</p>
@@ -171,14 +171,14 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
 
             {/* Floating badge */}
             <div className="absolute -top-3 -right-3 bg-primary text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
-              AI-Powered âœ¦
+              AI-Powered ✦
             </div>
           </div>
         </div>
       </section>
 
 
-      {/* â”€â”€ PERIOD CALENDAR CTA â”€â”€ */}
+      {/* PERIOD CALENDAR CTA */}
       <section className="py-20 px-4 bg-brand-dark">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
 
@@ -205,7 +205,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
                   ))}
                 </div>
 
-                {/* Days â€” July 2025 starts on Tuesday (index 2) */}
+                {/* Days — July 2025 starts on Tuesday (index 2) */}
                 {(() => {
                   const days = [
                     { d: null }, { d: null },
@@ -252,7 +252,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
                 <div className="mt-4 bg-primary-light rounded-xl px-4 py-3 flex justify-between items-center">
                   <div>
                     <p className="text-xs text-brand-gray">Next Period</p>
-                    <p className="text-sm font-bold text-brand-dark">Jul 29 â€“ Aug 3</p>
+                    <p className="text-sm font-bold text-brand-dark">Jul 29 — Aug 3</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-brand-gray">Ovulation</p>
@@ -270,15 +270,15 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
               AI-Based Period Tracking.<br />Know Your Body Better.
             </h2>
             <p className="text-white/70 leading-relaxed mb-6">
-              Log your periods and let NeoFuture AI predict your next cycle, ovulation window, and fertile days â€” all in one beautiful calendar. Get personalised insights built around your unique rhythm.
+              Log your periods and let NeoFuture AI predict your next cycle, ovulation window, and fertile days — all in one beautiful calendar. Get personalised insights built around your unique rhythm.
             </p>
 
             <div className="space-y-3 mb-8">
               {[
-                { icon: 'ðŸ©¸', text: 'Period predictions based on your actual history' },
-                { icon: 'ðŸŸ£', text: 'Ovulation & fertile window highlighted automatically' },
-                { icon: 'ðŸ””', text: 'Reminders before your period starts' },
-                { icon: 'ðŸ“Š', text: 'Cycle trends and average length over time' },
+                { icon: '🩸', text: 'Period predictions based on your actual history' },
+                { icon: '🟣', text: 'Ovulation & fertile window highlighted automatically' },
+                { icon: '🔔', text: 'Reminders before your period starts' },
+                { icon: '📊', text: 'Cycle trends and average length over time' },
               ].map((f) => (
                 <div key={f.text} className="flex items-center gap-3">
                   <span className="text-lg">{f.icon}</span>
@@ -308,7 +308,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </div>
       </section>
 
-      {/* â”€â”€ COMMUNITY â”€â”€ */}
+      {/* COMMUNITY */}
       <section id="community" className="py-20 px-4 bg-white">
         <div className="max-w-4xl mx-auto text-center">
           <span className="text-xs font-bold uppercase tracking-widest text-green-600 mb-3 block">Community</span>
@@ -342,7 +342,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </div>
       </section>
 
-      {/* â”€â”€ ABOUT US â”€â”€ */}
+      {/* ABOUT US */}
       <section id="about" className="py-20 px-4 bg-brand-light">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
@@ -359,7 +359,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
               <div className="w-full max-w-sm h-72 rounded-3xl bg-gradient-to-br from-primary-light to-purple-50 border-2 border-dashed border-primary/30 flex items-center justify-center">
                 <div className="text-center text-brand-gray">
                   <Heart size={40} className="mx-auto text-primary/30 mb-2" />
-                  <p className="text-sm">Add your team photo in<br/>Admin â†’ Settings</p>
+                  <p className="text-sm">Add your team photo in<br/>Admin → Settings</p>
                 </div>
               </div>
             )}
@@ -367,7 +367,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </div>
       </section>
 
-      {/* â”€â”€ FOUNDERS â”€â”€ */}
+      {/* FOUNDERS */}
       {(config.founder1_name || config.founder2_name) && (
         <section className="py-20 px-4 bg-white">
           <div className="max-w-5xl mx-auto">
@@ -424,7 +424,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </section>
       )}
 
-      {/* â”€â”€ NUTRACEUTICAL INTRO â”€â”€ */}
+      {/* NUTRACEUTICAL INTRO */}
       <section className="py-20 px-4 bg-gradient-to-br from-brand-dark via-[#2a1a4a] to-[#1a1535] overflow-hidden relative">
         {/* Decorative blobs */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
@@ -438,14 +438,14 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
                 Nutraceuticals
               </span>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight mb-5">
-                The Future of Women's Wellness{' '}
+                The Future of Women&apos;s Wellness{' '}
                 <span className="text-primary">Begins Before Illness.</span>
               </h2>
               <p className="text-white/70 text-lg leading-relaxed mb-4">
-                Your wellness isn't just about treating problems â€” it's about caring for yourself every day.
+                Your wellness isn&apos;t just about treating problems — it&apos;s about caring for yourself every day.
               </p>
               <p className="text-white/55 leading-relaxed mb-8">
-                Nutraceuticals are scientifically formulated wellness products made from vitamins, minerals, botanical extracts, and other bioactive ingredients that help support the body's natural functions and overall wellness. At NeoFuture, our doctor-informed formulations are developed using high-quality ingredients and manufactured under strict quality standards. When taken daily as directed, nutraceuticals are generally safe for most healthy adults and help maintain energy, hormonal balance, immunity, stress management, sleep quality, and metabolic health. They work by providing essential nutrients that complement a balanced diet and healthy lifestyle. Every NeoFuture product also connects with NeoFuture AI for personalized wellness tracking and health insights.
+                Nutraceuticals are scientifically formulated wellness products made from vitamins, minerals, botanical extracts, and other bioactive ingredients that help support the body&apos;s natural functions and overall wellness. At NeoFuture, our doctor-informed formulations are developed using high-quality ingredients and manufactured under strict quality standards. When taken daily as directed, nutraceuticals are generally safe for most healthy adults and help maintain energy, hormonal balance, immunity, stress management, sleep quality, and metabolic health. They work by providing essential nutrients that complement a balanced diet and healthy lifestyle. Every NeoFuture product also connects with NeoFuture AI for personalized wellness tracking and health insights.
               </p>
               <Link href="/shop"
                 className="inline-flex items-center gap-2 bg-primary text-white px-7 py-3.5 rounded-xl font-semibold hover:bg-primary-dark transition-colors">
@@ -456,10 +456,10 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
             {/* Stat cards */}
             <div className="flex-shrink-0 grid grid-cols-2 gap-4 w-full max-w-xs lg:max-w-none lg:w-72">
               {[
-                { label: 'Natural Balance', icon: 'ðŸŒ¿', desc: 'Hormone & gut harmony' },
-                { label: 'Daily Energy', icon: 'âš¡', desc: 'Sustained vitality' },
-                { label: 'Better Sleep', icon: 'ðŸŒ™', desc: 'Restorative rest' },
-                { label: 'Overall Wellbeing', icon: 'ðŸ’—', desc: 'Body & mind care' },
+                { label: 'Natural Balance', icon: '🌿', desc: 'Hormone & gut harmony' },
+                { label: 'Daily Energy', icon: '⚡', desc: 'Sustained vitality' },
+                { label: 'Better Sleep', icon: '🌙', desc: 'Restorative rest' },
+                { label: 'Overall Wellbeing', icon: '💗', desc: 'Body & mind care' },
               ].map((s) => (
                 <div key={s.label} className="bg-white/8 backdrop-blur-sm border border-white/10 rounded-2xl p-4 text-center">
                   <div className="text-2xl mb-2">{s.icon}</div>
@@ -472,7 +472,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </div>
       </section>
 
-      {/* â”€â”€ PRODUCTS â”€â”€ */}
+      {/* PRODUCTS */}
       <section id="products" className="py-20 px-4 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10">
@@ -487,7 +487,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
           ) : (
             <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-2xl text-brand-gray">
               <p className="font-medium mb-1">No products added yet</p>
-              <Link href="/admin/products" className="text-primary text-sm hover:underline">Add products in Admin Panel â†’</Link>
+              <Link href="/admin/products" className="text-primary text-sm hover:underline">Add products in Admin Panel →</Link>
             </div>
           )}
           <div className="text-center mt-8">
@@ -498,13 +498,13 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </div>
       </section>
 
-      {/* â”€â”€ TOOLS â”€â”€ */}
+      {/* TOOLS */}
       <section id="tools" className="py-20 px-4 bg-brand-light">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10">
             <span className="text-xs font-bold uppercase tracking-widest text-primary mb-3 block">Free Tools</span>
             <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-2">Wellness Calculators</h2>
-            <p className="text-brand-gray">Free with a NeoFuture account â€” no subscription needed</p>
+            <p className="text-brand-gray">Free with a NeoFuture account — no subscription needed</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {TOOLS.map((t) => (
@@ -522,14 +522,14 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
                 <p className="text-white/70 text-sm">Sign up to access all 5 tools and save your results.</p>
               </div>
               <Link href="/signup" className="mt-4 inline-block bg-white text-primary px-5 py-2.5 rounded-xl font-semibold text-sm text-center hover:opacity-90">
-                Create Free Account â†’
+                Create Free Account →
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* â”€â”€ INSTAGRAM FEED â”€â”€ */}
+      {/* INSTAGRAM FEED */}
       {instagramPosts.length > 0 && (
         <section className="py-16 px-4 bg-white">
           <div className="max-w-6xl mx-auto">
