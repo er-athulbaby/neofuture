@@ -36,6 +36,8 @@ interface NeoTwinData {
   monthly_story: string
   achievements: { label: string; icon: string; earned: boolean }[]
   history: { check_in_date: string; wellness_score: string }[]
+  actual_age: number | null
+  wellness_age: number | null
 }
 
 const NAV_ITEMS = [
@@ -351,6 +353,75 @@ export default function NeoTwinPage() {
               />
             </div>
           )}
+
+          {/* Wellness Age card */}
+          {data.wellness_age != null && data.actual_age != null && (() => {
+            const diff = data.actual_age - data.wellness_age
+            const isYounger = diff > 0
+            const isOlder = diff < 0
+            const label = isYounger
+              ? `${diff} year${diff !== 1 ? 's' : ''} younger than your age`
+              : isOlder
+              ? `${Math.abs(diff)} year${Math.abs(diff) !== 1 ? 's' : ''} older than your age`
+              : 'Right at your actual age'
+            const gradient = isYounger
+              ? 'from-green-50 to-emerald-50 border-green-200'
+              : isOlder
+              ? 'from-orange-50 to-red-50 border-orange-200'
+              : 'from-blue-50 to-indigo-50 border-blue-200'
+            const numColor = isYounger ? 'text-green-600' : isOlder ? 'text-orange-600' : 'text-blue-600'
+            const badge = isYounger ? '🌱 Biologically Younger' : isOlder ? '⚠️ Biologically Older' : '⚖️ Right on Track'
+            return (
+              <div className={`bg-gradient-to-br ${gradient} border rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-6`}>
+                {/* Ages */}
+                <div className="flex items-center gap-8">
+                  <div className="text-center">
+                    <p className="text-xs text-gray-500 font-medium mb-1">Actual Age</p>
+                    <p className="text-4xl font-black text-gray-700">{data.actual_age}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">years</p>
+                  </div>
+                  <div className="text-2xl">vs</div>
+                  <div className="text-center">
+                    <p className="text-xs font-medium mb-1" style={{ color: isYounger ? '#16a34a' : isOlder ? '#ea580c' : '#3b82f6' }}>Wellness Age</p>
+                    <p className={`text-4xl font-black ${numColor}`}>{data.wellness_age}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">years</p>
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div className="hidden sm:block w-px h-16 bg-gray-200" />
+
+                {/* Explanation */}
+                <div className="flex-1 text-center sm:text-left">
+                  <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full mb-2 ${isYounger ? 'bg-green-100 text-green-700' : isOlder ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                    {badge}
+                  </span>
+                  <p className={`text-lg font-bold mb-1 ${numColor}`}>{label}!</p>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    {isYounger
+                      ? 'Your sleep, energy, stress, and hydration habits are putting you ahead. Keep it up!'
+                      : isOlder
+                      ? 'Improving your sleep, reducing stress, or staying hydrated can lower your wellness age.'
+                      : 'Your daily habits perfectly match your age. Build on this solid foundation!'}
+                  </p>
+                </div>
+
+                {/* Mini metric summary */}
+                <div className="grid grid-cols-3 gap-3 sm:w-48 text-center">
+                  {[
+                    { label: 'Sleep', val: Math.round(data.cur.sleep * 10) / 10, good: data.cur.sleep >= 7 },
+                    { label: 'Stress', val: Math.round(data.cur.stress * 10) / 10, good: data.cur.stress <= 5, invert: true },
+                    { label: 'Energy', val: Math.round(data.cur.energy * 10) / 10, good: data.cur.energy >= 7 },
+                  ].map((m) => (
+                    <div key={m.label} className="bg-white/70 rounded-xl p-2">
+                      <p className="text-xs text-gray-400">{m.label}</p>
+                      <p className={`text-base font-bold ${m.good ? 'text-green-600' : 'text-orange-500'}`}>{m.val || '—'}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Row 3: Insights, Strengths/Opportunities, Forecast */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">

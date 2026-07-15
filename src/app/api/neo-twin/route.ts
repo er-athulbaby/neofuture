@@ -152,6 +152,38 @@ function buildMonthlyStory(rows: Checkin[], name: string): string {
   return `Dear ${name},\nYou completed ${checkins} wellness check-ins this month. Your average wellness score is ${avgW.toFixed(1)}/10.\n\nYour strongest habit was ${bestMetric.name} (${bestMetric.val.toFixed(1)}/10). One area to focus on next month: ${weakest.name}.\n\nYou're making steady progress — keep showing up for yourself every day.\n\n- Your Neo Twin`
 }
 
+function calcWellnessAge(actualAge: number, cur: Record<string, number>): number {
+  let adj = 0
+
+  // Sleep (ideal 8+)
+  if (cur.sleep >= 8) adj -= 1.5
+  else if (cur.sleep >= 7) adj -= 0.5
+  else if (cur.sleep > 0 && cur.sleep < 5) adj += 2
+  else if (cur.sleep > 0 && cur.sleep < 6) adj += 1
+
+  // Energy (ideal 8+)
+  if (cur.energy >= 8) adj -= 1
+  else if (cur.energy >= 7) adj -= 0.5
+  else if (cur.energy > 0 && cur.energy < 5) adj += 1.5
+  else if (cur.energy > 0 && cur.energy < 6) adj += 0.5
+
+  // Stress (lower is better; ideal <= 3)
+  if (cur.stress <= 3) adj -= 1.5
+  else if (cur.stress <= 5) adj -= 0.5
+  else if (cur.stress >= 8) adj += 2
+  else if (cur.stress >= 7) adj += 1
+
+  // Hydration (ideal 7.5+)
+  if (cur.hydration >= 7.5) adj -= 0.5
+  else if (cur.hydration > 0 && cur.hydration < 5) adj += 1
+
+  // Mood (ideal 7.5+)
+  if (cur.mood >= 7.5) adj -= 0.5
+  else if (cur.mood > 0 && cur.mood < 5) adj += 0.5
+
+  return Math.max(18, Math.round(actualAge + adj))
+}
+
 function buildAchievements(rows: Checkin[], totalCheckins: number): { label: string; icon: string; earned: boolean }[] {
   const avgSleep7 = rows.slice(-7).length >= 7 ? avgField(rows.slice(-7), 'sleep_score') : 0
   const avgHyd7 = rows.slice(-7).filter((r) => r.hydration_score != null).length >= 5
@@ -310,6 +342,14 @@ export async function GET() {
   if (challenges.length < 3) challenges.push({ icon: '🧘', label: 'Meditate 10 mins', progress: 0 })
   if (challenges.length < 3) challenges.push({ icon: '🥗', label: 'Eat iron-rich meals', progress: 0 })
 
+  // Wellness age
+  let actualAge: number | null = null
+  let wellnessAge: number | null = null
+  if (profile?.date_of_birth) {
+    actualAge = Math.floor((Date.now() - new Date(profile.date_of_birth).getTime()) / (1000 * 60 * 60 * 24 * 365.25))
+    wellnessAge = calcWellnessAge(actualAge, cur)
+  }
+
   return NextResponse.json({
     unlocked: true,
     is_admin_preview: isAdmin && !unlocked,
@@ -317,6 +357,8 @@ export async function GET() {
     name,
     latest,
     health: profile ?? null,
+    actual_age: actualAge,
+    wellness_age: wellnessAge,
     cycle,
     np_balance: npRow?.neopulse_balance ?? 0,
     streak: Math.min(totalCheckins, 30),
