@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Tag, Settings,
-  ChevronLeft, ChevronRight, MessageSquare, ExternalLink, HelpCircle, FolderOpen, RotateCcw, Zap
+  ChevronLeft, ChevronRight, MessageSquare, ExternalLink, HelpCircle, FolderOpen, RotateCcw, Zap, Heart, Star
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -16,8 +16,10 @@ const NAV = [
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/admin/subscriptions', label: 'Subscriptions', icon: RotateCcw },
   { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/health', label: 'Health Data', icon: Heart },
   { href: '/admin/leads', label: 'Leads', icon: MessageSquare },
   { href: '/admin/neopulse', label: 'NeoPulse', icon: Zap },
+  { href: '/neo-twin', label: 'Neo Twin', icon: Star },
   { href: '/admin/coupons', label: 'Coupons', icon: Tag },
   { href: '/admin/quiz', label: 'Quiz Config', icon: HelpCircle },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
@@ -48,7 +50,7 @@ export default function AdminSidebar() {
       </div>
 
       {/* Nav links */}
-      <nav className="flex-1 py-4 space-y-0.5 px-2">
+      <nav className="flex-1 py-4 overflow-y-auto space-y-0.5 px-2">
         {NAV.map(({ href, label, icon: Icon, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href)
           return (

@@ -157,7 +157,6 @@ function buildAchievements(rows: Checkin[], totalCheckins: number): { label: str
   const avgHyd7 = rows.slice(-7).filter((r) => r.hydration_score != null).length >= 5
     ? rows.slice(-7).reduce((s, r) => s + (r.hydration_score ?? 0), 0) / rows.slice(-7).length
     : 0
-  const hasCycleData = rows.some(() => false) // extended below
 
   return [
     { label: '30 Check-ins', icon: '🔥', earned: totalCheckins >= 30 },
@@ -180,6 +179,7 @@ export async function GET() {
 
   const userId = String(session.user.id)
   const userIdNum = Number(session.user.id)
+  const isAdmin = session.user.is_admin === true
 
   // Total check-in count (unlock threshold: 30)
   const countRow = await queryOne<{ total: string }>(
@@ -189,7 +189,8 @@ export async function GET() {
   const totalCheckins = parseInt(countRow?.total ?? '0')
   const unlocked = totalCheckins >= 30
 
-  if (!unlocked) {
+  // Admins bypass the 30 check-in requirement
+  if (!isAdmin && !unlocked) {
     return NextResponse.json({ unlocked: false, total_checkins: totalCheckins, needed: 30 - totalCheckins })
   }
 
@@ -282,7 +283,11 @@ export async function GET() {
   const avg7 = {
     wellness: last7.length ? avgField(last7, 'wellness_score' as keyof Checkin) : cur.wellness,
   }
-  const neoTwinMessage = latest ? buildNeoTwinMessage(latest, avg7) : 'Check in daily to get your personalised insights!'
+  const neoTwinMessage = latest
+    ? buildNeoTwinMessage(latest, avg7)
+    : isAdmin
+      ? 'As admin, you have full access to Neo Twin. Start daily check-ins to build your personalised wellness insights!'
+      : 'Check in daily to get your personalised insights!'
 
   // Body pattern insights
   const insights = buildInsights(allRows)
@@ -307,6 +312,7 @@ export async function GET() {
 
   return NextResponse.json({
     unlocked: true,
+    is_admin_preview: isAdmin && !unlocked,
     total_checkins: totalCheckins,
     name,
     latest,

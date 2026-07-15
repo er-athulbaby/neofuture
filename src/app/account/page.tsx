@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { query, queryOne } from '@/lib/db'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-import { Sparkles, ShoppingBag, Calendar, Baby, Scale, Utensils, BarChart3, Droplets, ArrowRight, ChevronRight, Zap } from 'lucide-react'
+import { Sparkles, ShoppingBag, Calendar, Baby, Scale, Utensils, BarChart3, Droplets, ArrowRight, ChevronRight, Zap, Star, Lock } from 'lucide-react'
 import AccountPeriodWidget from './AccountPeriodWidget'
 
 export const metadata = { title: 'My Dashboard' }
@@ -12,32 +12,46 @@ export default async function AccountPage() {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const [latestScore, recentOrders, npData, todayCheckin, wellnessStreak] = await Promise.all([
+  const userId = session.user.id
+  const userIdNum = Number(userId)
+
+  const [latestScore, recentOrders, npData, todayCheckin, wellnessStreak, totalCheckinsRow, healthProfile] = await Promise.all([
     queryOne<{ hormone_score: number; stress_score: number; energy_score: number; created_at: string }>(
       'SELECT hormone_score, stress_score, energy_score, created_at FROM wellness_scores WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1',
-      [session.user.id]
+      [userId]
     ).catch(() => null),
     query<{ id: number; order_number: string; total: number; status: string; created_at: string }>(
       'SELECT id, order_number, total, status, created_at FROM orders WHERE user_id = $1 ORDER BY created_at DESC LIMIT 3',
-      [session.user.id]
+      [userId]
     ).catch(() => []),
     queryOne<{ neopulse_balance: number; referral_code: string | null }>(
       'SELECT neopulse_balance, referral_code FROM users WHERE id = $1',
-      [session.user.id]
+      [userId]
     ).catch(() => null),
     queryOne<{ wellness_score: string; sleep_score: number; energy_score: number; stress_level: number }>(
       'SELECT wellness_score, sleep_score, energy_score, stress_level FROM wellness_checkins WHERE user_id = $1 AND check_in_date = CURRENT_DATE',
-      [String(session.user.id)]
+      [String(userId)]
     ).catch(() => null),
     queryOne<{ cnt: string }>(
-      'SELECT COUNT(*)::text AS cnt FROM wellness_checkins WHERE user_id = $1 AND check_in_date >= CURRENT_DATE - INTERVAL \'7 days\'',
-      [String(session.user.id)]
+      "SELECT COUNT(*)::text AS cnt FROM wellness_checkins WHERE user_id = $1 AND check_in_date >= CURRENT_DATE - INTERVAL '7 days'",
+      [String(userId)]
+    ).catch(() => null),
+    queryOne<{ cnt: string }>(
+      'SELECT COUNT(*)::text AS cnt FROM wellness_checkins WHERE user_id = $1',
+      [String(userId)]
+    ).catch(() => null),
+    queryOne<{ height_cm: number | null; weight_kg: number | null }>(
+      'SELECT height_cm, weight_kg FROM user_health_profiles WHERE user_id = $1 ORDER BY id DESC LIMIT 1',
+      [userIdNum]
     ).catch(() => null),
   ])
 
   const npBalance = npData?.neopulse_balance ?? 0
   const checkedInToday = !!todayCheckin
   const streakDays = parseInt(wellnessStreak?.cnt ?? '0')
+  const totalCheckins = parseInt(totalCheckinsRow?.cnt ?? '0')
+  const twinUnlocked = totalCheckins >= 30
+  const hasHealthProfile = !!(healthProfile?.height_cm || healthProfile?.weight_kg)
 
   // Compute overall wellness score (avg of available scores)
   const scores: number[] = []
@@ -68,6 +82,25 @@ export default async function AccountPage() {
           </div>
         </div>
       </div>
+
+      {/* Health profile completion banner — shown until height/weight is entered */}
+      {!hasHealthProfile && (
+        <div className="mb-5 bg-gradient-to-r from-primary/10 via-purple-50 to-pink-50 border border-primary/20 rounded-2xl px-5 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+              <Sparkles size={18} className="text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-brand-dark">Complete your health profile</p>
+              <p className="text-xs text-brand-gray mt-0.5">Add your height, weight &amp; cycle data for personalised wellness insights</p>
+            </div>
+          </div>
+          <Link href="/onboarding"
+            className="flex-shrink-0 flex items-center gap-1.5 bg-primary text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-primary-dark transition-colors">
+            Set up <ArrowRight size={12} />
+          </Link>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* ── LEFT COLUMN ── */}
@@ -102,7 +135,6 @@ export default async function AccountPage() {
                     {latestScore.hormone_score > 0 && (
                       <ScoreCard label="Hormone Balance" score={latestScore.hormone_score} />
                     )}
-                    {/* Filler card if only 1 score */}
                     {scores.length === 1 && (
                       <div className="bg-gray-50 rounded-xl p-4 flex flex-col justify-center items-center text-center border border-gray-100">
                         <p className="text-xs text-brand-gray mb-1">More scores</p>
@@ -227,7 +259,7 @@ export default async function AccountPage() {
               <p className="text-sm opacity-70 mt-0.5">Points Balance</p>
               {npBalance >= 100 && (
                 <p className="text-xs mt-2 bg-white/15 rounded-lg px-3 py-1.5 inline-block">
-                  🎁 Redeem {Math.floor(npBalance / 100) * 100} NP → {Math.floor(npBalance / 100)}% off your next order
+                  🎁 Redeem {Math.floor(npBalance / 100) * 100} NP → ₹{Math.floor(npBalance / 100) * 10} off your next order
                 </p>
               )}
             </div>
@@ -281,6 +313,74 @@ export default async function AccountPage() {
                 </Link>
               )}
             </div>
+          </div>
+
+          {/* ── NEO TWIN TEASER ── */}
+          <div className={`rounded-2xl overflow-hidden shadow-sm border ${twinUnlocked ? 'border-yellow-200' : 'border-purple-100'}`}>
+            {twinUnlocked ? (
+              /* Unlocked state */
+              <div className="bg-gradient-to-br from-yellow-400 via-orange-400 to-pink-500 px-5 py-5 text-white">
+                <div className="flex items-center gap-2 mb-2">
+                  <Star size={16} className="text-white" fill="white" />
+                  <span className="text-xs font-bold uppercase tracking-widest opacity-90">Neo Twin</span>
+                </div>
+                <p className="font-bold text-lg leading-tight">Your AI Twin is Ready!</p>
+                <p className="text-xs opacity-80 mt-1 mb-4">
+                  {totalCheckins} check-ins completed — your personalised wellness insights await.
+                </p>
+                <Link href="/neo-twin"
+                  className="flex items-center justify-center gap-2 w-full bg-white text-orange-600 py-2.5 rounded-xl text-sm font-bold hover:bg-orange-50 transition-colors">
+                  Open Neo Twin Dashboard <ArrowRight size={14} />
+                </Link>
+              </div>
+            ) : (
+              /* Locked state — motivational teaser */
+              <div className="bg-gradient-to-br from-[#2D1B69] via-[#4A2086] to-[#1E1040] px-5 pt-5 pb-5 text-white">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-1.5">
+                    <Lock size={13} className="text-purple-300" />
+                    <span className="text-xs font-bold uppercase tracking-widest opacity-70">Neo Twin</span>
+                  </div>
+                  <span className="text-xs bg-white/15 rounded-full px-2 py-0.5 font-medium text-purple-200">
+                    {totalCheckins}/30
+                  </span>
+                </div>
+
+                <p className="font-bold text-base leading-snug">Something special is waiting for you...</p>
+                <p className="text-xs text-purple-200 mt-1.5 leading-relaxed">
+                  Check in daily and unlock your personal AI Wellness Twin — body pattern analysis, monthly wellness letters, and insights built just for you.
+                </p>
+
+                {/* Progress bar */}
+                <div className="mt-4">
+                  <div className="flex justify-between text-xs text-purple-300 mb-1.5">
+                    <span>{totalCheckins} check-ins done</span>
+                    <span>{30 - totalCheckins} to go</span>
+                  </div>
+                  <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-purple-400 to-pink-400 rounded-full transition-all"
+                      style={{ width: `${Math.min(100, (totalCheckins / 30) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Dots preview */}
+                <div className="flex flex-wrap gap-1 mt-3">
+                  {Array.from({ length: 30 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-3 h-3 rounded-full ${i < totalCheckins ? 'bg-pink-400' : 'bg-white/10'}`}
+                    />
+                  ))}
+                </div>
+
+                <Link href="/neopulse"
+                  className="mt-4 flex items-center justify-center gap-2 w-full bg-white/15 hover:bg-white/25 text-white py-2.5 rounded-xl text-xs font-semibold transition-colors border border-white/10">
+                  <Zap size={12} /> Check In Today — Keep the streak alive
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* ── WELLNESS TOOLS ── */}

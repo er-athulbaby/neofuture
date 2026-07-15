@@ -20,18 +20,21 @@ export default function OnboardingPage() {
     fetch('/api/onboarding')
       .then((r) => r.json())
       .then((d) => {
-        if (d.onboarding_done) router.replace('/')
-        else {
-          if (d.profile) {
-            setForm({
-              height_cm: d.profile.height_cm ? String(d.profile.height_cm) : '',
-              weight_kg: d.profile.weight_kg ? String(d.profile.weight_kg) : '',
-              date_of_birth: d.profile.date_of_birth ? d.profile.date_of_birth.slice(0, 10) : '',
-              last_period_date: d.profile.last_period_date ? d.profile.last_period_date.slice(0, 10) : '',
-            })
-          }
-          setChecking(false)
+        // Already completed — go home; don't show form again
+        if (d.onboarding_done && !d.profile) {
+          router.replace('/')
+          return
         }
+        // Pre-fill with existing data if any
+        if (d.profile) {
+          setForm({
+            height_cm: d.profile.height_cm ? String(d.profile.height_cm) : '',
+            weight_kg: d.profile.weight_kg ? String(d.profile.weight_kg) : '',
+            date_of_birth: d.profile.date_of_birth ? d.profile.date_of_birth.slice(0, 10) : '',
+            last_period_date: d.profile.last_period_date ? d.profile.last_period_date.slice(0, 10) : '',
+          })
+        }
+        setChecking(false)
       })
       .catch(() => setChecking(false))
   }, [status, router])
@@ -51,7 +54,7 @@ export default function OnboardingPage() {
           }),
     })
     setLoading(false)
-    router.replace('/')
+    router.replace('/account')
   }
 
   if (checking || status === 'loading') {
@@ -70,7 +73,7 @@ export default function OnboardingPage() {
           <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
             <Sparkles size={28} className="text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-brand-dark">Welcome, {session?.user?.name?.split(' ')[0]}!</h1>
+          <h1 className="text-2xl font-bold text-brand-dark">Your Health Profile</h1>
           <p className="text-brand-gray text-sm mt-2 leading-relaxed">
             Help us personalise your wellness journey. Your data stays private and is used only to give you better recommendations.
           </p>
@@ -118,7 +121,9 @@ export default function OnboardingPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-brand-dark mb-1.5">Last Period Date <span className="text-brand-gray font-normal">(Optional)</span></label>
+            <label className="block text-sm font-medium text-brand-dark mb-1.5">
+              Last Period Date <span className="text-brand-gray font-normal">(Optional)</span>
+            </label>
             <input
               type="date"
               value={form.last_period_date}
