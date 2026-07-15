@@ -2,6 +2,9 @@ import { query, queryOne } from './db'
 
 export type EarnAction =
   | 'daily_checkin'
+  | 'weekly_streak'
+  | 'neocycle_log'
+  | 'neo_twin_unlock'
   | 'referral'
   | 'first_purchase'
   | 'product_review'
@@ -10,6 +13,9 @@ export type EarnAction =
 
 export const POINT_VALUES: Record<EarnAction, number> = {
   daily_checkin: 10,
+  weekly_streak: 35,
+  neocycle_log: 90,
+  neo_twin_unlock: 300,
   referral: 15,
   first_purchase: 50,
   product_review: 20,
@@ -19,6 +25,9 @@ export const POINT_VALUES: Record<EarnAction, number> = {
 
 export const ACTION_LABELS: Record<EarnAction, string> = {
   daily_checkin: 'Daily wellness check-in',
+  weekly_streak: '7-day check-in streak',
+  neocycle_log: 'NeoCycle period log',
+  neo_twin_unlock: 'Neo Twin unlocked!',
   referral: 'Referred a friend',
   first_purchase: 'First purchase bonus',
   product_review: 'Product review',

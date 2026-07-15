@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth'
 import { query, queryOne } from '@/lib/db'
 import {
   calcWellnessScore, ensureWellnessTables, ensureNeopulseTables,
-  awardPoints, hasActionToday
+  awardPoints, hasActionToday, hasEverDone
 } from '@/lib/neopulse'
 
 export async function GET() {
@@ -67,10 +67,45 @@ export async function POST(req: NextRequest) {
     )
 
     let npAwarded = 0
+
+    // Daily check-in: 10 NP (once per day)
     const alreadyAwarded = await hasActionToday(userId, 'daily_checkin')
     if (!alreadyAwarded) {
       const result = await awardPoints(userId, 'daily_checkin')
-      npAwarded = result.awarded
+      npAwarded += result.awarded
+    }
+
+    // Weekly streak: 35 NP when 7 consecutive days are checked in (once per week)
+    const streakRow = await queryOne<{ cnt: string }>(
+      `SELECT COUNT(DISTINCT check_in_date)::text as cnt FROM wellness_checkins
+       WHERE user_id = $1 AND check_in_date >= CURRENT_DATE - 6`,
+      [userId]
+    ).catch(() => null)
+    const streakDays = parseInt(streakRow?.cnt ?? '0')
+    if (streakDays >= 7) {
+      const alreadyStreakThisWeek = await queryOne<{ cnt: string }>(
+        `SELECT COUNT(*)::text as cnt FROM neopulse_transactions
+         WHERE user_id = $1 AND action = 'weekly_streak' AND created_at >= CURRENT_DATE - 6`,
+        [userId]
+      ).catch(() => null)
+      if (parseInt(alreadyStreakThisWeek?.cnt ?? '0') === 0) {
+        const result = await awardPoints(userId, 'weekly_streak')
+        npAwarded += result.awarded
+      }
+    }
+
+    // Neo Twin unlock: 300 NP one-time when reaching 30 check-ins
+    const totalRow = await queryOne<{ cnt: string }>(
+      `SELECT COUNT(*)::text as cnt FROM wellness_checkins WHERE user_id = $1`,
+      [userId]
+    ).catch(() => null)
+    const totalCheckins = parseInt(totalRow?.cnt ?? '0')
+    if (totalCheckins >= 30) {
+      const alreadyUnlocked = await hasEverDone(userId, 'neo_twin_unlock')
+      if (!alreadyUnlocked) {
+        const result = await awardPoints(userId, 'neo_twin_unlock')
+        npAwarded += result.awarded
+      }
     }
 
     return NextResponse.json({ success: true, wellness_score, np_awarded: npAwarded })

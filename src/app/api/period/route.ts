@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { query, queryOne } from '@/lib/db'
+import { awardPoints, ensureNeopulseTables } from '@/lib/neopulse'
 
 export async function GET() {
   try {
@@ -62,6 +63,18 @@ export async function POST(req: NextRequest) {
          ON CONFLICT (user_id) DO UPDATE SET predicted_start=$2, predicted_end=$3, avg_cycle_length=$4, updated_at=NOW()`,
         [session.user.id, predictedStart.toISOString().split('T')[0], predictedEnd.toISOString().split('T')[0], avgCycle]
       ).catch(() => {})
+    }
+
+    // NeoCycle log: 90 NP once per calendar month
+    await ensureNeopulseTables()
+    const alreadyThisMonth = await queryOne<{ cnt: string }>(
+      `SELECT COUNT(*)::text as cnt FROM neopulse_transactions
+       WHERE user_id = $1 AND action = 'neocycle_log'
+         AND DATE_TRUNC('month', created_at) = DATE_TRUNC('month', NOW())`,
+      [String(session.user.id)]
+    ).catch(() => null)
+    if (parseInt(alreadyThisMonth?.cnt ?? '0') === 0) {
+      await awardPoints(String(session.user.id), 'neocycle_log').catch(() => {})
     }
 
     return NextResponse.json({ success: true, id: log!.id })
