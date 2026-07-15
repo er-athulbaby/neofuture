@@ -12,16 +12,26 @@ export interface ProductRow {
   custom_gst_rate: number | null; pack_format: string | null; serving_size: string | null; min_order_qty: number
 }
 
+async function ensureProductColumns() {
+  await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS custom_gst_rate NUMERIC(5,2)`, []).catch(() => {})
+  await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS pack_format VARCHAR(100)`, []).catch(() => {})
+  await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS serving_size VARCHAR(100)`, []).catch(() => {})
+  await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS min_order_qty INTEGER NOT NULL DEFAULT 1`, []).catch(() => {})
+}
+
 export default async function AdminProductsPage() {
   const session = await auth()
   if (!session?.user?.is_admin) redirect('/login')
+
+  // Run migrations before querying — ensures columns exist in production
+  await ensureProductColumns()
 
   const products = await query<ProductRow>(
     `SELECT p.id, p.name, p.slug, p.category_id, c.name as category_name,
        p.price, p.sale_price, p.stock, p.is_active, p.is_featured, p.images,
        p.sku, p.short_description, p.description, p.ingredients, p.how_to_use,
        p.flavor, p.weight,
-       COALESCE(p.custom_gst_rate, NULL) as custom_gst_rate,
+       p.custom_gst_rate,
        p.pack_format, p.serving_size,
        COALESCE(p.min_order_qty, 1) as min_order_qty
      FROM products p
