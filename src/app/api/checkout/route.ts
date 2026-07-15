@@ -44,19 +44,27 @@ async function calcNpDiscount(userId: number | null | undefined, neopulsePoints:
 
 async function calcOrder(items: CartItem[], couponCode: string | undefined, gst?: { rate: number; type: 'inclusive' | 'exclusive' }) {
   const productIds = items.map((i) => i.product_id)
-  const dbProducts = await query<{ id: number; price: number; sale_price: number | null; stock: number; name: string; images: string[] }>(
-    `SELECT id, price, sale_price, stock, name, images FROM products WHERE id = ANY($1) AND is_active = true`,
+  const dbProducts = await query<{ id: number; price: number; sale_price: number | null; stock: number; name: string; images: string[]; custom_gst_rate: number | null; min_order_qty: number }>(
+    `SELECT id, price, sale_price, stock, name, images, custom_gst_rate, COALESCE(min_order_qty, 1) as min_order_qty FROM products WHERE id = ANY($1) AND is_active = true`,
     [productIds]
   )
 
   let subtotal = 0
+  let tax = 0
   const validatedItems = []
   for (const item of items) {
     const dbP = dbProducts.find((p) => p.id === item.product_id)
     if (!dbP) throw new Error(`Product ${item.name} not found`)
     if (dbP.stock < item.quantity) throw new Error(`Insufficient stock for ${dbP.name}`)
+    if (item.quantity < dbP.min_order_qty) throw new Error(`Minimum order for ${dbP.name} is ${dbP.min_order_qty}`)
     const price = dbP.sale_price ?? dbP.price
-    subtotal += price * item.quantity
+    const lineTotal = price * item.quantity
+    subtotal += lineTotal
+    // Per-product GST (exclusive only): use product rate if set, else fall back to global
+    if (gst && gst.type === 'exclusive') {
+      const rate = dbP.custom_gst_rate != null ? dbP.custom_gst_rate : gst.rate
+      if (rate > 0) tax += Math.round(lineTotal * rate / 100)
+    }
     validatedItems.push({ ...item, price, dbProduct: dbP })
   }
 
@@ -76,10 +84,6 @@ async function calcOrder(items: CartItem[], couponCode: string | undefined, gst?
   }
 
   const shipping = subtotal >= 999 ? 0 : 50
-  // For exclusive GST, add tax on top of subtotal; inclusive just shows breakdown
-  const tax = (gst && gst.rate > 0 && gst.type === 'exclusive')
-    ? Math.round(subtotal * gst.rate / 100)
-    : 0
   const total = subtotal - discount + shipping + tax
   return { subtotal, discount, shipping, tax, total, couponId, validatedItems }
 }

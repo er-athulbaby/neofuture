@@ -13,6 +13,7 @@ export default function SignupPage() {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [healthConsent, setHealthConsent] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -26,7 +27,7 @@ export default function SignupPage() {
     const res = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, health_data_consent: healthConsent }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -36,11 +37,11 @@ export default function SignupPage() {
     }
 
     await signIn('credentials', { email: form.email, password: form.password, redirect: false })
-    router.push('/')
+    router.push('/onboarding')
   }
 
   async function handleGoogle() {
-    await signIn('google', { callbackUrl: '/' })
+    await signIn('google', { callbackUrl: '/onboarding' })
   }
 
   return (
@@ -111,6 +112,19 @@ export default function SignupPage() {
                 {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+          </div>
+
+          <div className="flex items-start gap-3 bg-primary-light rounded-xl p-4">
+            <input
+              type="checkbox"
+              id="health_consent"
+              checked={healthConsent}
+              onChange={(e) => setHealthConsent(e.target.checked)}
+              className="mt-0.5 w-4 h-4 accent-primary flex-shrink-0 cursor-pointer"
+            />
+            <label htmlFor="health_consent" className="text-xs text-brand-gray leading-relaxed cursor-pointer">
+              I agree that NeoFuture may collect and use my health data (including sleep, energy, stress scores, height, weight, and date of birth) to personalize my wellness experience and recommendations. This data will be handled securely and never sold to third parties.
+            </label>
           </div>
 
           <button type="submit" disabled={loading}

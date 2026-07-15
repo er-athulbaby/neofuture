@@ -31,6 +31,7 @@ const EMPTY_FORM = {
   name: '', slug: '', category_id: '', price: '', sale_price: '', stock: '', sku: '',
   short_description: '', description: '', ingredients: '', how_to_use: '',
   flavor: '', weight: '', images: '', is_active: true, is_featured: false,
+  custom_gst_rate: '', pack_format: '', serving_size: '', min_order_qty: '1',
 }
 
 type FormKey = keyof typeof EMPTY_FORM
@@ -171,6 +172,10 @@ export default function AdminProductsClient({ products: initial, categories }: P
       images: p.images?.join(', ') ?? '',
       is_active: p.is_active,
       is_featured: p.is_featured,
+      custom_gst_rate: p.custom_gst_rate != null ? String(p.custom_gst_rate) : '',
+      pack_format: p.pack_format ?? '',
+      serving_size: p.serving_size ?? '',
+      min_order_qty: p.min_order_qty != null ? String(p.min_order_qty) : '1',
     })
     setShowForm(true)
   }
@@ -221,6 +226,10 @@ export default function AdminProductsClient({ products: initial, categories }: P
       images: form.images ? form.images.split(',').map((s) => s.trim()).filter(Boolean) : [],
       is_active: form.is_active,
       is_featured: form.is_featured,
+      custom_gst_rate: form.custom_gst_rate !== '' ? Number(form.custom_gst_rate) : null,
+      pack_format: form.pack_format || null,
+      serving_size: form.serving_size || null,
+      min_order_qty: Number(form.min_order_qty) || 1,
     }
 
     const url = editId ? `/api/admin/products/${editId}` : '/api/admin/products'
@@ -444,6 +453,27 @@ export default function AdminProductsClient({ products: initial, categories }: P
                 <div>
                   <FLabel label="Flavor / Variant" />
                   <input name="flavor" value={form.flavor} onChange={fc} className={fClass} placeholder="e.g. XS / Purple" />
+                </div>
+
+                <div>
+                  <FLabel label="Pack Format" />
+                  <input name="pack_format" value={form.pack_format} onChange={fc} className={fClass} placeholder="e.g. 30 Sachets" />
+                </div>
+
+                <div>
+                  <FLabel label="Serving Size" />
+                  <input name="serving_size" value={form.serving_size} onChange={fc} className={fClass} placeholder="e.g. 1 sachet/day" />
+                </div>
+
+                <div>
+                  <FLabel label="Custom GST Rate (%)" />
+                  <input name="custom_gst_rate" type="number" step="0.01" min="0" max="100" value={form.custom_gst_rate} onChange={fc} className={fClass} placeholder="Leave blank to use global GST" />
+                  <p className="text-xs text-brand-gray mt-1">Overrides global GST setting for this product.</p>
+                </div>
+
+                <div>
+                  <FLabel label="Min. Order Qty" />
+                  <input name="min_order_qty" type="number" min="1" step="1" value={form.min_order_qty} onChange={fc} className={fClass} placeholder="1" />
                 </div>
 
                 <div className="sm:col-span-2">

@@ -40,6 +40,10 @@ export interface Product {
   avg_rating?: number
   review_count?: number
   tags: string[]
+  custom_gst_rate?: number | null
+  pack_format?: string | null
+  serving_size?: string | null
+  min_order_qty?: number
   created_at: string
 }
 

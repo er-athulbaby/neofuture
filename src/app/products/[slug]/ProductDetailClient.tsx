@@ -24,7 +24,8 @@ export default function ProductDetailClient({ product, reviews, related, variant
   const { toast } = useToast()
 
   const [activeImage, setActiveImage] = useState(0)
-  const [qty, setQty] = useState(1)
+  const minQty = product.min_order_qty ?? 1
+  const [qty, setQty] = useState(minQty)
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     variants.length > 0 ? variants[0] : null
   )
@@ -208,6 +209,28 @@ export default function ProductDetailClient({ product, reviews, related, variant
             <p className="text-brand-gray leading-relaxed mb-5">{product.short_description}</p>
           )}
 
+          {/* Pack info */}
+          {(product.pack_format || product.serving_size || minQty > 1) && (
+            <div className="flex flex-wrap gap-3 mb-5">
+              {product.pack_format && (
+                <span className="inline-flex items-center gap-1.5 text-sm bg-primary-light text-primary px-3 py-1.5 rounded-full font-medium">
+                  <Package size={13} />
+                  {product.pack_format}
+                </span>
+              )}
+              {product.serving_size && (
+                <span className="inline-flex items-center gap-1.5 text-sm bg-gray-100 text-brand-dark px-3 py-1.5 rounded-full font-medium">
+                  {product.serving_size}
+                </span>
+              )}
+              {minQty > 1 && (
+                <span className="inline-flex items-center gap-1.5 text-sm bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full font-medium">
+                  Min. order: {minQty}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Variant selector */}
           {variants.length > 0 && (
             <div className="mb-5">
@@ -324,7 +347,7 @@ export default function ProductDetailClient({ product, reviews, related, variant
           {effectiveStock > 0 && (
             <div className="flex gap-3 mb-4">
               <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden">
-                <button onClick={() => setQty(Math.max(1, qty - 1))}
+                <button onClick={() => setQty(Math.max(minQty, qty - 1))}
                   className="px-3 py-3 hover:bg-gray-50 text-brand-dark font-bold text-lg transition-colors">−</button>
                 <span className="px-4 font-semibold text-brand-dark min-w-10 text-center">{qty}</span>
                 <button onClick={() => setQty(Math.min(effectiveStock, qty + 1))}
