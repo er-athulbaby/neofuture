@@ -14,6 +14,19 @@ async function ensureTables() {
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
   `, []).catch(() => {})
+  // Migrate user_id from INTEGER to TEXT if the old schema is present
+  await query(`
+    DO $$ BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'user_health_profiles'
+          AND column_name = 'user_id'
+          AND data_type = 'integer'
+      ) THEN
+        ALTER TABLE user_health_profiles ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT;
+      END IF;
+    END $$
+  `, []).catch(() => {})
   await query(`ALTER TABLE user_health_profiles ADD COLUMN IF NOT EXISTS last_period_date DATE`, []).catch(() => {})
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS health_data_consent BOOLEAN NOT NULL DEFAULT false`, []).catch(() => {})
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS health_data_consent_at TIMESTAMPTZ`, []).catch(() => {})
@@ -105,7 +118,7 @@ export async function GET(req: NextRequest) {
      FROM users u
      LEFT JOIN LATERAL (
        SELECT height_cm, weight_kg, date_of_birth
-       FROM user_health_profiles WHERE user_id = u.id
+       FROM user_health_profiles WHERE user_id = u.id::text
        ORDER BY id DESC LIMIT 1
      ) hp ON true
      LEFT JOIN LATERAL (
