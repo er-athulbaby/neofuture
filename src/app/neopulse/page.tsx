@@ -430,9 +430,12 @@ export default function NeoPulsePage() {
             <div className="space-y-3">
               {[
                 { icon: '🏃', label: 'Daily Check-in', pts: '+10 NP', sub: 'Every day' },
+                { icon: '🔥', label: 'Weekly Streak', pts: '+35 NP', sub: '7 check-ins in a row' },
+                { icon: '🌸', label: 'NeoCycle Log', pts: '+90 NP', sub: 'Log your period (monthly)' },
+                { icon: '⭐', label: 'Neo Twin Unlock', pts: '+300 NP', sub: 'Reach 30 check-ins (one time)' },
                 { icon: '🤝', label: 'Refer a Friend', pts: '+15 NP', sub: 'Per referral' },
                 { icon: '🛍️', label: 'First Purchase', pts: '+50 NP', sub: 'One time' },
-                { icon: '⭐', label: 'Write a Review', pts: '+20 NP', sub: 'Per review' },
+                { icon: '✍️', label: 'Write a Review', pts: '+20 NP', sub: 'Per review' },
                 { icon: '👤', label: 'Complete Profile', pts: '+25 NP', sub: 'One time' },
                 { icon: '📣', label: 'Share on Social', pts: '+10 NP', sub: 'Per day' },
               ].map((item) => (
