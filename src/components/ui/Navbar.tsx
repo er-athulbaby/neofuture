@@ -26,7 +26,6 @@ const NAV_LINKS = [
   },
   { href: '/#products', label: 'Nutraceuticals', scrollId: 'products' },
   { href: '/shop', label: 'Shop' },
-  { href: '#about', label: 'About Us', scroll: true },
 ]
 
 export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoUrl?: string; siteName?: string }) {
@@ -257,7 +256,6 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
             <MobileLink href="/tools/baby-food" label="Baby Food Chart" onClick={() => setMenuOpen(false)} />
             <button onClick={() => { setMenuOpen(false); scrollTo('#products') }} className="block w-full text-left text-sm font-medium text-brand-dark hover:text-primary py-2.5 px-2 rounded-lg hover:bg-primary-light transition-colors">Nutraceuticals</button>
             <MobileLink href="/shop" label="Shop" onClick={() => setMenuOpen(false)} active={pathname.startsWith('/shop')} />
-            <button onClick={() => scrollTo('#about')} className="block w-full text-left text-sm font-medium text-brand-dark hover:text-primary py-2.5 px-2 rounded-lg hover:bg-primary-light transition-colors">About Us</button>
             {!session && (
               <div className="pt-2">
                 <Link href="/login" className="block text-center bg-primary text-white px-4 py-2.5 rounded-xl text-sm font-semibold" onClick={() => setMenuOpen(false)}>

@@ -449,31 +449,6 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </div>
       </section>
 
-      {/* ABOUT US */}
-      <section id="about" className="py-20 px-4 bg-brand-light">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-primary mb-3 block">About Us</span>
-            <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-4">{config.about_title}</h2>
-            <p className="text-brand-gray leading-relaxed text-lg">{config.about_text}</p>
-          </div>
-          <div className="flex justify-center">
-            {config.about_image ? (
-              <div className="relative w-full max-w-sm h-72 rounded-3xl overflow-hidden shadow-xl">
-                <Image src={config.about_image} alt="About NeoFuture" fill className="object-cover" />
-              </div>
-            ) : (
-              <div className="w-full max-w-sm h-72 rounded-3xl bg-gradient-to-br from-primary-light to-purple-50 border-2 border-dashed border-primary/30 flex items-center justify-center">
-                <div className="text-center text-brand-gray">
-                  <Heart size={40} className="mx-auto text-primary/30 mb-2" />
-                  <p className="text-sm">Add your team photo in<br/>Admin → Settings</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
       {/* FOUNDERS */}
       {(config.founder1_name || config.founder2_name) && (
         <section className="py-20 px-4 bg-white">
