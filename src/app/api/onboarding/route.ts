@@ -16,6 +16,7 @@ async function ensureTables() {
     )
   `, []).catch(() => {})
   await query(`ALTER TABLE user_health_profiles ADD COLUMN IF NOT EXISTS last_period_date DATE`, []).catch(() => {})
+  await query(`ALTER TABLE user_health_profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`, []).catch(() => {})
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_done BOOLEAN NOT NULL DEFAULT false`, []).catch(() => {})
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS health_data_consent BOOLEAN NOT NULL DEFAULT false`, []).catch(() => {})
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS health_data_consent_at TIMESTAMPTZ`, []).catch(() => {})
@@ -51,28 +52,36 @@ export async function POST(req: NextRequest) {
 
   await ensureTables()
   const userId = Number(session.user.id)
-  const { height_cm, weight_kg, date_of_birth, last_period_date, skip } = await req.json()
 
-  if (!skip) {
-    const existing = await queryOne<{ id: number }>(
-      `SELECT id FROM user_health_profiles WHERE user_id = $1`,
-      [userId]
-    ).catch(() => null)
-
-    if (existing) {
-      await query(
-        `UPDATE user_health_profiles SET height_cm = $2, weight_kg = $3, date_of_birth = $4, last_period_date = $5, updated_at = NOW() WHERE user_id = $1`,
-        [userId, height_cm ?? null, weight_kg ?? null, date_of_birth ?? null, last_period_date ?? null]
-      )
-    } else {
-      await query(
-        `INSERT INTO user_health_profiles (user_id, height_cm, weight_kg, date_of_birth, last_period_date) VALUES ($1, $2, $3, $4, $5)`,
-        [userId, height_cm ?? null, weight_kg ?? null, date_of_birth ?? null, last_period_date ?? null]
-      )
-    }
+  if (isNaN(userId)) {
+    return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
   }
 
-  await query(`UPDATE users SET onboarding_done = true WHERE id = $1`, [userId])
+  try {
+    const body = await req.json()
+    const { height_cm, weight_kg, date_of_birth, last_period_date, skip } = body
 
-  return NextResponse.json({ success: true })
+    if (!skip) {
+      // Delete any existing rows and insert fresh — simplest reliable approach
+      await query(`DELETE FROM user_health_profiles WHERE user_id = $1`, [userId])
+      await query(
+        `INSERT INTO user_health_profiles (user_id, height_cm, weight_kg, date_of_birth, last_period_date)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          userId,
+          height_cm != null ? Number(height_cm) : null,
+          weight_kg != null ? Number(weight_kg) : null,
+          date_of_birth || null,
+          last_period_date || null,
+        ]
+      )
+    }
+
+    await query(`UPDATE users SET onboarding_done = true WHERE id = $1`, [userId])
+
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error('Onboarding save error:', err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
+  }
 }

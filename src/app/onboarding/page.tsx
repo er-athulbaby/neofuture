@@ -12,6 +12,7 @@ export default function OnboardingPage() {
   const [form, setForm] = useState({ height_cm: '', weight_kg: '', date_of_birth: '', last_period_date: '' })
   const [loading, setLoading] = useState(false)
   const [checking, setChecking] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') { router.replace('/login'); return }
@@ -36,18 +37,31 @@ export default function OnboardingPage() {
 
   async function submit(skip = false) {
     setLoading(true)
-    await fetch('/api/onboarding', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(skip
-        ? { skip: true }
-        : {
-            height_cm: form.height_cm ? Number(form.height_cm) : null,
-            weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
-            date_of_birth: form.date_of_birth || null,
-            last_period_date: form.last_period_date || null,
-          }),
-    })
+    setError(null)
+    try {
+      const res = await fetch('/api/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(skip
+          ? { skip: true }
+          : {
+              height_cm: form.height_cm ? Number(form.height_cm) : null,
+              weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
+              date_of_birth: form.date_of_birth || null,
+              last_period_date: form.last_period_date || null,
+            }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? 'Failed to save. Please try again.')
+        setLoading(false)
+        return
+      }
+    } catch {
+      setError('Network error. Please check your connection.')
+      setLoading(false)
+      return
+    }
     setLoading(false)
     router.replace('/account')
   }
@@ -128,6 +142,12 @@ export default function OnboardingPage() {
             />
             <p className="text-xs text-brand-gray mt-1">Used to track your cycle day in the Neo Twin dashboard.</p>
           </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+              {error}
+            </div>
+          )}
 
           <button
             onClick={() => submit(false)}
