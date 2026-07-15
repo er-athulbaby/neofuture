@@ -20,11 +20,6 @@ export default function OnboardingPage() {
     fetch('/api/onboarding')
       .then((r) => r.json())
       .then((d) => {
-        // Already completed — go home; don't show form again
-        if (d.onboarding_done && !d.profile) {
-          router.replace('/')
-          return
-        }
         // Pre-fill with existing data if any
         if (d.profile) {
           setForm({
