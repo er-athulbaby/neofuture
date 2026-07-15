@@ -9,7 +9,7 @@ export default function OnboardingPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
 
-  const [form, setForm] = useState({ height_cm: '', weight_kg: '', date_of_birth: '' })
+  const [form, setForm] = useState({ height_cm: '', weight_kg: '', date_of_birth: '', last_period_date: '' })
   const [loading, setLoading] = useState(false)
   const [checking, setChecking] = useState(true)
 
@@ -27,6 +27,7 @@ export default function OnboardingPage() {
               height_cm: d.profile.height_cm ? String(d.profile.height_cm) : '',
               weight_kg: d.profile.weight_kg ? String(d.profile.weight_kg) : '',
               date_of_birth: d.profile.date_of_birth ? d.profile.date_of_birth.slice(0, 10) : '',
+              last_period_date: d.profile.last_period_date ? d.profile.last_period_date.slice(0, 10) : '',
             })
           }
           setChecking(false)
@@ -46,6 +47,7 @@ export default function OnboardingPage() {
             height_cm: form.height_cm ? Number(form.height_cm) : null,
             weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
             date_of_birth: form.date_of_birth || null,
+            last_period_date: form.last_period_date || null,
           }),
     })
     setLoading(false)
@@ -113,6 +115,18 @@ export default function OnboardingPage() {
               max={new Date().toISOString().slice(0, 10)}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-brand-dark mb-1.5">Last Period Date <span className="text-brand-gray font-normal">(Optional)</span></label>
+            <input
+              type="date"
+              value={form.last_period_date}
+              onChange={(e) => setForm((f) => ({ ...f, last_period_date: e.target.value }))}
+              max={new Date().toISOString().slice(0, 10)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary"
+            />
+            <p className="text-xs text-brand-gray mt-1">Used to track your cycle day in the Neo Twin dashboard.</p>
           </div>
 
           <button

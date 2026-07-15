@@ -11,6 +11,7 @@ import { formatPrice } from '@/lib/utils'
 
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
+  { href: '/neo-twin', label: 'Neo Twin ✦', auth: true },
   { href: '/account', label: 'AI Wellness Dashboard', auth: true },
   { href: '/account/period-calendar', label: 'Period Tracker', auth: true },
   { href: '#community', label: 'Community', scroll: true },

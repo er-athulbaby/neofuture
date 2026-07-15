@@ -14,9 +14,10 @@ export async function GET() {
     await ensureWellnessTables()
 
     const today = await queryOne<{
-      sleep_score: number; energy_score: number; stress_level: number; wellness_score: string
+      sleep_score: number; energy_score: number; stress_level: number
+      hydration_score: number | null; mood_score: number | null; wellness_score: string
     }>(
-      `SELECT sleep_score, energy_score, stress_level, wellness_score
+      `SELECT sleep_score, energy_score, stress_level, hydration_score, mood_score, wellness_score
        FROM wellness_checkins WHERE user_id = $1 AND check_in_date = CURRENT_DATE`,
       [String(session.user.id)]
     )
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
-    const { sleep_score, energy_score, stress_level } = body
+    const { sleep_score, energy_score, stress_level, hydration_score, mood_score } = body
 
     if (
       typeof sleep_score !== 'number' || sleep_score < 1 || sleep_score > 10 ||
@@ -47,21 +48,24 @@ export async function POST(req: NextRequest) {
     await ensureWellnessTables()
     await ensureNeopulseTables()
 
-    const wellness_score = calcWellnessScore(sleep_score, energy_score, stress_level)
+    const h = (typeof hydration_score === 'number' && hydration_score >= 1 && hydration_score <= 10) ? hydration_score : null
+    const m = (typeof mood_score === 'number' && mood_score >= 1 && mood_score <= 10) ? mood_score : null
+    const wellness_score = calcWellnessScore(sleep_score, energy_score, stress_level, h, m)
     const userId = String(session.user.id)
 
     await query(
-      `INSERT INTO wellness_checkins (user_id, check_in_date, sleep_score, energy_score, stress_level, wellness_score)
-       VALUES ($1, CURRENT_DATE, $2, $3, $4, $5)
+      `INSERT INTO wellness_checkins (user_id, check_in_date, sleep_score, energy_score, stress_level, hydration_score, mood_score, wellness_score)
+       VALUES ($1, CURRENT_DATE, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (user_id, check_in_date) DO UPDATE
        SET sleep_score = EXCLUDED.sleep_score,
            energy_score = EXCLUDED.energy_score,
            stress_level = EXCLUDED.stress_level,
+           hydration_score = EXCLUDED.hydration_score,
+           mood_score = EXCLUDED.mood_score,
            wellness_score = EXCLUDED.wellness_score`,
-      [userId, sleep_score, energy_score, stress_level, wellness_score]
+      [userId, sleep_score, energy_score, stress_level, h, m, wellness_score]
     )
 
-    // Award 10 NP once per day
     let npAwarded = 0
     const alreadyAwarded = await hasActionToday(userId, 'daily_checkin')
     if (!alreadyAwarded) {

@@ -35,11 +35,12 @@ async function getGSTSettings() {
   }
 }
 
-async function calcNpDiscount(userId: number | null | undefined, neopulsePoints: number, subtotal: number): Promise<number> {
+async function calcNpDiscount(userId: number | null | undefined, neopulsePoints: number): Promise<number> {
   if (!userId || !neopulsePoints || neopulsePoints < 100) return 0
   const user = await queryOne<{ neopulse_balance: number }>(`SELECT neopulse_balance FROM users WHERE id = $1`, [userId])
   if (!user || user.neopulse_balance < neopulsePoints) return 0
-  return Math.round(subtotal * (neopulsePoints / 100) / 100)
+  // 100 NP = ₹10 flat discount
+  return Math.floor(neopulsePoints / 100) * 10
 }
 
 async function calcOrder(items: CartItem[], couponCode: string | undefined, gst?: { rate: number; type: 'inclusive' | 'exclusive' }) {
@@ -118,7 +119,7 @@ export async function POST(req: NextRequest) {
 
       const { subtotal, discount, shipping, tax, total: baseTotal, couponId, validatedItems } = await calcOrder(items, couponCode, gst)
       const npPoints = Number(neopulse_points ?? 0)
-      const npDiscountAmt = await calcNpDiscount(session?.user?.id ? Number(session.user.id) : null, npPoints, subtotal)
+      const npDiscountAmt = await calcNpDiscount(session?.user?.id ? Number(session.user.id) : null, npPoints)
       const total = Math.max(0, baseTotal - npDiscountAmt)
       const orderNumber = generateOrderNumber()
 
@@ -191,7 +192,7 @@ export async function POST(req: NextRequest) {
     // --- Razorpay path ---
     const { subtotal, discount, shipping, tax, total: rzpBase, couponId } = await calcOrder(items, couponCode, gst)
     const npPts = Number(neopulse_points ?? 0)
-    const npDisc = await calcNpDiscount(session?.user?.id ? Number(session.user.id) : null, npPts, subtotal)
+    const npDisc = await calcNpDiscount(session?.user?.id ? Number(session.user.id) : null, npPts)
     const total = Math.max(0, rzpBase - npDisc)
 
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {

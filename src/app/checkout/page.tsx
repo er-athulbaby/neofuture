@@ -45,7 +45,7 @@ function CheckoutForm() {
 
   const [npBalance, setNpBalance] = useState(0)
   const [npToRedeem, setNpToRedeem] = useState(0)
-  const npDiscount = Math.round(subtotal * (npToRedeem / 100) / 100)
+  const npDiscount = Math.floor(npToRedeem / 100) * 10
 
   const [gstType, setGstType] = useState<'inclusive' | 'exclusive'>('inclusive')
   const [pricing, setPricing] = useState<{
@@ -320,7 +320,7 @@ function CheckoutForm() {
                   </h2>
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-sm text-brand-gray">Your balance: <span className="font-bold text-primary">{npBalance} NP</span></p>
-                    <p className="text-xs text-brand-gray">100 NP = 1% off</p>
+                    <p className="text-xs text-brand-gray">100 NP = ₹10 off</p>
                   </div>
                   <div className="flex flex-wrap gap-2 mb-3">
                     {[0, 100, 200, 300, 500].filter((v) => v <= npBalance).map((pts) => (
@@ -334,7 +334,7 @@ function CheckoutForm() {
                             : 'border-gray-200 text-brand-gray hover:border-primary hover:text-primary'
                         }`}
                       >
-                        {pts === 0 ? 'None' : `${pts} NP (${pts / 100}% off)`}
+                        {pts === 0 ? 'None' : `${pts} NP (₹${(pts / 100) * 10} off)`}
                       </button>
                     ))}
                   </div>

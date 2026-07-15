@@ -68,11 +68,19 @@ export async function ensureWellnessTables() {
     UNIQUE(user_id, check_in_date)
   )`, []).catch((e) => console.error('[wellness] create table error:', e?.message))
 
+  // Hydration + Mood added in v2 (nullable for backward compat)
+  await query(`ALTER TABLE wellness_checkins ADD COLUMN IF NOT EXISTS hydration_score INTEGER`, []).catch(() => {})
+  await query(`ALTER TABLE wellness_checkins ADD COLUMN IF NOT EXISTS mood_score INTEGER`, []).catch(() => {})
+
   await query(`CREATE INDEX IF NOT EXISTS idx_wellness_user_date ON wellness_checkins(user_id, check_in_date DESC)`, [])
     .catch(() => {})
 }
 
-export function calcWellnessScore(sleep: number, energy: number, stress: number): number {
+export function calcWellnessScore(sleep: number, energy: number, stress: number, hydration?: number | null, mood?: number | null): number {
+  if (hydration != null && mood != null) {
+    const raw = (sleep + energy + hydration + mood + (11 - stress)) / 5
+    return Math.round(raw * 10) / 10
+  }
   const raw = (sleep + energy + (11 - stress)) / 3
   return Math.round(raw * 10) / 10
 }

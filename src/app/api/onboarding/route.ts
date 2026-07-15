@@ -10,10 +10,12 @@ async function ensureTables() {
       height_cm NUMERIC(5,1),
       weight_kg NUMERIC(5,1),
       date_of_birth DATE,
+      last_period_date DATE,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
   `, []).catch(() => {})
+  await query(`ALTER TABLE user_health_profiles ADD COLUMN IF NOT EXISTS last_period_date DATE`, []).catch(() => {})
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_done BOOLEAN NOT NULL DEFAULT false`, []).catch(() => {})
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS health_data_consent BOOLEAN NOT NULL DEFAULT false`, []).catch(() => {})
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS health_data_consent_at TIMESTAMPTZ`, []).catch(() => {})
@@ -31,8 +33,8 @@ export async function GET() {
     [userId]
   ).catch(() => null)
 
-  const profile = await queryOne<{ height_cm: number | null; weight_kg: number | null; date_of_birth: string | null }>(
-    `SELECT height_cm, weight_kg, date_of_birth FROM user_health_profiles WHERE user_id = $1 ORDER BY id DESC LIMIT 1`,
+  const profile = await queryOne<{ height_cm: number | null; weight_kg: number | null; date_of_birth: string | null; last_period_date: string | null }>(
+    `SELECT height_cm, weight_kg, date_of_birth, last_period_date FROM user_health_profiles WHERE user_id = $1 ORDER BY id DESC LIMIT 1`,
     [userId]
   ).catch(() => null)
 
@@ -49,10 +51,9 @@ export async function POST(req: NextRequest) {
 
   await ensureTables()
   const userId = Number(session.user.id)
-  const { height_cm, weight_kg, date_of_birth, skip } = await req.json()
+  const { height_cm, weight_kg, date_of_birth, last_period_date, skip } = await req.json()
 
   if (!skip) {
-    // Upsert health profile
     const existing = await queryOne<{ id: number }>(
       `SELECT id FROM user_health_profiles WHERE user_id = $1`,
       [userId]
@@ -60,13 +61,13 @@ export async function POST(req: NextRequest) {
 
     if (existing) {
       await query(
-        `UPDATE user_health_profiles SET height_cm = $2, weight_kg = $3, date_of_birth = $4, updated_at = NOW() WHERE user_id = $1`,
-        [userId, height_cm ?? null, weight_kg ?? null, date_of_birth ?? null]
+        `UPDATE user_health_profiles SET height_cm = $2, weight_kg = $3, date_of_birth = $4, last_period_date = $5, updated_at = NOW() WHERE user_id = $1`,
+        [userId, height_cm ?? null, weight_kg ?? null, date_of_birth ?? null, last_period_date ?? null]
       )
     } else {
       await query(
-        `INSERT INTO user_health_profiles (user_id, height_cm, weight_kg, date_of_birth) VALUES ($1, $2, $3, $4)`,
-        [userId, height_cm ?? null, weight_kg ?? null, date_of_birth ?? null]
+        `INSERT INTO user_health_profiles (user_id, height_cm, weight_kg, date_of_birth, last_period_date) VALUES ($1, $2, $3, $4, $5)`,
+        [userId, height_cm ?? null, weight_kg ?? null, date_of_birth ?? null, last_period_date ?? null]
       )
     }
   }

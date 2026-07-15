@@ -21,7 +21,7 @@ interface WellnessDay {
   wellness_score: string
 }
 
-type CheckinStep = 'idle' | 'sleep' | 'energy' | 'stress' | 'done'
+type CheckinStep = 'idle' | 'sleep' | 'energy' | 'stress' | 'hydration' | 'mood' | 'done'
 
 const SLEEP_LABELS: Record<number, { emoji: string; label: string }> = {
   1: { emoji: '😩', label: 'Terrible' }, 2: { emoji: '😩', label: 'Very Poor' },
@@ -136,6 +136,8 @@ export default function NeoPulsePage() {
   const [sleep, setSleep] = useState(7)
   const [energy, setEnergy] = useState(7)
   const [stress, setStress] = useState(4)
+  const [hydration, setHydration] = useState(6)
+  const [mood, setMood] = useState(7)
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<{ wellness_score: number; np_awarded: number } | null>(null)
 
@@ -161,7 +163,7 @@ export default function NeoPulsePage() {
       const res = await fetch('/api/wellness/checkin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sleep_score: sleep, energy_score: energy, stress_level: stress }),
+        body: JSON.stringify({ sleep_score: sleep, energy_score: energy, stress_level: stress, hydration_score: hydration, mood_score: mood }),
       })
       const data = await res.json()
       setSubmitting(false)
@@ -229,7 +231,7 @@ export default function NeoPulsePage() {
           </div>
           <p className="text-sm opacity-80 mb-6">
             {balance >= 100
-              ? `Redeem ${Math.floor(balance / 100) * 100} NP for ${Math.floor(balance / 100)}% off your next order`
+              ? `Redeem ${Math.floor(balance / 100) * 100} NP for ₹${Math.floor(balance / 100) * 10} off your next order`
               : `Earn ${100 - (balance % 100)} more NP to unlock your first discount`}
           </p>
           {!checkedInToday && (
@@ -256,13 +258,19 @@ export default function NeoPulsePage() {
           <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl max-w-sm w-full p-8 shadow-2xl">
               {/* Progress */}
-              <div className="flex gap-2 mb-8">
-                {(['sleep', 'energy', 'stress'] as const).map((s, i) => (
-                  <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${
-                    s === step ? 'bg-primary' : i < (['sleep', 'energy', 'stress'] as const).indexOf(step) ? 'bg-green-500' : 'bg-gray-200'
-                  }`} />
-                ))}
-              </div>
+              {(() => {
+                const steps = ['sleep', 'energy', 'stress', 'hydration', 'mood'] as const
+                const idx = steps.indexOf(step as typeof steps[number])
+                return (
+                  <div className="flex gap-2 mb-8">
+                    {steps.map((s, i) => (
+                      <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${
+                        s === step ? 'bg-primary' : i < idx ? 'bg-green-500' : 'bg-gray-200'
+                      }`} />
+                    ))}
+                  </div>
+                )
+              })()}
 
               {step === 'sleep' && (
                 <>
@@ -281,12 +289,8 @@ export default function NeoPulsePage() {
                   <p className="text-sm text-gray-500 text-center mb-6">How energetic do you feel right now?</p>
                   <ScoreSlider value={energy} onChange={setEnergy} labelMap={ENERGY_LABELS} color="#D4236A" />
                   <div className="flex gap-3 mt-8">
-                    <button onClick={() => setStep('sleep')} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors">
-                      ← Back
-                    </button>
-                    <button onClick={() => setStep('stress')} className="flex-1 bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark transition-colors">
-                      Next →
-                    </button>
+                    <button onClick={() => setStep('sleep')} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors">← Back</button>
+                    <button onClick={() => setStep('stress')} className="flex-1 bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark transition-colors">Next →</button>
                   </div>
                 </>
               )}
@@ -297,9 +301,49 @@ export default function NeoPulsePage() {
                   <p className="text-sm text-gray-500 text-center mb-6">1 = very calm, 10 = overwhelmed</p>
                   <ScoreSlider value={stress} onChange={setStress} labelMap={STRESS_LABELS} color="#E07B2A" />
                   <div className="flex gap-3 mt-8">
-                    <button onClick={() => setStep('energy')} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors">
-                      ← Back
-                    </button>
+                    <button onClick={() => setStep('energy')} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors">← Back</button>
+                    <button onClick={() => setStep('hydration')} className="flex-1 bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark transition-colors">Next →</button>
+                  </div>
+                </>
+              )}
+
+              {step === 'hydration' && (
+                <>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1 text-center">Hydration today?</h3>
+                  <p className="text-sm text-gray-500 text-center mb-6">How well have you been drinking water?</p>
+                  <ScoreSlider value={hydration} onChange={setHydration}
+                    labelMap={{
+                      1: { emoji: '🏜️', label: 'Dehydrated' }, 2: { emoji: '😵', label: 'Very Low' },
+                      3: { emoji: '😓', label: 'Low' }, 4: { emoji: '😐', label: 'Below Average' },
+                      5: { emoji: '🙂', label: 'Average' }, 6: { emoji: '💧', label: 'Fair' },
+                      7: { emoji: '😊', label: 'Good' }, 8: { emoji: '🌊', label: 'Well Hydrated' },
+                      9: { emoji: '💦', label: 'Excellent' }, 10: { emoji: '⭐', label: 'Perfect' },
+                    }}
+                    color="#0ea5e9"
+                  />
+                  <div className="flex gap-3 mt-8">
+                    <button onClick={() => setStep('stress')} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors">← Back</button>
+                    <button onClick={() => setStep('mood')} className="flex-1 bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark transition-colors">Next →</button>
+                  </div>
+                </>
+              )}
+
+              {step === 'mood' && (
+                <>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1 text-center">Mood today?</h3>
+                  <p className="text-sm text-gray-500 text-center mb-6">How are you feeling emotionally?</p>
+                  <ScoreSlider value={mood} onChange={setMood}
+                    labelMap={{
+                      1: { emoji: '😭', label: 'Very Low' }, 2: { emoji: '😢', label: 'Low' },
+                      3: { emoji: '😔', label: 'Down' }, 4: { emoji: '😕', label: 'Below Average' },
+                      5: { emoji: '😐', label: 'Neutral' }, 6: { emoji: '🙂', label: 'OK' },
+                      7: { emoji: '😊', label: 'Good' }, 8: { emoji: '😄', label: 'Happy' },
+                      9: { emoji: '🥰', label: 'Great' }, 10: { emoji: '🤩', label: 'Amazing' },
+                    }}
+                    color="#ec4899"
+                  />
+                  <div className="flex gap-3 mt-8">
+                    <button onClick={() => setStep('hydration')} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors">← Back</button>
                     <button onClick={submitCheckin} disabled={submitting} className="flex-1 bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark disabled:opacity-60 transition-colors">
                       {submitting ? 'Saving…' : 'Submit ✓'}
                     </button>
@@ -337,10 +381,10 @@ export default function NeoPulsePage() {
         {/* Stats row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Balance', value: `${balance} NP`, sub: '1 NP = ₹0.01 off', color: '#D4236A' },
+            { label: 'Balance', value: `${balance} NP`, sub: '100 NP = ₹10 off', color: '#D4236A' },
             { label: '30-day Avg', value: avgWellness ? `${avgWellness}/10` : '—', sub: 'Wellness score', color: '#7B35A8' },
             { label: 'Check-ins', value: String(history.length), sub: 'Last 30 days', color: '#E07B2A' },
-            { label: 'Max Discount', value: balance >= 100 ? `${Math.floor(balance / 100)}%` : '—', sub: `Need ${100 - (balance % 100)} more NP`, color: '#22c55e' },
+            { label: 'Max Discount', value: balance >= 100 ? `₹${Math.floor(balance / 100) * 10}` : '—', sub: `Need ${100 - (balance % 100)} more NP`, color: '#22c55e' },
           ].map((s) => (
             <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4">
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{s.label}</p>
@@ -408,13 +452,13 @@ export default function NeoPulsePage() {
             {/* Redeem */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
               <h2 className="font-bold text-gray-900 mb-1">Redeem Points</h2>
-              <p className="text-xs text-gray-500 mb-4">100 NP = 1% off your order price. Use at checkout.</p>
+              <p className="text-xs text-gray-500 mb-4">100 NP = ₹10 off your order. Use at checkout.</p>
               <div className="bg-gradient-to-br from-primary-light to-purple-50 rounded-xl p-4">
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   {[100, 200, 300, 500, 750, 1000].filter((v) => v <= Math.max(balance, 100)).slice(0, 6).map((pts) => (
                     <div key={pts} className={`rounded-lg p-2 text-center text-xs border ${balance >= pts ? 'border-primary bg-white' : 'border-gray-200 bg-gray-50 opacity-40'}`}>
                       <p className="font-bold text-primary">{pts} NP</p>
-                      <p className="text-gray-500">{pts / 100}% off</p>
+                      <p className="text-gray-500">₹{(pts / 100) * 10} off</p>
                     </div>
                   ))}
                 </div>

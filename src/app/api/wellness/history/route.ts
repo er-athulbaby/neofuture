@@ -15,9 +15,11 @@ export async function GET() {
       sleep_score: number
       energy_score: number
       stress_level: number
+      hydration_score: number | null
+      mood_score: number | null
       wellness_score: string
     }>(
-      `SELECT check_in_date, sleep_score, energy_score, stress_level, wellness_score
+      `SELECT check_in_date, sleep_score, energy_score, stress_level, hydration_score, mood_score, wellness_score
        FROM wellness_checkins
        WHERE user_id = $1 AND check_in_date >= CURRENT_DATE - INTERVAL '30 days'
        ORDER BY check_in_date ASC`,
