@@ -69,12 +69,12 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
       <div className="bg-brand-dark text-white py-3">
         <div className="max-w-6xl mx-auto px-4 flex flex-wrap justify-center gap-6 md:gap-10 text-sm">
           {[
-            { icon: <ShieldCheck size={15} />, text: '100% Natural Ingredients' },
-            { icon: <Truck size={15} />, text: 'Free Shipping Above ₹999' },
-            { icon: <Stethoscope size={15} />, text: 'Doctor Recommended' },
-            { icon: <RefreshCw size={15} />, text: 'Easy Returns' },
+            { icon: '💜', text: 'AI Wellness Ecosystem' },
+            { icon: '👩‍⚕️', text: 'Medical Expert Verified' },
+            { icon: '📈', text: 'Personalized Health Journey' },
+            { icon: '🔒', text: 'Private & Secure' },
           ].map((t) => (
-            <span key={t.text} className="flex items-center gap-2 text-gray-300">{t.icon} {t.text}</span>
+            <span key={t.text} className="flex items-center gap-2 text-gray-300"><span>{t.icon}</span> {t.text}</span>
           ))}
         </div>
       </div>
@@ -183,10 +183,10 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
           <div>
             <span className="text-xs font-bold uppercase tracking-widest text-neo-purple mb-3 block">AI Wellness Twin</span>
             <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-4 leading-tight">
-              Meet Neo Twin —<br />Your Personal AI Health Mirror
+              Meet Neo Twin —<br />Your AI Body Twin
             </h2>
             <p className="text-brand-gray leading-relaxed mb-6">
-              After 30 daily check-ins, Neo Twin builds a deep understanding of your body. It analyses your sleep, energy, stress, mood, and cycle to give you personalised insights, predict your wellness trends, and even calculate your Wellness Age.
+              Complete your daily check-ins to unlock Neo Twin in 30 days. Neo Twin learns your body&apos;s unique patterns through your sleep, energy, stress, mood, and cycle data — transforming them into personalised insights, predict your wellness trends, and even calculate your wellness age.
             </p>
             <div className="space-y-3 mb-8">
               {[

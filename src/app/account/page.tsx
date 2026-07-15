@@ -345,9 +345,9 @@ export default async function AccountPage() {
                   </span>
                 </div>
 
-                <p className="font-bold text-base leading-snug">Something special is waiting for you...</p>
+                <p className="font-bold text-base leading-snug">Building Your AI Body Twin…</p>
                 <p className="text-xs text-purple-200 mt-1.5 leading-relaxed">
-                  Check in daily and unlock your personal AI Wellness Twin — body pattern analysis, monthly wellness letters, and insights built just for you.
+                  Every day you check in, Neo Twin learns a little more about you. After 30 days, unlock wellness trend predictions, monthly wellness letters, your Wellness Age, and AI-powered insights created just for you.
                 </p>
 
                 {/* Progress bar */}
