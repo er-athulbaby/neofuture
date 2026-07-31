@@ -11,14 +11,17 @@ import { formatPrice, formatDate } from '@/lib/utils'
 import { ShoppingCart, Heart, Star, Check, Package, Truck, RefreshCw, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+interface PackSibling { id: number; name: string; slug: string; price: string; sale_price: string | null; pack_format: string }
+
 interface Props {
   product: Product
   reviews: Review[]
   related: Product[]
   variants: ProductVariant[]
+  packSiblings?: PackSibling[]
 }
 
-export default function ProductDetailClient({ product, reviews, related, variants }: Props) {
+export default function ProductDetailClient({ product, reviews, related, variants, packSiblings = [] }: Props) {
   const { data: session } = useSession()
   const { addItem } = useCart()
   const { toast } = useToast()
@@ -64,13 +67,14 @@ export default function ProductDetailClient({ product, reviews, related, variant
   const images = product.images?.length ? product.images : ['/images/placeholder.png']
 
   // When variant selected, use its price/stock; fall back to product
-  const effectivePrice = selectedVariant?.price ?? product.price
-  const effectiveSalePrice = selectedVariant !== null
+  const effectivePrice = Number(selectedVariant?.price ?? product.price)
+  const rawSalePrice = selectedVariant !== null
     ? (selectedVariant.sale_price ?? (selectedVariant.price !== null ? null : product.sale_price))
     : product.sale_price
+  const effectiveSalePrice = rawSalePrice != null ? Number(rawSalePrice) : null
   const effectiveStock = selectedVariant !== null ? selectedVariant.stock : product.stock
 
-  const subscribePrice = purchaseMode === 'subscribe' && selectedPlan ? selectedPlan.price : null
+  const subscribePrice = purchaseMode === 'subscribe' && selectedPlan ? Number(selectedPlan.price) : null
   const displayPrice = subscribePrice ?? (effectiveSalePrice ?? effectivePrice)
   const displayOriginalPrice = subscribePrice ? (effectiveSalePrice ?? effectivePrice) : effectivePrice
   const hasDiscount = displayPrice < displayOriginalPrice
@@ -260,6 +264,37 @@ export default function ProductDetailClient({ product, reviews, related, variant
             </div>
           )}
 
+          {/* Pack selector — shown when category has multiple pack sizes */}
+          {packSiblings.length > 0 && (
+            <div className="mb-5">
+              <p className="text-sm font-semibold text-brand-dark mb-2">Choose Pack Size</p>
+              <div className="flex flex-wrap gap-2">
+                {packSiblings.map((s) => {
+                  const isCurrent = s.slug === product.slug
+                  const saleP = s.sale_price != null ? Number(s.sale_price) : null
+                  const baseP = Number(s.price)
+                  const displayP = saleP ?? baseP
+                  const discP = saleP && saleP < baseP ? Math.round(((baseP - saleP) / baseP) * 100) : 0
+                  return isCurrent ? (
+                    <span key={s.id}
+                      className="px-4 py-2.5 rounded-xl border-2 border-primary bg-primary text-white text-sm font-semibold flex items-center gap-1.5">
+                      {s.pack_format}
+                      <span className="opacity-80 text-xs">₹{displayP}</span>
+                      {discP > 0 && <span className="bg-white/20 text-white text-xs px-1.5 py-0.5 rounded-full">{discP}% off</span>}
+                    </span>
+                  ) : (
+                    <Link key={s.id} href={`/products/${s.slug}`}
+                      className="px-4 py-2.5 rounded-xl border-2 border-gray-200 text-brand-dark text-sm font-medium hover:border-primary hover:text-primary transition-all flex items-center gap-1.5">
+                      {s.pack_format}
+                      <span className="text-brand-gray text-xs">₹{displayP}</span>
+                      {discP > 0 && <span className="bg-green-50 text-green-700 text-xs px-1.5 py-0.5 rounded-full">{discP}% off</span>}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Subscribe & Save */}
           {plans.length > 0 && (
             <div className="mb-5 border-2 border-gray-100 rounded-2xl overflow-hidden">
@@ -371,10 +406,9 @@ export default function ProductDetailClient({ product, reviews, related, variant
           </Link>
 
           {/* Trust badges */}
-          <div className="grid grid-cols-3 gap-3 border-t border-gray-100 pt-5">
+          <div className="grid grid-cols-2 gap-3 border-t border-gray-100 pt-5">
             <TrustBadge icon={<Package size={18} />} label="Secure Packaging" />
             <TrustBadge icon={<Truck size={18} />} label="Fast Delivery" />
-            <TrustBadge icon={<RefreshCw size={18} />} label="Easy Returns" />
           </div>
         </div>
       </div>

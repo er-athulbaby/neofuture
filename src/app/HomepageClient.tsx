@@ -284,6 +284,43 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </div>
       </section>
 
+      {/* NEOPULSE */}
+      <section className="py-20 px-4 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <span className="text-xs font-bold uppercase tracking-widest text-primary mb-3 block">NeoPulse Rewards</span>
+            <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-4 leading-tight">
+              Welcome to Neo Pulse —<br />Your Wellness Energy
+            </h2>
+            <p className="text-brand-gray text-lg leading-relaxed max-w-2xl mx-auto">
+              Earn Neo Pulse through daily check-ins and healthy habits. Invest it to grow your Neo Twin, protect your streaks, unlock personalised AI experiences, and enjoy exclusive wellness rewards.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-10">
+            {[
+              { icon: '🌱', label: 'Daily Check-ins', desc: 'Earn NP every day you check in and rate your wellness metrics.' },
+              { icon: '🧬', label: 'Grow Neo Twin', desc: 'Invest Neo Pulse to unlock new Neo Twin levels and advanced AI insights.' },
+              { icon: '🔥', label: 'Streak Insurance', desc: 'Protect your wellness streak even if you miss a day.' },
+              { icon: '🎁', label: 'Redeem Rewards', desc: 'Redeem Neo Pulse for exclusive offers and product savings.' },
+            ].map((item) => (
+              <div key={item.label} className="bg-brand-light rounded-2xl p-6 text-center hover:shadow-md transition-shadow">
+                <div className="text-4xl mb-3">{item.icon}</div>
+                <h3 className="font-bold text-brand-dark mb-2 text-sm">{item.label}</h3>
+                <p className="text-xs text-brand-gray leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <Link href={session ? '/neopulse' : '/signup'}
+              className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-dark transition-colors">
+              {session ? 'View My NeoPulse' : 'Start Earning NP'} <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* PERIOD CALENDAR CTA */}
       <section className="py-20 px-4 bg-brand-dark">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -546,6 +583,19 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
                   <div className="text-2xl mb-2">{s.icon}</div>
                   <p className="text-white font-semibold text-sm">{s.label}</p>
                   <p className="text-white/50 text-xs mt-0.5">{s.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Quality Assured certifications */}
+          <div className="mt-10 pt-8 border-t border-white/10">
+            <p className="text-center text-xs font-bold uppercase tracking-widest text-white/50 mb-5">Quality Assured</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {['ISO Certified', 'USFDA Approved', 'Halal Certified', 'FSSAI Approved'].map((cert) => (
+                <div key={cert} className="flex items-center gap-2.5 bg-white/8 border border-white/10 rounded-xl px-4 py-3">
+                  <span className="text-green-400 font-bold flex-shrink-0">✓</span>
+                  <span className="text-white/80 text-sm font-medium">{cert}</span>
                 </div>
               ))}
             </div>

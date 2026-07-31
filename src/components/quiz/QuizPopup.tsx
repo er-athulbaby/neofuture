@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { X, ChevronRight, ChevronLeft, Sparkles, Phone, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -191,10 +192,10 @@ export default function QuizPopup({
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)}
+      <Link href="/neo-twin"
         className="fixed bottom-24 right-6 z-40 bg-primary text-white rounded-full px-5 py-3 shadow-lg font-medium text-sm flex items-center gap-2 hover:bg-primary-dark transition-colors">
-        <Sparkles size={16} /> AI Wellness Check-in
-      </button>
+        <Sparkles size={16} /> Daily Check-in
+      </Link>
     )
   }
 

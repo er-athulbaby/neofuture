@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { query, queryOne } from '@/lib/db'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-import { Sparkles, ShoppingBag, Calendar, Baby, Scale, Utensils, BarChart3, Droplets, ArrowRight, ChevronRight, Zap, Star, Lock } from 'lucide-react'
+import { Sparkles, ShoppingBag, Calendar, Baby, Scale, Utensils, BarChart3, Droplets, ArrowRight, ChevronRight, Zap, Star, Lock, User, Mail, Phone } from 'lucide-react'
 import AccountPeriodWidget from './AccountPeriodWidget'
 
 export const metadata = { title: 'My Dashboard' }
@@ -23,8 +23,8 @@ export default async function AccountPage() {
       'SELECT id, order_number, total, status, created_at FROM orders WHERE user_id = $1 ORDER BY created_at DESC LIMIT 3',
       [userId]
     ).catch(() => []),
-    queryOne<{ neopulse_balance: number; referral_code: string | null }>(
-      'SELECT neopulse_balance, referral_code FROM users WHERE id = $1',
+    queryOne<{ neopulse_balance: number; referral_code: string | null; phone: string | null }>(
+      'SELECT neopulse_balance, referral_code, phone FROM users WHERE id = $1',
       [userId]
     ).catch(() => null),
     queryOne<{ wellness_score: string; sleep_score: number; energy_score: number; stress_level: number }>(
@@ -107,8 +107,10 @@ export default async function AccountPage() {
 
           {/* ── WELLNESS DASHBOARD CARD ── */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-6 pt-5 pb-0">
-              <h2 className="font-bold text-brand-dark">Your Wellness Dashboard</h2>
+            <div className="bg-gradient-to-r from-primary-light via-purple-50 to-pink-50 flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="font-bold text-brand-dark flex items-center gap-2">
+                <Sparkles size={16} className="text-primary" /> Your Wellness Dashboard
+              </h2>
               {latestScore && (
                 <span className="text-xs text-brand-gray">{formatDate(latestScore.created_at)}</span>
               )}
@@ -126,16 +128,16 @@ export default async function AccountPage() {
                   {/* Score cards */}
                   <div className="sm:col-span-2 grid grid-cols-2 gap-3">
                     {latestScore.energy_score > 0 && (
-                      <ScoreCard label="Energy Score" score={latestScore.energy_score} />
+                      <ScoreCard label="Energy Score" score={latestScore.energy_score} bgClass="bg-green-50 border-green-100" />
                     )}
                     {latestScore.stress_score > 0 && (
-                      <ScoreCard label="Stress Level" score={latestScore.stress_score} isStress />
+                      <ScoreCard label="Stress Level" score={latestScore.stress_score} isStress bgClass="bg-orange-50 border-orange-100" />
                     )}
                     {latestScore.hormone_score > 0 && (
-                      <ScoreCard label="Hormone Balance" score={latestScore.hormone_score} />
+                      <ScoreCard label="Hormone Balance" score={latestScore.hormone_score} bgClass="bg-purple-50 border-purple-100" />
                     )}
                     {scores.length === 1 && (
-                      <div className="bg-gray-50 rounded-xl p-4 flex flex-col justify-center items-center text-center border border-gray-100">
+                      <div className="bg-primary-light rounded-xl p-4 flex flex-col justify-center items-center text-center border border-primary/10">
                         <p className="text-xs text-brand-gray mb-1">More scores</p>
                         <p className="text-xs text-primary font-medium">Take full quiz →</p>
                       </div>
@@ -382,6 +384,45 @@ export default async function AccountPage() {
             )}
           </div>
 
+          {/* ── PERSONAL DETAILS ── */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-bold text-brand-dark text-sm flex items-center gap-2">
+                <User size={15} className="text-primary" /> Personal Details
+              </h2>
+              <Link href="/onboarding" className="text-xs text-primary hover:underline font-medium">Edit</Link>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 py-2 border-b border-gray-50">
+                <div className="w-7 h-7 rounded-lg bg-primary-light flex items-center justify-center flex-shrink-0">
+                  <User size={13} className="text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-brand-gray">Name</p>
+                  <p className="text-sm font-medium text-brand-dark">{session.user.name ?? '—'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 py-2 border-b border-gray-50">
+                <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                  <Mail size={13} className="text-blue-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-brand-gray">Email</p>
+                  <p className="text-sm font-medium text-brand-dark truncate">{session.user.email ?? '—'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 py-2">
+                <div className="w-7 h-7 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
+                  <Phone size={13} className="text-green-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-brand-gray">Mobile</p>
+                  <p className="text-sm font-medium text-brand-dark">{npData?.phone ?? 'Not added'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* ── WELLNESS TOOLS ── */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <h2 className="font-bold text-brand-dark mb-4 text-sm uppercase tracking-wide text-brand-gray">Wellness Tools</h2>
@@ -446,7 +487,7 @@ function gaugeLabel(score: number): { label: string; colorClass: string } {
 }
 
 /* ── Score metric card ── */
-function ScoreCard({ label, score, isStress = false }: { label: string; score: number; isStress?: boolean }) {
+function ScoreCard({ label, score, isStress = false, bgClass = 'bg-gray-50 border-gray-100' }: { label: string; score: number; isStress?: boolean; bgClass?: string }) {
   const getColor = (s: number, stress: boolean) => {
     if (stress) {
       if (s <= 30) return { text: 'Low', color: 'text-green-600' }
@@ -461,7 +502,7 @@ function ScoreCard({ label, score, isStress = false }: { label: string; score: n
   const { text, color } = getColor(score, isStress)
 
   return (
-    <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+    <div className={`rounded-xl p-4 border ${bgClass}`}>
       <p className="text-xs text-brand-gray mb-1">{label}</p>
       {isStress ? (
         <p className={`text-lg font-bold ${color}`}>{text}</p>

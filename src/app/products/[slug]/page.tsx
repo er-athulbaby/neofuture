@@ -4,6 +4,8 @@ import type { Product, Review, ProductVariant } from '@/types'
 import ProductDetailClient from './ProductDetailClient'
 import type { Metadata } from 'next'
 
+interface PackSibling { id: number; name: string; slug: string; price: string; sale_price: string | null; pack_format: string }
+
 interface Props { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -19,7 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params
 
-  const [product, reviews, related, variants] = await Promise.all([
+  const [product, reviews, related, variants, packSiblings] = await Promise.all([
     queryOne<Product>(
       `SELECT p.*, c.name as category_name, c.slug as category_slug,
         COALESCE(AVG(r.rating),0)::numeric(3,1) as avg_rating,
@@ -55,9 +57,17 @@ export default async function ProductPage({ params }: Props) {
       `SELECT * FROM product_variants WHERE product_id = (SELECT id FROM products WHERE slug = $1) AND is_active = true ORDER BY id`,
       [slug]
     ).catch(() => []),
+    query<PackSibling>(
+      `SELECT id, name, slug, price::text, sale_price::text, pack_format
+       FROM products
+       WHERE category_id = (SELECT category_id FROM products WHERE slug = $1)
+         AND is_active = true AND pack_format IS NOT NULL
+       ORDER BY id`,
+      [slug]
+    ).catch(() => []),
   ])
 
   if (!product) notFound()
 
-  return <ProductDetailClient product={product} reviews={reviews} related={related} variants={variants} />
+  return <ProductDetailClient product={product} reviews={reviews} related={related} variants={variants} packSiblings={packSiblings.length > 1 ? packSiblings : []} />
 }

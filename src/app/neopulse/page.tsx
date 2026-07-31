@@ -253,6 +253,26 @@ export default function NeoPulsePage() {
 
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
 
+        {/* NeoPulse benefits */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <h2 className="font-bold text-gray-900 mb-1">Welcome to Neo Pulse — Your Wellness Energy</h2>
+          <p className="text-sm text-gray-500 mb-5">Earn Neo Pulse through daily check-ins and healthy habits. Invest it to grow your Neo Twin, protect your streaks, unlock personalised AI experiences, and enjoy exclusive wellness rewards.</p>
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { icon: '🌱', label: 'Daily Check-ins', desc: 'Earn Neo Pulse every day you check in.' },
+              { icon: '🧬', label: 'Grow Neo Twin', desc: 'Invest Neo Pulse to unlock new Neo Twin levels and advanced AI insights.' },
+              { icon: '🔥', label: 'Streak Insurance', desc: 'Protect your wellness streak even if you miss a day.' },
+              { icon: '🎁', label: 'Wellness Rewards', desc: 'Redeem Neo Pulse for exclusive offers and product savings.' },
+            ].map((item) => (
+              <div key={item.label} className="bg-gray-50 rounded-xl p-4">
+                <p className="text-2xl mb-2">{item.icon}</p>
+                <p className="font-semibold text-gray-800 text-sm mb-1">{item.label}</p>
+                <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Check-in modal */}
         {step !== 'idle' && step !== 'done' && (
           <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
