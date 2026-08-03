@@ -197,6 +197,7 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
                       <p className="text-sm font-medium text-brand-dark truncate">{session.user.name}</p>
                     </div>
                     <Link href="/account" className="block px-4 py-2 text-sm text-brand-dark hover:bg-primary-light hover:text-primary">My Dashboard</Link>
+                    <Link href="/account/profile" className="block px-4 py-2 text-sm text-brand-dark hover:bg-primary-light hover:text-primary">My Profile</Link>
                     <Link href="/neopulse" className="flex items-center justify-between px-4 py-2 text-sm text-brand-dark hover:bg-primary-light hover:text-primary">
                       <span className="flex items-center gap-1.5"><Zap size={13} className="text-primary" /> NeoPulse</span>
                       {npBalance !== null && <span className="text-xs font-bold text-primary">{npBalance} NP</span>}
@@ -240,6 +241,9 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
             {session ? (
               <>
                 <MobileLink href="/account" label="AI Wellness Dashboard" onClick={() => setMenuOpen(false)} active={pathname === '/account'} />
+                <MobileLink href="/account/profile" label="My Profile" onClick={() => setMenuOpen(false)} active={pathname === '/account/profile'} />
+                <MobileLink href="/neo-twin" label="Neo Twin ✦" onClick={() => setMenuOpen(false)} active={pathname === '/neo-twin'} />
+                <MobileLink href="/neopulse" label="NeoPulse" onClick={() => setMenuOpen(false)} active={pathname === '/neopulse'} />
                 <MobileLink href="/account/period-calendar" label="Period Tracker" onClick={() => setMenuOpen(false)} active={pathname.startsWith('/account/period')} />
                 <MobileLink href="/account/wishlist" label="Wishlist" onClick={() => setMenuOpen(false)} active={pathname === '/account/wishlist'} />
               </>

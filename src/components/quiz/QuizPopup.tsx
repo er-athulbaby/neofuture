@@ -222,7 +222,7 @@ export default function QuizPopup({
 
           {/* Path progress pills */}
           {(state.step === 3 || state.step === 4 || state.step === 99 || state.step === 100) && (
-            <div className="flex gap-2 mt-3">
+            <div className="flex flex-wrap items-center gap-2 mt-3">
               {ALL_PATHS.map((p) => (
                 <div key={p}
                   className={cn('flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium transition-all',
@@ -235,6 +235,11 @@ export default function QuizPopup({
                   {PATH_LABELS[p].icon} {PATH_LABELS[p].metric}
                 </div>
               ))}
+              <button
+                onClick={() => setState({ ...INIT, step: 2 })}
+                className="ml-auto text-xs text-white/70 hover:text-white underline underline-offset-2 transition-colors">
+                Change concern
+              </button>
             </div>
           )}
 
@@ -280,6 +285,9 @@ export default function QuizPopup({
                   </button>
                 ))}
               </div>
+              <button onClick={back} className="mt-4 flex items-center gap-1 text-sm text-brand-gray hover:text-brand-dark">
+                <ChevronLeft size={16} /> Back
+              </button>
             </div>
           )}
 

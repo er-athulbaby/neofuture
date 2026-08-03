@@ -8,7 +8,7 @@ import { useToast } from '@/components/ui/ToastProvider'
 import ProductCard from '@/components/products/ProductCard'
 import type { Product, Review, ProductVariant, SubscriptionPlan } from '@/types'
 import { formatPrice, formatDate } from '@/lib/utils'
-import { ShoppingCart, Heart, Star, Check, Package, Truck, RefreshCw, RotateCcw } from 'lucide-react'
+import { ShoppingCart, Heart, Star, Check, Package, Truck, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface PackSibling { id: number; name: string; slug: string; price: string; sale_price: string | null; pack_format: string }
@@ -33,8 +33,7 @@ export default function ProductDetailClient({ product, reviews, related, variant
     variants.length > 0 ? variants[0] : null
   )
 
-  // Subscription state
-  const [purchaseMode, setPurchaseMode] = useState<'one-time' | 'subscribe'>('one-time')
+  // Subscription state — plans are always the primary buying option when available
   const [plans, setPlans] = useState<SubscriptionPlan[]>([])
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null)
 
@@ -74,7 +73,7 @@ export default function ProductDetailClient({ product, reviews, related, variant
   const effectiveSalePrice = rawSalePrice != null ? Number(rawSalePrice) : null
   const effectiveStock = selectedVariant !== null ? selectedVariant.stock : product.stock
 
-  const subscribePrice = purchaseMode === 'subscribe' && selectedPlan ? Number(selectedPlan.price) : null
+  const subscribePrice = selectedPlan ? Number(selectedPlan.price) : null
   const displayPrice = subscribePrice ?? (effectiveSalePrice ?? effectivePrice)
   const displayOriginalPrice = subscribePrice ? (effectiveSalePrice ?? effectivePrice) : effectivePrice
   const hasDiscount = displayPrice < displayOriginalPrice
@@ -93,11 +92,11 @@ export default function ProductDetailClient({ product, reviews, related, variant
       stock: effectiveStock,
       variant_id: selectedVariant?.id,
       variant_label: selectedVariant?.label,
-      subscription_plan_id: purchaseMode === 'subscribe' ? selectedPlan?.id : undefined,
-      subscription_months: purchaseMode === 'subscribe' ? selectedPlan?.duration_months : undefined,
-      subscription_label: purchaseMode === 'subscribe' ? selectedPlan?.label : undefined,
+      subscription_plan_id: selectedPlan?.id,
+      subscription_months: selectedPlan?.duration_months,
+      subscription_label: selectedPlan?.label,
     })
-    const sub = purchaseMode === 'subscribe' && selectedPlan ? ` — ${selectedPlan.label}` : ''
+    const sub = selectedPlan ? ` — ${selectedPlan.label}` : ''
     toast(`${product.name}${selectedVariant ? ` (${selectedVariant.label})` : ''}${sub} added to cart!`)
   }
 
@@ -143,7 +142,7 @@ export default function ProductDetailClient({ product, reviews, related, variant
         {product.category_name && (
           <>
             <span>/</span>
-            <Link href={`/shop/${product.category_slug}`} className="hover:text-primary">{product.category_name}</Link>
+            <Link href={`/shop?category=${product.category_slug}`} className="hover:text-primary">{product.category_name}</Link>
           </>
         )}
         <span>/</span>
@@ -295,69 +294,61 @@ export default function ProductDetailClient({ product, reviews, related, variant
             </div>
           )}
 
-          {/* Subscribe & Save */}
+          {/* Subscription Plans — always visible as primary buying options */}
           {plans.length > 0 && (
-            <div className="mb-5 border-2 border-gray-100 rounded-2xl overflow-hidden">
-              {/* Toggle */}
-              <div className="grid grid-cols-2">
-                <button
-                  onClick={() => setPurchaseMode('one-time')}
-                  className={cn(
-                    'py-3 text-sm font-semibold transition-colors',
-                    purchaseMode === 'one-time'
-                      ? 'bg-brand-dark text-white'
-                      : 'bg-gray-50 text-brand-gray hover:bg-gray-100'
-                  )}
-                >
-                  One-time Purchase
-                </button>
-                <button
-                  onClick={() => setPurchaseMode('subscribe')}
-                  className={cn(
-                    'py-3 text-sm font-semibold transition-colors flex items-center justify-center gap-1.5',
-                    purchaseMode === 'subscribe'
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-50 text-brand-gray hover:bg-gray-100'
-                  )}
-                >
-                  <RotateCcw size={14} /> Subscribe & Save
-                </button>
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold text-brand-dark">Choose Your Plan</p>
+                <span className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary-light px-2.5 py-1 rounded-full">
+                  <Zap size={11} /> Save up to 15%
+                </span>
               </div>
-
-              {/* Plan selector */}
-              {purchaseMode === 'subscribe' && (
-                <div className="p-4 bg-primary/5 border-t border-primary/10">
-                  <p className="text-xs font-semibold text-brand-gray uppercase tracking-wide mb-3">Choose your plan</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {plans.map((plan) => (
-                      <button
-                        key={plan.id}
-                        onClick={() => setSelectedPlan(plan)}
-                        className={cn(
-                          'flex flex-col items-center p-3 rounded-xl border-2 transition-all text-center',
-                          selectedPlan?.id === plan.id
-                            ? 'border-primary bg-primary text-white'
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {plans.map((plan, idx) => {
+                  const planPrice = Number(plan.price)
+                  const baseRef = effectiveSalePrice ?? effectivePrice
+                  const planDiscount = baseRef > planPrice ? Math.round(((baseRef - planPrice) / baseRef) * 100) : 0
+                  const isSelected = selectedPlan?.id === plan.id
+                  const isFeatured = idx === 1
+                  return (
+                    <button
+                      key={plan.id}
+                      onClick={() => setSelectedPlan(isSelected ? null : plan)}
+                      className={cn(
+                        'relative flex flex-col items-center p-4 rounded-2xl border-2 transition-all text-center',
+                        isSelected
+                          ? 'border-primary bg-primary text-white shadow-lg shadow-primary/20'
+                          : isFeatured
+                            ? 'border-primary/40 bg-primary/5 hover:border-primary text-brand-dark'
                             : 'border-gray-200 bg-white hover:border-primary text-brand-dark'
-                        )}
-                      >
-                        <span className="font-bold text-sm">{plan.label}</span>
-                        <span className={cn('text-xs mt-1', selectedPlan?.id === plan.id ? 'text-white/80' : 'text-brand-gray')}>
-                          {formatPrice(plan.price)}
+                      )}
+                    >
+                      {isFeatured && (
+                        <span className={cn(
+                          'absolute -top-2.5 left-1/2 -translate-x-1/2 text-xs font-bold px-3 py-0.5 rounded-full whitespace-nowrap',
+                          isSelected ? 'bg-white text-primary' : 'bg-primary text-white'
+                        )}>⭐ Most Popular</span>
+                      )}
+                      <span className="font-bold text-sm mt-1">{plan.label}</span>
+                      <span className={cn('text-lg font-black mt-1', isSelected ? 'text-white' : 'text-brand-dark')}>
+                        {formatPrice(planPrice)}
+                      </span>
+                      {planDiscount > 0 && (
+                        <span className={cn(
+                          'text-xs font-semibold mt-1 px-2 py-0.5 rounded-full',
+                          isSelected ? 'bg-white/25 text-white' : 'bg-green-100 text-green-700'
+                        )}>
+                          {planDiscount}% off
                         </span>
-                        {(effectiveSalePrice ?? effectivePrice) > plan.price && (
-                          <span className={cn('text-xs font-semibold mt-1', selectedPlan?.id === plan.id ? 'text-white' : 'text-success')}>
-                            Save {Math.round(((effectiveSalePrice ?? effectivePrice) - plan.price) / (effectiveSalePrice ?? effectivePrice) * 100)}%
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-brand-gray mt-3 flex items-center gap-1">
-                    <Check size={12} className="text-success" />
-                    One-time payment · No auto-renewal · Cancel anytime
-                  </p>
-                </div>
-              )}
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-brand-gray mt-2.5 flex items-center gap-1">
+                <Check size={12} className="text-success flex-shrink-0" />
+                One-time payment · No auto-renewal · Cancel anytime
+              </p>
             </div>
           )}
 

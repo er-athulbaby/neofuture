@@ -15,7 +15,7 @@ interface FooterProps {
 export default function Footer({
   logoUrl = '',
   siteName = 'NeoFuture',
-  tagline = 'From trusted hands to quality lives.',
+  tagline = 'Science-backed women wellness ecosystem',
   instagramUrl = '',
   facebookUrl = '',
   contactEmail = '',
@@ -38,7 +38,7 @@ export default function Footer({
                 </span>
               )}
             </div>
-            <p className="text-gray-400 text-sm leading-relaxed">{tagline}<br />Science-backed wellness for every woman.</p>
+            <p className="text-gray-400 text-sm leading-relaxed">{tagline}</p>
             <div className="flex gap-3 mt-5">
               {instagramUrl ? (
                 <SocialLink href={instagramUrl} label="Instagram">

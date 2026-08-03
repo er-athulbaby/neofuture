@@ -609,7 +609,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
           <div className="text-center mb-10">
             <span className="text-xs font-bold uppercase tracking-widest text-primary mb-3 block">Our Products</span>
             <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-2">Nutraceuticals</h2>
-            <p className="text-brand-gray">Science-backed nutritional support trusted by women across India</p>
+            <p className="text-brand-gray">Science-backed nutrition designed to support your body's everyday wellness.</p>
           </div>
           {featured.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

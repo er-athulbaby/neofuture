@@ -221,7 +221,7 @@ export default function NeoPulsePage() {
       {/* Hero banner */}
       <div className="bg-gradient-to-br from-[#D4236A] via-[#9B2D8B] to-[#7B35A8] text-white py-12 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Your Rewards Balance</p>
+          <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Your Wellness Energy</p>
           <div className="flex items-center justify-center gap-3 mb-1">
             <span className="text-6xl font-black">{loading ? '…' : balance}</span>
             <div className="text-left">
