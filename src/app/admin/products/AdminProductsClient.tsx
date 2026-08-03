@@ -14,14 +14,15 @@ interface Props { products: ProductRow[]; categories: Category[] }
 interface Variant { id: number; label: string; price: number | null; sale_price: number | null; stock: number; sku: string | null }
 const EMPTY_VARIANT = { label: '', price: '', sale_price: '', stock: '0', sku: '' }
 
-interface SubPlan { id: number; duration_months: number; label: string; price: number; is_active: boolean }
+interface SubPlan { id: number; duration_months: number; label: string; price: number; mrp_price?: number | null; is_active: boolean }
 const PLAN_DURATIONS = [
   { months: 1, label: '1 Month' },
+  { months: 2, label: '2 Months' },
   { months: 3, label: '3 Months' },
   { months: 6, label: '6 Months' },
   { months: 12, label: '12 Months' },
 ]
-const EMPTY_PLAN = { duration_months: '1', label: '', price: '' }
+const EMPTY_PLAN = { duration_months: '1', label: '', price: '', mrp_price: '' }
 
 function toSlug(s: string) {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -121,7 +122,12 @@ export default function AdminProductsClient({ products: initial, categories }: P
     const res = await fetch(`/api/admin/products/${editId}/subscription-plans`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ duration_months: duration, label, price: parseFloat(subPlanForm.price) }),
+      body: JSON.stringify({
+        duration_months: duration,
+        label,
+        price: parseFloat(subPlanForm.price),
+        mrp_price: subPlanForm.mrp_price ? parseFloat(subPlanForm.mrp_price) : null,
+      }),
     })
     setSavingPlan(false)
     if (res.ok) {
@@ -680,7 +686,8 @@ export default function AdminProductsClient({ products: initial, categories }: P
                               <tr className="border-b border-gray-100">
                                 <th className="text-left py-2 text-brand-gray font-medium">Duration</th>
                                 <th className="text-left py-2 text-brand-gray font-medium">Label</th>
-                                <th className="text-right py-2 text-brand-gray font-medium">Price (₹)</th>
+                                <th className="text-right py-2 text-brand-gray font-medium">MRP (₹)</th>
+                                <th className="text-right py-2 text-brand-gray font-medium">Sale Price (₹)</th>
                                 <th />
                               </tr>
                             </thead>
@@ -689,8 +696,12 @@ export default function AdminProductsClient({ products: initial, categories }: P
                                 <tr key={p.id} className="border-b border-gray-50">
                                   <td className="py-2 text-brand-gray">{p.duration_months}mo</td>
                                   <td className="py-2 font-medium text-brand-dark">{p.label}</td>
-                                  <td className="py-2 text-right font-semibold text-brand-dark">₹{p.price}</td>
+                                  <td className="py-2 text-right text-brand-gray line-through">{p.mrp_price ? `₹${p.mrp_price}` : '—'}</td>
+                                  <td className="py-2 text-right font-semibold text-success">₹{p.price}</td>
                                   <td className="py-2 pl-2">
+                                    <button type="button" onClick={() => {
+                                      setSubPlanForm({ duration_months: String(p.duration_months), label: p.label, price: String(p.price), mrp_price: p.mrp_price ? String(p.mrp_price) : '' })
+                                    }} className="text-primary hover:text-primary-dark text-xs mr-2">edit</button>
                                     <button type="button" onClick={() => deleteSubPlan(p.id)}
                                       className="text-danger hover:text-red-700 text-xs">✕</button>
                                   </td>
@@ -704,7 +715,7 @@ export default function AdminProductsClient({ products: initial, categories }: P
                       {/* Add plan form */}
                       <div>
                         <p className="text-xs font-semibold text-brand-gray uppercase tracking-wide mb-2">Add / Update Plan</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                           <div>
                             <FLabel label="Duration" />
                             <select value={subPlanForm.duration_months}
@@ -716,25 +727,31 @@ export default function AdminProductsClient({ products: initial, categories }: P
                             </select>
                           </div>
                           <div>
-                            <FLabel label="Label (optional)" />
+                            <FLabel label="Label (e.g. Starter Pack)" />
                             <input value={subPlanForm.label}
                               onChange={(e) => setSubPlanForm((f) => ({ ...f, label: e.target.value }))}
-                              placeholder="3 Months" className={fClass} />
+                              placeholder="Starter Pack" className={fClass} />
                           </div>
                           <div>
-                            <FLabel label="Price (₹) *" />
+                            <FLabel label="MRP / Original Price (₹)" />
+                            <input type="number" min="0" step="0.01" value={subPlanForm.mrp_price}
+                              onChange={(e) => setSubPlanForm((f) => ({ ...f, mrp_price: e.target.value }))}
+                              placeholder="1840" className={fClass} />
+                          </div>
+                          <div>
+                            <FLabel label="Sale Price (₹) *" />
                             <input type="number" min="0" step="0.01" value={subPlanForm.price}
                               onChange={(e) => setSubPlanForm((f) => ({ ...f, price: e.target.value }))}
-                              placeholder="2099" className={fClass} />
+                              placeholder="1656" className={fClass} />
                           </div>
-                          <div className="flex items-end">
+                          <div className="flex items-end col-span-2 sm:col-span-2">
                             <button type="button" onClick={addSubPlan} disabled={savingPlan || !subPlanForm.price}
                               className="w-full flex items-center justify-center gap-1 bg-primary text-white py-2 rounded-xl text-xs font-semibold hover:bg-primary-dark disabled:opacity-60 transition-colors">
                               <Plus size={13} /> {savingPlan ? 'Saving...' : 'Save Plan'}
                             </button>
                           </div>
                         </div>
-                        <p className="text-xs text-brand-gray mt-2">Saving a plan for a duration that already exists will update its price.</p>
+                        <p className="text-xs text-brand-gray mt-2">Saving a plan for a duration that already exists will update it. Click <em>edit</em> on a row to load it into the form.</p>
                       </div>
                     </div>
                   )}

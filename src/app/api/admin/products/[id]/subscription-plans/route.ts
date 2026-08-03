@@ -15,6 +15,7 @@ async function ensureTable() {
       UNIQUE(product_id, duration_months)
     )
   `, []).catch(() => {})
+  await query(`ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS mrp_price NUMERIC(10,2)`, []).catch(() => {})
 }
 
 interface Props { params: Promise<{ id: string }> }
@@ -36,15 +37,16 @@ export async function POST(req: NextRequest, { params }: Props) {
   if (!session?.user?.is_admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   await ensureTable()
   const { id } = await params
-  const { duration_months, label, price } = await req.json()
+  const { duration_months, label, price, mrp_price } = await req.json()
   if (!duration_months || !price) return NextResponse.json({ error: 'Duration and price required' }, { status: 400 })
 
   const plan = await queryOne(
-    `INSERT INTO subscription_plans (product_id, duration_months, label, price)
-     VALUES ($1, $2, $3, $4)
-     ON CONFLICT (product_id, duration_months) DO UPDATE SET label = $3, price = $4
+    `INSERT INTO subscription_plans (product_id, duration_months, label, price, mrp_price)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (product_id, duration_months)
+     DO UPDATE SET label = $3, price = $4, mrp_price = $5, is_active = true
      RETURNING *`,
-    [parseInt(id), duration_months, label || `${duration_months} Month${duration_months > 1 ? 's' : ''}`, price]
+    [parseInt(id), duration_months, label || `${duration_months} Month${duration_months > 1 ? 's' : ''}`, price, mrp_price ?? null]
   )
   return NextResponse.json({ plan }, { status: 201 })
 }
@@ -53,11 +55,11 @@ export async function PUT(req: NextRequest, { params }: Props) {
   const session = await auth()
   if (!session?.user?.is_admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
-  const { plan_id, label, price, is_active } = await req.json()
+  const { plan_id, label, price, mrp_price, is_active } = await req.json()
   const plan = await queryOne(
-    `UPDATE subscription_plans SET label = $1, price = $2, is_active = $3
-     WHERE id = $4 AND product_id = $5 RETURNING *`,
-    [label, price, is_active ?? true, plan_id, parseInt(id)]
+    `UPDATE subscription_plans SET label = $1, price = $2, mrp_price = $3, is_active = $4
+     WHERE id = $5 AND product_id = $6 RETURNING *`,
+    [label, price, mrp_price ?? null, is_active ?? true, plan_id, parseInt(id)]
   )
   return NextResponse.json({ plan })
 }
