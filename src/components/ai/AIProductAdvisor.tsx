@@ -206,21 +206,26 @@ export default function AIProductAdvisor() {
             )}
 
             {/* CTA buttons once done */}
-            {displayDone && displayProduct && (
+            {displayDone && (
               <div className="flex items-center gap-2">
-                <Link
-                  href={`/shop?q=${encodeURIComponent(displayProduct)}`}
-                  onClick={() => setOpen(false)}
-                  className="flex-1 text-center bg-primary text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors"
-                >
-                  Shop {displayProduct} →
-                </Link>
+                {displayProduct && (
+                  <Link
+                    href={`/shop?q=${encodeURIComponent(displayProduct)}`}
+                    onClick={() => setOpen(false)}
+                    className="flex-1 text-center bg-primary text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors"
+                  >
+                    Shop {displayProduct} →
+                  </Link>
+                )}
                 <button
                   onClick={startFresh}
-                  title="Start a new recommendation"
-                  className="p-2.5 border border-gray-200 rounded-xl text-brand-gray hover:bg-gray-50 hover:text-primary transition-colors"
+                  title="Ask a new question"
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-brand-gray hover:bg-gray-50 hover:text-primary transition-colors',
+                    !displayProduct && 'flex-1 justify-center'
+                  )}
                 >
-                  <RotateCcw size={15} />
+                  <RotateCcw size={15} /> {!displayProduct ? 'Ask new question' : ''}
                 </button>
               </div>
             )}

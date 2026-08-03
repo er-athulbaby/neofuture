@@ -306,7 +306,8 @@ export default function ProductDetailClient({ product, reviews, related, variant
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {plans.map((plan, idx) => {
                   const planPrice = Number(plan.price)
-                  const baseRef = effectiveSalePrice ?? effectivePrice
+                  const planMrp = plan.mrp_price != null ? Number(plan.mrp_price) : null
+                  const baseRef = planMrp ?? (effectiveSalePrice ?? effectivePrice)
                   const planDiscount = baseRef > planPrice ? Math.round(((baseRef - planPrice) / baseRef) * 100) : 0
                   const isSelected = selectedPlan?.id === plan.id
                   const isFeatured = idx === 1
@@ -330,7 +331,12 @@ export default function ProductDetailClient({ product, reviews, related, variant
                         )}>⭐ Most Popular</span>
                       )}
                       <span className="font-bold text-sm mt-1">{plan.label}</span>
-                      <span className={cn('text-lg font-black mt-1', isSelected ? 'text-white' : 'text-brand-dark')}>
+                      {planMrp != null && planMrp > planPrice && (
+                        <span className={cn('text-xs line-through mt-0.5', isSelected ? 'text-white/60' : 'text-brand-gray')}>
+                          {formatPrice(planMrp)}
+                        </span>
+                      )}
+                      <span className={cn('text-lg font-black mt-0.5', isSelected ? 'text-white' : 'text-brand-dark')}>
                         {formatPrice(planPrice)}
                       </span>
                       {planDiscount > 0 && (

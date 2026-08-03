@@ -16,7 +16,7 @@ export async function POST() {
   // Update product base price to 30-day MRP
   await query('UPDATE products SET price = 1840, sale_price = 1656 WHERE id = $1', [product.id])
 
-  // Ensure subscription_plans table exists
+  // Ensure subscription_plans table exists with mrp_price column
   await query(`
     CREATE TABLE IF NOT EXISTS subscription_plans (
       id SERIAL PRIMARY KEY,
@@ -27,11 +27,12 @@ export async function POST() {
       is_active BOOLEAN NOT NULL DEFAULT true
     )
   `, [])
+  await query(`ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS mrp_price NUMERIC(10,2)`, []).catch(() => {})
 
   const plans = [
-    { duration_months: 1, label: 'Starter Pack', price: 1656 },
-    { duration_months: 2, label: 'Most Popular', price: 3128 },
-    { duration_months: 3, label: 'Best Results', price: 4416 },
+    { duration_months: 1, label: 'Starter Pack', price: 1656, mrp_price: 1840 },
+    { duration_months: 2, label: 'Most Popular', price: 3128, mrp_price: 3682 },
+    { duration_months: 3, label: 'Best Results', price: 4416, mrp_price: 5522 },
   ]
 
   const results = []
@@ -42,14 +43,14 @@ export async function POST() {
     )
     if (existing) {
       await query(
-        'UPDATE subscription_plans SET label = $1, price = $2, is_active = true WHERE id = $3',
-        [plan.label, plan.price, existing.id]
+        'UPDATE subscription_plans SET label = $1, price = $2, mrp_price = $3, is_active = true WHERE id = $4',
+        [plan.label, plan.price, plan.mrp_price, existing.id]
       )
       results.push({ action: 'updated', ...plan })
     } else {
       await query(
-        'INSERT INTO subscription_plans (product_id, label, duration_months, price) VALUES ($1,$2,$3,$4)',
-        [product.id, plan.label, plan.duration_months, plan.price]
+        'INSERT INTO subscription_plans (product_id, label, duration_months, price, mrp_price) VALUES ($1,$2,$3,$4,$5)',
+        [product.id, plan.label, plan.duration_months, plan.price, plan.mrp_price]
       )
       results.push({ action: 'created', ...plan })
     }

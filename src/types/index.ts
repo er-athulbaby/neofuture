@@ -79,6 +79,7 @@ export interface SubscriptionPlan {
   duration_months: number
   label: string
   price: number
+  mrp_price?: number | null
 }
 
 export interface ProductVariant {
