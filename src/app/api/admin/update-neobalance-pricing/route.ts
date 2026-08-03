@@ -3,8 +3,11 @@ import { auth } from '@/lib/auth'
 import { query, queryOne } from '@/lib/db'
 
 // One-time migration: update Neobalance subscription plan prices
-// POST /api/admin/update-neobalance-pricing
-export async function POST() {
+// GET or POST /api/admin/update-neobalance-pricing (admin only)
+export async function GET() { return run() }
+export async function POST() { return run() }
+
+async function run() {
   const session = await auth()
   if (!session?.user?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
