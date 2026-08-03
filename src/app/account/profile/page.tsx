@@ -265,7 +265,7 @@ export default function ProfilePage() {
                   <Field label="Address Line 1 *" required value={addrForm.address_line1} onChange={(v) => setAddrForm((f) => ({ ...f, address_line1: v }))} />
                 </div>
                 <div className="col-span-2">
-                  <Field label="Address Line 2" value={addrForm.address_line2} onChange={(v) => setAddrForm((f) => ({ ...f, address_line2: v }))} />
+                  <Field label="Address Line 2" value={addrForm.address_line2 ?? ''} onChange={(v) => setAddrForm((f) => ({ ...f, address_line2: v }))} />
                 </div>
                 <Field label="City *" required value={addrForm.city} onChange={(v) => setAddrForm((f) => ({ ...f, city: v }))} />
                 <Field label="State *" required value={addrForm.state} onChange={(v) => setAddrForm((f) => ({ ...f, state: v }))} />
