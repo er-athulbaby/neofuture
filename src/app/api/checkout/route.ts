@@ -211,7 +211,7 @@ export async function POST(req: NextRequest) {
     }
 
     // --- Razorpay path ---
-    const { subtotal, discount, shipping, tax, total: rzpBase, couponId } = await calcOrder(items, couponCode, gst)
+    const { subtotal, discount, shipping, tax, total: rzpBase, couponId, validatedItems } = await calcOrder(items, couponCode, gst)
     const npPts = Number(neopulse_points ?? 0)
     const npDisc = await calcNpDiscount(session?.user?.id ? Number(session.user.id) : null, npPts)
     const total = Math.max(0, rzpBase - npDisc)

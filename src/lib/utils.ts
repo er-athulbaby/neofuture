@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import crypto from 'crypto'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -30,9 +31,7 @@ export function formatDate(date: string | Date) {
 
 export function generateOrderNumber() {
   const ts = Date.now().toString(36).toUpperCase()
-  // crypto.randomBytes is cryptographically secure — Math.random() is not
-  const { randomBytes } = require('crypto') as typeof import('crypto')
-  const rand = randomBytes(4).toString('hex').toUpperCase()
+  const rand = crypto.randomBytes(4).toString('hex').toUpperCase()
   return `NEO-${ts}-${rand}`
 }
 
