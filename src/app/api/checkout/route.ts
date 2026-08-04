@@ -15,6 +15,27 @@ function getRazorpay() {
   })
 }
 
+async function ensurePendingOrdersTable() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS pending_razorpay_orders (
+      razorpay_order_id TEXT PRIMARY KEY,
+      user_id TEXT,
+      subtotal NUMERIC(10,2) NOT NULL,
+      discount NUMERIC(10,2) NOT NULL DEFAULT 0,
+      shipping NUMERIC(10,2) NOT NULL DEFAULT 0,
+      tax NUMERIC(10,2) NOT NULL DEFAULT 0,
+      total NUMERIC(10,2) NOT NULL,
+      coupon_id INTEGER,
+      neopulse_points INTEGER NOT NULL DEFAULT 0,
+      items JSONB NOT NULL,
+      shipping_address JSONB,
+      subscription_plan_id INTEGER,
+      subscription_months INTEGER,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `, []).catch(() => {})
+}
+
 async function isCodEnabled(): Promise<boolean> {
   try {
     const row = await queryOne<{ value: string }>(`SELECT value FROM site_settings WHERE key = 'cod_enabled'`, [])
@@ -213,6 +234,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Payment gateway error: ${msg}` }, { status: 500 })
     }
 
+    // Store canonical order data server-side — prevents client price manipulation in PUT
+    await ensurePendingOrdersTable()
+    const subPlanId = items.find((i: CartItem) => i.subscription_plan_id)?.subscription_plan_id ?? null
+    const subMonths = items.find((i: CartItem) => i.subscription_months)?.subscription_months ?? null
+    await query(
+      `INSERT INTO pending_razorpay_orders
+         (razorpay_order_id, user_id, subtotal, discount, shipping, tax, total, coupon_id, neopulse_points, items, subscription_plan_id, subscription_months)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+       ON CONFLICT (razorpay_order_id) DO NOTHING`,
+      [rzpOrder.id, session?.user?.id ?? null, subtotal, discount, shipping, tax, total, couponId ?? null, npPts, JSON.stringify(validatedItems), subPlanId, subMonths]
+    ).catch(() => {})
+
     return NextResponse.json({
       razorpay_order_id: rzpOrder.id,
       subtotal,
@@ -239,13 +272,9 @@ export async function PUT(req: NextRequest) {
   try {
     const session = await auth()
     const body = await req.json()
-    const {
-      razorpay_order_id, razorpay_payment_id, razorpay_signature,
-      items, shippingAddress, subtotal, discount, shipping, tax, total, couponId,
-      neopulse_points: rzpNpPoints,
-    } = body
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, shippingAddress } = body
 
-    // Verify signature
+    // Verify Razorpay signature
     const expectedSig = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
@@ -255,10 +284,32 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Payment verification failed' }, { status: 400 })
     }
 
-    const orderNumber = generateOrderNumber()
+    // Retrieve canonical order data stored during POST — never trust client for prices/items
+    await ensurePendingOrdersTable()
+    type PendingOrder = {
+      user_id: string | null; subtotal: string; discount: string; shipping: string; tax: string; total: string;
+      coupon_id: number | null; neopulse_points: number; items: CartItem[];
+      subscription_plan_id: number | null; subscription_months: number | null;
+    }
+    const pending = await queryOne<PendingOrder>(
+      'SELECT * FROM pending_razorpay_orders WHERE razorpay_order_id = $1',
+      [razorpay_order_id]
+    )
+    if (!pending) {
+      return NextResponse.json({ error: 'Order session expired or not found' }, { status: 400 })
+    }
 
-    const subPlanId = items.find((i: CartItem) => i.subscription_plan_id)?.subscription_plan_id ?? null
-    const subMonths = items.find((i: CartItem) => i.subscription_months)?.subscription_months ?? null
+    const subtotal = Number(pending.subtotal)
+    const discount = Number(pending.discount)
+    const shipping = Number(pending.shipping)
+    const tax = Number(pending.tax)
+    const total = Number(pending.total)
+    const couponId = pending.coupon_id
+    const items: CartItem[] = Array.isArray(pending.items) ? pending.items : JSON.parse(pending.items as unknown as string)
+    const subPlanId = pending.subscription_plan_id
+    const subMonths = pending.subscription_months
+
+    const orderNumber = generateOrderNumber()
 
     const order = await queryOne<{ id: number }>(
       `INSERT INTO orders
@@ -266,7 +317,7 @@ export async function PUT(req: NextRequest) {
          razorpay_order_id, razorpay_payment_id, razorpay_signature, shipping_address, subscription_plan_id, subscription_months)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'confirmed', 'paid', $9, $10, $11, $12, $13, $14)
        RETURNING id`,
-      [orderNumber, session?.user?.id ?? null, subtotal, discount, shipping, tax ?? 0, total, couponId ?? null,
+      [orderNumber, pending.user_id ?? session?.user?.id ?? null, subtotal, discount, shipping, tax, total, couponId ?? null,
        razorpay_order_id, razorpay_payment_id, razorpay_signature, JSON.stringify(shippingAddress), subPlanId, subMonths]
     )
 
@@ -280,22 +331,34 @@ export async function PUT(req: NextRequest) {
         `UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $1 RETURNING id`,
         [item.quantity, item.product_id]
       )
-      if (upd.length === 0) throw new Error(`${item.product_name ?? item.name} just went out of stock`)
+      if (upd.length === 0) throw new Error(`${item.name} just went out of stock`)
     }
 
     if (couponId) {
       await query(`UPDATE coupons SET used_count = used_count + 1 WHERE id = $1`, [couponId])
     }
 
-    // Deduct NP if used
-    const rzpNpPts = Number(rzpNpPoints ?? 0)
+    // Deduct NP — validate against DB balance, use server-stored points value
+    const rzpNpPts = Number(pending.neopulse_points ?? 0)
     if (rzpNpPts > 0 && session?.user?.id) {
-      await query(
-        `INSERT INTO neopulse_transactions (user_id, action, points, description, reference_id) VALUES ($1, 'redemption', $2, $3, $4)`,
-        [String(session.user.id), -rzpNpPts, `Redeemed ${rzpNpPts} NP — ${rzpNpPts / 100}% discount on order ${orderNumber}`, orderNumber]
-      ).catch(() => {})
-      await query(`UPDATE users SET neopulse_balance = neopulse_balance - $1 WHERE id = $2`, [rzpNpPts, session.user.id]).catch(() => {})
+      const userBalance = await queryOne<{ neopulse_balance: number }>(
+        'SELECT neopulse_balance FROM users WHERE id = $1', [String(session.user.id)]
+      )
+      const safeDeduct = Math.min(rzpNpPts, userBalance?.neopulse_balance ?? 0)
+      if (safeDeduct > 0) {
+        await query(
+          `INSERT INTO neopulse_transactions (user_id, action, points, description, reference_id) VALUES ($1, 'redemption', $2, $3, $4)`,
+          [String(session.user.id), -safeDeduct, `Redeemed ${safeDeduct} NP on order ${orderNumber}`, orderNumber]
+        ).catch(() => {})
+        await query(
+          `UPDATE users SET neopulse_balance = GREATEST(0, neopulse_balance - $1) WHERE id = $2`,
+          [safeDeduct, session.user.id]
+        ).catch(() => {})
+      }
     }
+
+    // Clean up pending record
+    await query('DELETE FROM pending_razorpay_orders WHERE razorpay_order_id = $1', [razorpay_order_id]).catch(() => {})
 
     // Award first-purchase bonus
     if (session?.user?.id) {

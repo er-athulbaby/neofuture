@@ -46,17 +46,35 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ product })
 }
 
+const UPDATABLE_PRODUCT_COLUMNS = new Set([
+  'name', 'slug', 'description', 'short_description', 'price', 'sale_price',
+  'images', 'category_id', 'stock', 'is_featured', 'is_active', 'ingredients',
+  'how_to_use', 'flavor', 'weight', 'sku', 'tags', 'custom_gst_rate',
+  'pack_format', 'serving_size', 'min_order_qty',
+])
+
 export async function PUT(req: NextRequest) {
   if (!await adminGuard()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const body = await req.json()
-  const { id, ...fields } = body
+  const { id, ...rawFields } = body
+
+  // Only allow known columns — reject any unrecognised keys
+  const fields: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(rawFields)) {
+    if (UPDATABLE_PRODUCT_COLUMNS.has(k)) fields[k] = v
+  }
+
   if (fields.slug) {
-    fields.slug = fields.slug // already sanitized by client
+    fields.slug = fields.slug
   } else if (fields.name) {
-    fields.slug = slugify(fields.name)
+    fields.slug = slugify(fields.name as string)
   }
   if (fields.images) fields.images = JSON.stringify(fields.images)
   if (fields.tags) fields.tags = JSON.stringify(fields.tags)
+
+  if (Object.keys(fields).length === 0) {
+    return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+  }
 
   const keys = Object.keys(fields)
   const values = Object.values(fields)

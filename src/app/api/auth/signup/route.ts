@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query, queryOne } from '@/lib/db'
 import bcrypt from 'bcryptjs'
+import { isRateLimited, rateLimitResponse } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  if (isRateLimited(`signup:${ip}`, 5, 60_000)) return rateLimitResponse()
+
   try {
     const { name, email, password, phone, health_data_consent } = await req.json()
     if (!name || !email || !password) {

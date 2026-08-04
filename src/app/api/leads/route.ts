@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
+import { isRateLimited, rateLimitResponse } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  if (isRateLimited(`leads:${ip}`, 10, 60_000)) return rateLimitResponse()
+
   try {
     const body = await req.json()
     const { name, whatsapp, email, quiz_session_id, recommended_product, quiz_path, hormone_score, stress_score, energy_score } = body

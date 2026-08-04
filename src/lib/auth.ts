@@ -63,7 +63,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id
         token.is_admin = (user as { is_admin?: boolean }).is_admin ?? false
       }
-      if (token.id && !token.is_admin) {
+      // Always refresh is_admin from DB — JWT cache would hide revoked admin access
+      if (token.id) {
         const dbUser = await queryOne<{ is_admin: boolean }>(
           'SELECT is_admin FROM users WHERE id = $1',
           [token.id]

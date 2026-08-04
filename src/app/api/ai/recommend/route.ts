@@ -1,14 +1,32 @@
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { query } from '@/lib/db'
+import { auth } from '@/lib/auth'
+import { isRateLimited, rateLimitResponse } from '@/lib/rate-limit'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
+  // Require authentication to prevent API cost abuse
+  const session = await auth()
+  if (!session?.user?.id) {
+    return new Response(JSON.stringify({ error: 'Sign in to use the AI advisor.' }), { status: 401, headers: { 'Content-Type': 'application/json' } })
+  }
+
+  // Rate limit: 10 requests per user per minute
+  if (isRateLimited(`ai:${session.user.id}`, 10, 60_000)) {
+    return rateLimitResponse()
+  }
+
   const { concern } = await req.json()
 
   if (!concern?.trim()) {
     return new Response('Please describe your concern.', { status: 400 })
+  }
+
+  // Limit concern length to prevent prompt injection / oversized prompts
+  if (concern.trim().length > 500) {
+    return new Response('Concern text is too long (max 500 characters).', { status: 400 })
   }
 
   if (!process.env.ANTHROPIC_API_KEY) {

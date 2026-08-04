@@ -7,10 +7,12 @@ export async function GET(req: NextRequest) {
   if (!session?.user?.is_admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
-  const status = searchParams.get('status') ?? 'all'
+  const VALID_STATUSES = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded']
+  const rawStatus = searchParams.get('status') ?? 'all'
+  const status = VALID_STATUSES.includes(rawStatus) ? rawStatus : null
 
-  const rows = await query(`
-    SELECT
+  const rows = await query(
+    `SELECT
       o.id, o.order_number, o.created_at, o.status, o.total,
       o.subscription_months, o.subscription_plan_id,
       u.name AS customer_name, u.email AS customer_email,
@@ -22,10 +24,11 @@ export async function GET(req: NextRequest) {
     LEFT JOIN subscription_plans sp ON sp.id = o.subscription_plan_id
     LEFT JOIN order_items oi ON oi.order_id = o.id
     WHERE o.subscription_plan_id IS NOT NULL
-      ${status !== 'all' ? `AND o.status = '${status}'` : ''}
+      ${status ? 'AND o.status = $1' : ''}
     ORDER BY o.created_at DESC
-    LIMIT 200
-  `, []).catch(() => [])
+    LIMIT 200`,
+    status ? [status] : []
+  ).catch(() => [])
 
   return NextResponse.json({ subscriptions: rows })
 }

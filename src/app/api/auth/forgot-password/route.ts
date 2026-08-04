@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query, queryOne } from '@/lib/db'
 import { sendPasswordReset } from '@/lib/email'
 import crypto from 'crypto'
+import { isRateLimited, rateLimitResponse } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  if (isRateLimited(`forgot:${ip}`, 5, 60_000)) return rateLimitResponse()
+
   try {
     const { email } = await req.json()
     if (!email) return NextResponse.json({ error: 'Email is required' }, { status: 400 })

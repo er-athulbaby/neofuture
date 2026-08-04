@@ -13,17 +13,18 @@ export async function GET(req: NextRequest) {
   if (!await adminGuard()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { searchParams } = new URL(req.url)
-  const status = searchParams.get('status')
-  const limit = parseInt(searchParams.get('limit') ?? '50')
-  const offset = parseInt(searchParams.get('offset') ?? '0')
+  const rawStatus = searchParams.get('status')
+  const VALID_STATUSES = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded']
+  const status = rawStatus && VALID_STATUSES.includes(rawStatus) ? rawStatus : null
+  const limit = Math.min(parseInt(searchParams.get('limit') ?? '50'), 200)
+  const offset = Math.max(parseInt(searchParams.get('offset') ?? '0'), 0)
 
-  const conditions = status ? `WHERE o.status = '${status}'` : ''
   const orders = await query(
     `SELECT o.*, u.name as user_name, u.email as user_email FROM orders o
      LEFT JOIN users u ON u.id = o.user_id
-     ${conditions}
+     ${status ? 'WHERE o.status = $3' : ''}
      ORDER BY o.created_at DESC LIMIT $1 OFFSET $2`,
-    [limit, offset]
+    status ? [limit, offset, status] : [limit, offset]
   )
   return NextResponse.json({ orders })
 }
