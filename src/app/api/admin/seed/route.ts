@@ -3,6 +3,9 @@ import { auth } from '@/lib/auth'
 import { query, queryOne } from '@/lib/db'
 
 export async function POST() {
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Seed endpoint is only available in development' }, { status: 403 })
+  }
   const session = await auth()
   if (!session?.user?.is_admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

@@ -30,7 +30,9 @@ export function formatDate(date: string | Date) {
 
 export function generateOrderNumber() {
   const ts = Date.now().toString(36).toUpperCase()
-  const rand = Math.random().toString(36).substring(2, 6).toUpperCase()
+  // crypto.randomBytes is cryptographically secure — Math.random() is not
+  const { randomBytes } = require('crypto') as typeof import('crypto')
+  const rand = randomBytes(4).toString('hex').toUpperCase()
   return `NEO-${ts}-${rand}`
 }
 

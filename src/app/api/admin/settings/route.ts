@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { query, queryOne } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
+import { CONFIG_DEFAULTS } from '@/lib/settings'
+
+const ALLOWED_SETTING_KEYS = new Set(Object.keys(CONFIG_DEFAULTS))
 
 async function adminGuard() {
   const session = await auth()
@@ -47,10 +50,13 @@ export async function POST(req: NextRequest) {
   `, []).catch(() => {})
 
   for (const [key, value] of Object.entries(body)) {
+    if (!ALLOWED_SETTING_KEYS.has(key)) continue
+    const strVal = String(value)
+    if (strVal.length > 2000) continue
     await query(
       `INSERT INTO site_settings (key, value, updated_at) VALUES ($1, $2, NOW())
        ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`,
-      [key, String(value)]
+      [key, strVal]
     )
   }
 

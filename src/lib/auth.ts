@@ -56,7 +56,11 @@ if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PostgresAdapter(pool),
   providers,
-  session: { strategy: 'jwt' },
+  session: {
+    strategy: 'jwt',
+    maxAge: 24 * 60 * 60,    // 24-hour session lifetime
+    updateAge: 6 * 60 * 60,  // refresh token every 6 hours of activity
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {

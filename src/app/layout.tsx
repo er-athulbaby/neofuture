@@ -22,17 +22,24 @@ export const metadata: Metadata = {
   openGraph: { siteName: 'NeoFuture', type: 'website' },
 }
 
+// Only hex colors are valid CSS custom property values here.
+// Accepting arbitrary strings would allow CSS context escape via dangerouslySetInnerHTML.
+const CSS_COLOR_RE = /^#[0-9a-fA-F]{3,8}$/
+function safeCssColor(value: string, fallback: string): string {
+  return CSS_COLOR_RE.test(value.trim()) ? value.trim() : fallback
+}
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const [session, config] = await Promise.all([auth(), getSiteConfig()])
 
   const themeVars = `
     :root {
-      --color-primary: ${config.color_primary};
-      --color-primary-dark: ${config.color_primary_dark};
-      --color-primary-light: ${config.color_primary_light};
-      --color-neo-orange: ${config.color_neo_orange};
-      --color-neo-purple: ${config.color_neo_purple};
-      --color-brand-dark: ${config.color_brand_dark};
+      --color-primary: ${safeCssColor(config.color_primary, '#D4236A')};
+      --color-primary-dark: ${safeCssColor(config.color_primary_dark, '#A81B54')};
+      --color-primary-light: ${safeCssColor(config.color_primary_light, '#FBE8F2')};
+      --color-neo-orange: ${safeCssColor(config.color_neo_orange, '#E07B2A')};
+      --color-neo-purple: ${safeCssColor(config.color_neo_purple, '#7B35A8')};
+      --color-brand-dark: ${safeCssColor(config.color_brand_dark, '#1A1535')};
     }
   `
 
@@ -40,7 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" className={`${geist.variable} h-full antialiased`}>
       <head>
         <style dangerouslySetInnerHTML={{ __html: themeVars }} />
-        {config.favicon_url ? (
+        {config.favicon_url && /^https?:\/\//.test(config.favicon_url) ? (
           <>
             <link rel="icon" type="image/png" href={config.favicon_url} key="favicon-dynamic" />
             <link rel="shortcut icon" href={config.favicon_url} key="shortcut-dynamic" />

@@ -229,9 +229,8 @@ export async function POST(req: NextRequest) {
         receipt: generateOrderNumber(),
       })
     } catch (rzpErr: unknown) {
-      const msg = rzpErr instanceof Error ? rzpErr.message : String(rzpErr)
-      console.error('Razorpay order creation failed:', msg)
-      return NextResponse.json({ error: `Payment gateway error: ${msg}` }, { status: 500 })
+      console.error('Razorpay order creation failed:', rzpErr)
+      return NextResponse.json({ error: 'Payment gateway unavailable. Please try again or choose Cash on Delivery.' }, { status: 500 })
     }
 
     // Store canonical order data server-side — prevents client price manipulation in PUT
