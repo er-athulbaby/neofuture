@@ -74,10 +74,10 @@ export default function Footer({
           <div>
             <h4 className="font-semibold text-white mb-4">Shop</h4>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li><Link href="/shop/nutraceuticals" className="hover:text-primary transition-colors">Nutraceuticals</Link></li>
-              <li><Link href="/shop/period-care" className="hover:text-primary transition-colors">Period Care</Link></li>
-              <li><Link href="/shop/pregnancy" className="hover:text-primary transition-colors">Pregnancy</Link></li>
-              <li><Link href="/shop/baby-care" className="hover:text-primary transition-colors">Baby Care</Link></li>
+              <li><Link href="/shop?category=nutraceuticals" className="hover:text-primary transition-colors">Nutraceuticals</Link></li>
+              <li><Link href="/shop?category=period-care" className="hover:text-primary transition-colors">Period Care</Link></li>
+              <li><Link href="/shop?category=pregnancy" className="hover:text-primary transition-colors">Pregnancy</Link></li>
+              <li><Link href="/shop?category=baby-care" className="hover:text-primary transition-colors">Baby Care</Link></li>
               <li><Link href="/shop?featured=true" className="hover:text-primary transition-colors">Featured Products</Link></li>
             </ul>
           </div>
@@ -129,9 +129,43 @@ export default function Footer({
       </div>
 
       <div className="border-t border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
           <span>© {new Date().getFullYear()} {siteName}. All rights reserved.</span>
-          <span>Made with ♥ for every woman</span>
+          <div className="flex items-center gap-2">
+            {/* Visa */}
+            <span className="flex items-center justify-center bg-[#1A1F71] rounded px-2 py-1 h-7">
+              <svg viewBox="0 0 50 16" width="36" height="12" aria-label="Visa">
+                <text x="0" y="13" fontFamily="Arial,sans-serif" fontWeight="700" fontSize="14" fill="white" letterSpacing="1">VISA</text>
+              </svg>
+            </span>
+            {/* Mastercard */}
+            <span className="flex items-center justify-center bg-[#252525] rounded px-1.5 py-1 h-7 gap-0.5">
+              <svg viewBox="0 0 38 24" width="36" height="22" aria-label="Mastercard">
+                <circle cx="13" cy="12" r="10" fill="#EB001B"/>
+                <circle cx="25" cy="12" r="10" fill="#F79E1B"/>
+                <path d="M19 4.8a10 10 0 0 1 0 14.4A10 10 0 0 1 19 4.8z" fill="#FF5F00"/>
+              </svg>
+            </span>
+            {/* RuPay */}
+            <span className="flex items-center justify-center bg-[#006A4E] rounded px-2 py-1 h-7">
+              <svg viewBox="0 0 56 16" width="42" height="12" aria-label="RuPay">
+                <text x="0" y="13" fontFamily="Arial,sans-serif" fontWeight="700" fontSize="13" fill="white">RuPay</text>
+              </svg>
+            </span>
+            {/* UPI */}
+            <span className="flex items-center justify-center bg-[#2C2C7A] rounded px-2 py-1 h-7">
+              <svg viewBox="0 0 38 16" width="30" height="12" aria-label="UPI">
+                <text x="0" y="13" fontFamily="Arial,sans-serif" fontWeight="700" fontSize="14" fill="white">UPI</text>
+              </svg>
+            </span>
+            {/* GPay */}
+            <span className="flex items-center justify-center bg-white rounded px-2 py-1 h-7 gap-0.5">
+              <svg viewBox="0 0 46 18" width="40" height="15" aria-label="Google Pay">
+                <text x="0" y="14" fontFamily="Arial,sans-serif" fontWeight="500" fontSize="13" fill="#5F6368">G</text>
+                <text x="10" y="14" fontFamily="Arial,sans-serif" fontWeight="700" fontSize="13" fill="#5F6368">Pay</text>
+              </svg>
+            </span>
+          </div>
         </div>
       </div>
     </footer>
