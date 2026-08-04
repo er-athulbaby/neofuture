@@ -20,7 +20,7 @@ const securityHeaders = [
       "img-src 'self' data: https: blob:",
       "font-src 'self' https://fonts.gstatic.com",
       "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com",
-      "frame-src https://api.razorpay.com",
+      "frame-src https://api.razorpay.com https://www.instagram.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
