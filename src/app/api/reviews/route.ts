@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { query, queryOne } from '@/lib/db'
+import { isRateLimited, rateLimitResponse } from '@/lib/rate-limit'
 
 export async function GET(req: NextRequest) {
   const productId = new URL(req.url).searchParams.get('product_id')
@@ -19,8 +20,16 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  if (isRateLimited(`review:${session.user.id}`, 5, 60_000)) return rateLimitResponse()
+
   const { product_id, rating, comment } = await req.json()
   if (!product_id || !rating) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+  if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+    return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 })
+  }
+  if (comment && comment.length > 1000) {
+    return NextResponse.json({ error: 'Comment too long (max 1000 characters)' }, { status: 400 })
+  }
 
   // Check if verified purchase
   const purchase = await queryOne(

@@ -111,7 +111,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, wellness_score, np_awarded: npAwarded })
   } catch (err) {
     console.error('[wellness/checkin POST]', err)
-    const msg = err instanceof Error ? err.message : 'Failed to save check-in'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to save check-in. Please try again.' }, { status: 500 })
   }
 }

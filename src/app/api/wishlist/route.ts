@@ -4,7 +4,7 @@ import { query } from '@/lib/db'
 
 export async function GET() {
   const session = await auth()
-  if (!session?.user?.id) return NextResponse.json({ items: [] })
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const items = await query(
     `SELECT p.*, c.name as category_name FROM wishlist w
