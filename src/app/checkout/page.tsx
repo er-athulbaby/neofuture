@@ -177,6 +177,13 @@ function CheckoutForm() {
     setLoading(false)
     if (!res.ok) { toast(data.error || 'Failed to create order', 'error'); return }
     setPricing(data)
+    // Update displayed GST rate to effective per-product rate (tax ÷ subtotal)
+    if (data.gst_type) setGstType(data.gst_type)
+    if (data.gst_type === 'exclusive' && data.tax > 0 && data.subtotal > 0) {
+      setGstRate(Math.round((data.tax / data.subtotal) * 100))
+    } else if (data.gst_rate != null) {
+      setGstRate(data.gst_rate)
+    }
     setStep(2)
   }
 
@@ -413,7 +420,7 @@ function CheckoutForm() {
                 </div>
                 {(pricing.gst_rate ?? gstRate) > 0 && (
                   <div className="flex justify-between text-brand-gray text-xs">
-                    <span>{(pricing.gst_type ?? gstType) === 'exclusive' ? `GST (${pricing.gst_rate ?? gstRate}%)` : `GST Incl. (${pricing.gst_rate ?? gstRate}%)`}</span>
+                    <span>{(pricing.gst_type ?? gstType) === 'exclusive' ? `GST (${gstRate}%)` : `GST Incl. (${gstRate}%)`}</span>
                     <span>{(pricing.gst_type ?? gstType) === 'exclusive' ? '+' : ''}{formatPrice(pricing.tax ?? 0)}</span>
                   </div>
                 )}

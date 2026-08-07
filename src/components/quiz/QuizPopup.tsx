@@ -58,14 +58,16 @@ function getNextPath(completed: Path[]): Path | null {
 }
 
 function calcHormoneScore(answers: Record<string, string | string[]>): number {
-  let score = 0
+  let dysfunction = 0
   const symptoms = (answers['pcos_symptoms'] as string[]) ?? []
-  score += Math.min(symptoms.length * 8, 40)
+  const actual = symptoms.filter((s) => s !== 'None of these')
+  dysfunction += Math.min(actual.length * 8, 40)
   const cycle = answers['cycle_regularity'] as string
-  if (cycle === 'Frequently irregular') score += 35
-  else if (cycle === 'Sometimes irregular') score += 20
-  else if (cycle === 'I am not sure') score += 15
-  return Math.min(score, 100)
+  if (cycle === 'Frequently irregular') dysfunction += 35
+  else if (cycle === 'Sometimes irregular') dysfunction += 20
+  else if (cycle === 'I am not sure') dysfunction += 15
+  // Convert dysfunction → wellness score: no symptoms = 100 (Good), heavy PCOS = low
+  return Math.max(0, 100 - Math.min(dysfunction, 100))
 }
 
 function calcStressScore(answers: Record<string, string | string[]>): number {
@@ -80,8 +82,9 @@ function calcStressScore(answers: Record<string, string | string[]>): number {
 }
 
 function calcEnergyScore(answers: Record<string, string | string[]>): number {
-  const tiredMap: Record<string, number> = { Rarely: 10, Sometimes: 30, Often: 60, 'Almost every day': 85 }
-  return Math.min(tiredMap[answers['tiredness'] as string] ?? 0, 100)
+  // Invert: rarely tired = high energy score (90 = Good), always tired = low (10 = Low)
+  const energyMap: Record<string, number> = { 'Rarely': 90, 'Sometimes': 65, 'Often': 35, 'Almost every day': 10 }
+  return energyMap[answers['tiredness'] as string] ?? 0
 }
 
 const INIT: QuizState = {
@@ -160,8 +163,8 @@ export default function QuizPopup({
           answers: state.answers,
           ...state.accumulatedScores,
           recommended_product:
-            state.accumulatedScores.hormone_score > 0 ? 'neobalance PCOS Support Sachet' :
-            state.accumulatedScores.stress_score > 0 ? 'neonidra Sleep & Calm Sachet' :
+            state.completedPaths.includes('pcos') ? 'neobalance PCOS Support Sachet' :
+            state.completedPaths.includes('sleep_stress') ? 'neonidra Sleep & Calm Sachet' :
             'neoprime Multivitamin Sachet',
           result_text: 'Your personalized wellness profile is ready.',
         }),
