@@ -95,7 +95,7 @@ export default function ProductDetailClient({ product, reviews, related, variant
       subscription_plan_id: selectedPlan?.id,
       subscription_months: selectedPlan?.duration_months,
       subscription_label: selectedPlan?.label,
-      custom_gst_rate: product.custom_gst_rate ?? null,
+      custom_gst_rate: product.custom_gst_rate != null ? Number(product.custom_gst_rate) : null,
     })
     const sub = selectedPlan ? ` — ${selectedPlan.label}` : ''
     toast(`${product.name}${selectedVariant ? ` (${selectedVariant.label})` : ''}${sub} added to cart!`)

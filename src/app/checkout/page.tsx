@@ -61,7 +61,7 @@ function CheckoutForm() {
   let _weightedRateNumerator = 0
   if (gstRate > 0 && items.length) {
     for (const item of items) {
-      const rate = item.custom_gst_rate ?? gstRate
+      const rate = Number(item.custom_gst_rate ?? gstRate)
       const lineTotal = (item.sale_price ?? item.price) * item.quantity
       _weightedRateNumerator += lineTotal * rate
       if (gstType === 'exclusive') {

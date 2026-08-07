@@ -27,7 +27,7 @@ export default function ProductCard({ product }: { product: Product }) {
       sale_price: product.sale_price,
       quantity: 1,
       stock: product.stock,
-      custom_gst_rate: product.custom_gst_rate ?? null,
+      custom_gst_rate: product.custom_gst_rate != null ? Number(product.custom_gst_rate) : null,
     })
     toast(`${product.name} added to cart!`)
   }
