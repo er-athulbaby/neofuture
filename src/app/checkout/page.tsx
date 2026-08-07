@@ -58,10 +58,12 @@ function CheckoutForm() {
 
   // Compute effective GST per item — use product's custom_gst_rate if set, else global rate
   let _effTax = 0
+  let _weightedRateNumerator = 0
   if (gstRate > 0 && items.length) {
     for (const item of items) {
       const rate = item.custom_gst_rate ?? gstRate
       const lineTotal = (item.sale_price ?? item.price) * item.quantity
+      _weightedRateNumerator += lineTotal * rate
       if (gstType === 'exclusive') {
         _effTax += Math.round(lineTotal * rate / 100)
       } else {
@@ -70,9 +72,9 @@ function CheckoutForm() {
     }
   }
   const gstAmount = _effTax
-  // Effective display rate derived from actual tax (weighted average across items)
-  const effectiveGstRate = gstAmount > 0 && subtotal > 0
-    ? Math.round((gstAmount / subtotal) * 100)
+  // Weighted average rate from item rates directly (avoids rounding loss from tax/subtotal)
+  const effectiveGstRate = subtotal > 0 && _weightedRateNumerator > 0
+    ? Math.round(_weightedRateNumerator / subtotal)
     : gstRate
 
   const displayTotal = gstType === 'exclusive'
