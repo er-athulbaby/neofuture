@@ -433,10 +433,10 @@ function CheckoutForm() {
                 <div className="flex justify-between text-brand-gray">
                   <span>Subtotal</span><span>{formatPrice(pricing.subtotal)}</span>
                 </div>
-                {(pricing.gst_rate ?? gstRate) > 0 && (
+                {gstAmount > 0 && (
                   <div className="flex justify-between text-brand-gray text-xs">
                     <span>{(pricing.gst_type ?? gstType) === 'exclusive' ? `GST (${effectiveGstRate}%)` : `GST Incl. (${effectiveGstRate}%)`}</span>
-                    <span>{(pricing.gst_type ?? gstType) === 'exclusive' ? '+' : ''}{formatPrice(pricing.tax ?? 0)}</span>
+                    <span>{(pricing.gst_type ?? gstType) === 'exclusive' ? '+' : ''}{formatPrice(gstAmount)}</span>
                   </div>
                 )}
                 {pricing.discount > 0 && (

@@ -82,16 +82,11 @@ async function calcOrder(items: CartItem[], couponCode: string | undefined, gst?
     const price = dbP.sale_price ?? dbP.price
     const lineTotal = price * item.quantity
     subtotal += lineTotal
-    // Per-product GST: use product's custom_gst_rate if set, else global rate
-    if (gst && gst.rate > 0) {
+    // For EXCLUSIVE GST only: add tax to total (exclusive means tax on top of price)
+    // For INCLUSIVE GST: tax is already inside the price — never add to total
+    if (gst && gst.type === 'exclusive') {
       const rate = dbP.custom_gst_rate != null ? Number(dbP.custom_gst_rate) : gst.rate
-      if (rate > 0) {
-        if (gst.type === 'exclusive') {
-          tax += Math.round(lineTotal * rate / 100)
-        } else {
-          tax += Math.round((lineTotal * rate) / (100 + rate))
-        }
-      }
+      if (rate > 0) tax += Math.round(lineTotal * rate / 100)
     }
     validatedItems.push({ ...item, price, dbProduct: dbP })
   }
@@ -261,7 +256,7 @@ export async function POST(req: NextRequest) {
       coupon_id: couponId,
       key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       cod_enabled: codEnabled,
-      gst_rate: tax > 0 && subtotal > 0 ? Math.round((tax / subtotal) * 100) : gst.rate,
+      gst_rate: gst.rate,
       gst_type: gst.type,
       neopulse_points: npPts,
       neopulse_discount: npDisc,
