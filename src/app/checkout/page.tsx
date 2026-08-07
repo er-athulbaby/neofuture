@@ -55,13 +55,26 @@ function CheckoutForm() {
   } | null>(null)
 
   const shipping = subtotal >= 999 ? 0 : 50
-  // Inclusive: GST is part of the price (show breakdown only)
-  // Exclusive: GST added on top (changes the displayed total)
-  const gstAmount = gstRate > 0
-    ? gstType === 'exclusive'
-      ? Math.round(subtotal * gstRate / 100)
-      : Math.round((subtotal * gstRate) / (100 + gstRate))
-    : 0
+
+  // Compute effective GST per item — use product's custom_gst_rate if set, else global rate
+  let _effTax = 0
+  if (gstRate > 0 && items.length) {
+    for (const item of items) {
+      const rate = item.custom_gst_rate ?? gstRate
+      const lineTotal = (item.sale_price ?? item.price) * item.quantity
+      if (gstType === 'exclusive') {
+        _effTax += Math.round(lineTotal * rate / 100)
+      } else {
+        _effTax += Math.round((lineTotal * rate) / (100 + rate))
+      }
+    }
+  }
+  const gstAmount = _effTax
+  // Effective display rate derived from actual tax (weighted average across items)
+  const effectiveGstRate = gstAmount > 0 && subtotal > 0
+    ? Math.round((gstAmount / subtotal) * 100)
+    : gstRate
+
   const displayTotal = gstType === 'exclusive'
     ? subtotal + gstAmount + shipping - npDiscount
     : subtotal + shipping - npDiscount
@@ -420,7 +433,7 @@ function CheckoutForm() {
                 </div>
                 {(pricing.gst_rate ?? gstRate) > 0 && (
                   <div className="flex justify-between text-brand-gray text-xs">
-                    <span>{(pricing.gst_type ?? gstType) === 'exclusive' ? `GST (${gstRate}%)` : `GST Incl. (${gstRate}%)`}</span>
+                    <span>{(pricing.gst_type ?? gstType) === 'exclusive' ? `GST (${effectiveGstRate}%)` : `GST Incl. (${effectiveGstRate}%)`}</span>
                     <span>{(pricing.gst_type ?? gstType) === 'exclusive' ? '+' : ''}{formatPrice(pricing.tax ?? 0)}</span>
                   </div>
                 )}
@@ -473,9 +486,9 @@ function CheckoutForm() {
                 <span>Subtotal</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
-              {gstRate > 0 && (
+              {gstAmount > 0 && (
                 <div className="flex justify-between text-brand-gray text-xs">
-                  <span>{gstType === 'exclusive' ? `GST (${gstRate}%)` : `GST Incl. (${gstRate}%)`}</span>
+                  <span>{gstType === 'exclusive' ? `GST (${effectiveGstRate}%)` : `GST Incl. (${effectiveGstRate}%)`}</span>
                   <span>{gstType === 'exclusive' ? '+' : ''}{formatPrice(gstAmount)}</span>
                 </div>
               )}

@@ -72,6 +72,7 @@ export interface CartItem {
   subscription_plan_id?: number
   subscription_months?: number
   subscription_label?: string
+  custom_gst_rate?: number | null
 }
 
 export interface SubscriptionPlan {
