@@ -77,7 +77,6 @@ export default function Footer({
               <li><Link href="/shop?category=nutraceuticals" className="hover:text-primary transition-colors">Nutraceuticals</Link></li>
               <li><Link href="/shop?category=period-care" className="hover:text-primary transition-colors">Period Care</Link></li>
               <li><Link href="/shop?category=pregnancy" className="hover:text-primary transition-colors">Pregnancy</Link></li>
-              <li><Link href="/shop?category=baby-care" className="hover:text-primary transition-colors">Baby Care</Link></li>
               <li><Link href="/shop?featured=true" className="hover:text-primary transition-colors">Featured Products</Link></li>
             </ul>
           </div>

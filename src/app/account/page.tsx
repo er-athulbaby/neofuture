@@ -52,12 +52,19 @@ export default async function AccountPage() {
   const twinUnlocked = totalCheckins >= 30
   const hasHealthProfile = !!(healthProfile?.height_cm || healthProfile?.weight_kg)
 
-  // Compute overall wellness score (avg of available scores)
+  // Today's check-in scores converted to 0–100 scale (checkin is 1–10)
+  const checkinEnergy = todayCheckin ? todayCheckin.energy_score * 10 : null
+  const checkinStress = todayCheckin ? todayCheckin.stress_level * 10 : null
+  const checkinOverall = todayCheckin ? Math.round(Number(todayCheckin.wellness_score) * 10) : null
+
+  // Compute overall wellness score — prefer today's check-in, fall back to latest quiz
   const scores: number[] = []
-  if (latestScore?.hormone_score) scores.push(latestScore.hormone_score)
-  if (latestScore?.stress_score) scores.push(latestScore.stress_score)
-  if (latestScore?.energy_score) scores.push(latestScore.energy_score)
-  const overallScore = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null
+  if (!todayCheckin) {
+    if (latestScore?.hormone_score) scores.push(latestScore.hormone_score)
+    if (latestScore?.stress_score) scores.push(latestScore.stress_score)
+    if (latestScore?.energy_score) scores.push(latestScore.energy_score)
+  }
+  const overallScore = todayCheckin ? checkinOverall : (scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null)
 
   const tools = [
     { href: '/tools/due-date', icon: Calendar, title: 'Due Date Calculator', color: 'primary' },
@@ -111,13 +118,20 @@ export default async function AccountPage() {
               <h2 className="font-bold text-brand-dark flex items-center gap-2">
                 <Sparkles size={16} className="text-primary" /> Your Wellness Dashboard
               </h2>
-              {latestScore && (
+              {todayCheckin ? (
+                <span className="text-xs text-brand-gray">Today</span>
+              ) : latestScore ? (
                 <span className="text-xs text-brand-gray">{formatDate(latestScore.created_at)}</span>
-              )}
+              ) : null}
             </div>
 
-            {latestScore ? (
+            {(todayCheckin || latestScore) ? (
               <div className="p-6">
+                {todayCheckin && (
+                  <p className="text-xs font-semibold text-primary mb-4 flex items-center gap-1">
+                    ✅ Today&apos;s check-in recorded
+                  </p>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
                   {/* Circular gauge */}
                   <div className="flex flex-col items-center">
@@ -127,27 +141,37 @@ export default async function AccountPage() {
 
                   {/* Score cards */}
                   <div className="sm:col-span-2 grid grid-cols-2 gap-3">
-                    {latestScore.energy_score > 0 && (
-                      <ScoreCard label="Energy Score" score={latestScore.energy_score} bgClass="bg-green-50 border-green-100" />
-                    )}
-                    {latestScore.stress_score > 0 && (
-                      <ScoreCard label="Stress Level" score={latestScore.stress_score} isStress bgClass="bg-orange-50 border-orange-100" />
-                    )}
-                    {latestScore.hormone_score > 0 && (
-                      <ScoreCard label="Hormone Balance" score={latestScore.hormone_score} bgClass="bg-purple-50 border-purple-100" />
-                    )}
-                    {scores.length === 1 && (
-                      <div className="bg-primary-light rounded-xl p-4 flex flex-col justify-center items-center text-center border border-primary/10">
-                        <p className="text-xs text-brand-gray mb-1">More scores</p>
-                        <p className="text-xs text-primary font-medium">Take full quiz →</p>
-                      </div>
-                    )}
+                    {todayCheckin ? (
+                      <>
+                        {(checkinEnergy ?? 0) > 0 && (
+                          <ScoreCard label="Energy Score" score={checkinEnergy!} bgClass="bg-green-50 border-green-100" />
+                        )}
+                        {(checkinStress ?? 0) > 0 && (
+                          <ScoreCard label="Stress Level" score={checkinStress!} isStress bgClass="bg-orange-50 border-orange-100" />
+                        )}
+                        {todayCheckin.sleep_score > 0 && (
+                          <ScoreCard label="Sleep Score" score={todayCheckin.sleep_score * 10} bgClass="bg-blue-50 border-blue-100" />
+                        )}
+                      </>
+                    ) : latestScore ? (
+                      <>
+                        {latestScore.energy_score > 0 && (
+                          <ScoreCard label="Energy Score" score={latestScore.energy_score} bgClass="bg-green-50 border-green-100" />
+                        )}
+                        {latestScore.stress_score > 0 && (
+                          <ScoreCard label="Stress Level" score={latestScore.stress_score} isStress bgClass="bg-orange-50 border-orange-100" />
+                        )}
+                        {latestScore.hormone_score > 0 && (
+                          <ScoreCard label="Hormone Balance" score={latestScore.hormone_score} bgClass="bg-purple-50 border-purple-100" />
+                        )}
+                      </>
+                    ) : null}
                   </div>
                 </div>
 
                 <div className="mt-5 pt-4 border-t border-gray-50 flex items-center justify-between">
                   <p className="text-xs text-brand-gray">
-                    Based on your last wellness check-in
+                    {todayCheckin ? "From today's daily check-in" : "Based on your last wellness quiz"}
                   </p>
                   <Link href="/?quiz=1" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
                     Retake Quiz <ChevronRight size={12} />
@@ -257,7 +281,7 @@ export default async function AccountPage() {
                 )}
               </div>
               <p className="text-4xl font-black leading-none">{npBalance}</p>
-              <p className="text-sm opacity-70 mt-0.5">Points Balance</p>
+              <p className="text-sm opacity-70 mt-0.5">Wellness Energy</p>
               {npBalance >= 100 && (
                 <p className="text-xs mt-2 bg-white/15 rounded-lg px-3 py-1.5 inline-block">
                   🎁 Redeem {Math.floor(npBalance / 100) * 100} NP → ₹{Math.floor(npBalance / 100) * 10} off your next order

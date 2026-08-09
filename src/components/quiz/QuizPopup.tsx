@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { X, ChevronRight, ChevronLeft, Sparkles, Phone, CheckCircle2 } from 'lucide-react'
+import { X, ChevronRight, ChevronLeft, Sparkles, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Path = 'pcos' | 'sleep_stress' | 'energy'
@@ -21,11 +23,6 @@ interface QuizState {
   answers: Record<string, string | string[]>
   completedPaths: Path[]
   accumulatedScores: AccumulatedScores
-  leadName: string
-  leadWhatsApp: string
-  leadEmail: string
-  submitted: boolean
-  loading: boolean
 }
 
 const ALL_PATHS: Path[] = ['pcos', 'sleep_stress', 'energy']
@@ -91,7 +88,6 @@ const INIT: QuizState = {
   step: 1, ageGroup: '', mainConcern: '', path: '',
   answers: {}, completedPaths: [],
   accumulatedScores: { hormone_score: 0, stress_score: 0, energy_score: 0 },
-  leadName: '', leadWhatsApp: '', leadEmail: '', submitted: false, loading: false,
 }
 
 export default function QuizPopup({
@@ -99,6 +95,8 @@ export default function QuizPopup({
 }: { forceOpen?: boolean; onClose?: () => void } = {}) {
   const [open, setOpen] = useState(false)
   const [state, setState] = useState<QuizState>(INIT)
+  const { data: session } = useSession()
+  const router = useRouter()
 
   useEffect(() => {
     if (forceOpen) {
@@ -148,7 +146,13 @@ export default function QuizPopup({
 
   function goToLeadCapture() {
     saveToAPI()
-    setState((s) => ({ ...s, step: 100 }))
+    if (session?.user) {
+      // Already logged in — go straight to their wellness dashboard
+      handleClose()
+      router.push('/account')
+    } else {
+      setState((s) => ({ ...s, step: 100 }))
+    }
   }
 
   async function saveToAPI() {
@@ -170,24 +174,6 @@ export default function QuizPopup({
         }),
       })
     } catch {}
-  }
-
-  async function submitLead() {
-    if (!state.leadName || !state.leadWhatsApp) return
-    set({ loading: true })
-    try {
-      await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: state.leadName,
-          whatsapp: state.leadWhatsApp,
-          email: state.leadEmail,
-          ...state.accumulatedScores,
-        }),
-      })
-      set({ submitted: true, loading: false })
-    } catch { set({ loading: false }) }
   }
 
   const nextPath = getNextPath(state.completedPaths)
@@ -367,46 +353,27 @@ export default function QuizPopup({
 
           {/* Step 100: Lead capture */}
           {state.step === 100 && (
-            <div>
-              {!state.submitted ? (
-                <>
-                  <h4 className="font-semibold text-brand-dark mb-1">Get Your Personalized Wellness Report</h4>
-                  <p className="text-sm text-brand-gray mb-4">We'll send your full wellness plan on WhatsApp.</p>
-                  <div className="space-y-3">
-                    <input type="text" placeholder="Your Name *" value={state.leadName}
-                      onChange={(e) => set({ leadName: e.target.value })}
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary" />
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-brand-gray">+91</span>
-                      <input type="tel" placeholder="WhatsApp Number *" value={state.leadWhatsApp}
-                        onChange={(e) => set({ leadWhatsApp: e.target.value })}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 pl-12 text-sm focus:outline-none focus:border-primary" />
-                    </div>
-                    <input type="email" placeholder="Email (Optional)" value={state.leadEmail}
-                      onChange={(e) => set({ leadEmail: e.target.value })}
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary" />
-                    <button onClick={submitLead}
-                      disabled={!state.leadName || !state.leadWhatsApp || state.loading}
-                      className="w-full bg-green-500 text-white py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-green-600 disabled:opacity-50 transition-colors">
-                      <Phone size={16} />
-                      {state.loading ? 'Sending...' : 'Send My Wellness Plan on WhatsApp'}
-                    </button>
-                    <button onClick={handleClose} className="w-full text-center text-sm text-brand-gray hover:text-brand-dark py-2">
-                      Skip for now
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-4">
-                  <div className="text-4xl mb-3">🎉</div>
-                  <h4 className="font-bold text-brand-dark text-lg mb-2">Thank you, {state.leadName}!</h4>
-                  <p className="text-sm text-brand-gray mb-5">We'll send your personalized wellness plan on WhatsApp soon.</p>
-                  <button onClick={handleClose}
-                    className="bg-primary text-white px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-primary-dark transition-colors">
-                    View My Dashboard
-                  </button>
-                </div>
-              )}
+            <div className="text-center py-2">
+              <div className="text-5xl mb-4">🎉</div>
+              <h4 className="font-bold text-brand-dark text-lg mb-2">Your Wellness Profile is Ready!</h4>
+              <p className="text-sm text-brand-gray mb-6">
+                Login to save your scores, track your progress, and get a personalised wellness plan.
+              </p>
+              <div className="space-y-3">
+                <Link href="/login"
+                  onClick={handleClose}
+                  className="flex items-center justify-center gap-2 w-full bg-primary text-white py-3 rounded-xl font-semibold text-sm hover:bg-primary-dark transition-colors">
+                  <Sparkles size={15} /> Login to See My Report
+                </Link>
+                <Link href="/signup"
+                  onClick={handleClose}
+                  className="flex items-center justify-center w-full border border-primary text-primary py-3 rounded-xl font-semibold text-sm hover:bg-primary-light transition-colors">
+                  Create Free Account
+                </Link>
+                <button onClick={handleClose} className="w-full text-center text-sm text-brand-gray hover:text-brand-dark py-2">
+                  Skip for now
+                </button>
+              </div>
             </div>
           )}
         </div>
