@@ -37,9 +37,26 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Doctor routes — must be doctor or admin
+  if (pathname.startsWith('/doctor')) {
+    if (!session?.user) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+    if (!session.user.is_doctor && !session.user.is_admin) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+  }
+
+  // Consult room — must be logged in
+  if (pathname.startsWith('/consult/room')) {
+    if (!session?.user) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+  }
+
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/account/:path*', '/tools/:path*', '/checkout'],
+  matcher: ['/admin/:path*', '/account/:path*', '/tools/:path*', '/checkout', '/doctor/:path*', '/consult/room/:path*'],
 }
