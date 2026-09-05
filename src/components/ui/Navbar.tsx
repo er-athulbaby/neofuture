@@ -24,6 +24,7 @@ const NAV_LINKS = [
       { href: '/tools/baby-food', icon: <Stethoscope size={14} />, label: 'Baby Food Chart' },
     ]
   },
+  { href: '/consult', label: 'NeoCare' },
   { href: '/#products', label: 'Nutraceuticals', scrollId: 'products' },
   { href: '/shop', label: 'Shop' },
 ]
@@ -248,6 +249,7 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
                 <MobileLink href="/account/wishlist" label="Wishlist" onClick={() => setMenuOpen(false)} active={pathname === '/account/wishlist'} />
               </>
             ) : null}
+            <MobileLink href="/consult" label="NeoCare — Consultations" onClick={() => setMenuOpen(false)} active={pathname.startsWith('/consult')} />
             <button onClick={() => scrollTo('#community')} className="block w-full text-left text-sm font-medium text-brand-dark hover:text-primary py-2.5 px-2 rounded-lg hover:bg-primary-light transition-colors">Community</button>
             <Link href="/tools" onClick={() => setMenuOpen(false)}
               className="block mx-2 mt-1 mb-0.5 text-xs font-semibold text-brand-gray uppercase tracking-wider hover:text-primary transition-colors">

@@ -321,6 +321,84 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
         </div>
       </section>
 
+      {/* NEOCARE CONSULTATION */}
+      <section className="py-20 px-4 bg-brand-light">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <span className="text-xs font-bold uppercase tracking-widest text-primary mb-3 block">NeoCare</span>
+            <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-4 leading-tight">
+              Talk to a Doctor —<br />From the Comfort of Home
+            </h2>
+            <p className="text-brand-gray text-lg leading-relaxed max-w-2xl mx-auto">
+              Book a secure video consultation with qualified specialists. Get a diagnosis, prescription, and personalised care plan — all linked to your NeoFuture account.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+            {/* Feature list */}
+            <div className="space-y-4">
+              {[
+                { icon: '📹', title: 'HD Video Consultation', desc: 'Secure Google Meet session — no app download needed, works on any device.' },
+                { icon: '💊', title: 'Digital Prescription', desc: 'Receive a signed PDF prescription after every consultation, downloadable anytime.' },
+                { icon: '🔄', title: 'Free 7-Day Follow-up', desc: 'Book a free follow-up within 7 days of your consultation for any concerns.' },
+                { icon: '⚡', title: 'Use NeoPulse to Save', desc: 'Redeem your NeoPulse points for up to ₹99 off on every consultation.' },
+              ].map((f) => (
+                <div key={f.title} className="flex items-start gap-4 bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                  <span className="text-2xl flex-shrink-0">{f.icon}</span>
+                  <div>
+                    <h3 className="font-bold text-brand-dark mb-1">{f.title}</h3>
+                    <p className="text-sm text-brand-gray">{f.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Booking card mockup */}
+            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+              <div className="bg-gradient-to-r from-primary to-primary-dark px-6 py-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                    <Stethoscope size={22} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-white font-bold">Dr. Alma Baby</p>
+                    <p className="text-white/70 text-sm">MBBS, MD — Gynaecology</p>
+                  </div>
+                  <div className="ml-auto text-right">
+                    <p className="text-white/70 text-xs">Consultation fee</p>
+                    <p className="text-white font-bold text-xl">₹299</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-3 gap-2">
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].slice(0, 3).map((d) => (
+                    <div key={d} className={`text-center py-2 px-3 rounded-xl text-xs font-semibold border ${d === 'Tue' ? 'bg-primary text-white border-primary' : 'border-gray-200 text-brand-gray'}`}>{d}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {['9:00 AM', '10:00 AM', '11:00 AM', '2:00 PM'].map((t) => (
+                    <div key={t} className={`text-center py-1.5 rounded-xl text-xs font-medium border ${t === '10:00 AM' ? 'bg-primary text-white border-primary' : 'border-gray-200 text-brand-gray'}`}>{t}</div>
+                  ))}
+                </div>
+                <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center justify-between text-sm">
+                  <span className="text-green-700 font-medium">⚡ NeoPulse applied</span>
+                  <span className="text-green-700 font-bold">−₹99</span>
+                </div>
+                <div className="flex items-center justify-between font-bold text-brand-dark text-lg px-1">
+                  <span>Total</span>
+                  <span>₹200</span>
+                </div>
+                <Link href="/consult"
+                  className="block w-full text-center bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors">
+                  Book Consultation →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* PERIOD CALENDAR CTA */}
       <section className="py-20 px-4 bg-brand-dark">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">

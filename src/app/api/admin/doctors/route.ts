@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const doctor = await queryOne<{ id: number }>(
     `INSERT INTO doctors (user_id, name, qualification, specialisation, bio, consultation_fee, registration_no, state_medical_council, photo_url, signature_url)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
-    [user_id ?? null, name, qualification, specialisation, bio, consultation_fee ?? 299, registration_no, state_medical_council, photo_url ?? null, signature_url ?? null]
+    [user_id || null, name, qualification, specialisation, bio, consultation_fee ?? 299, registration_no, state_medical_council, photo_url || null, signature_url || null]
   )
 
   if (user_id) {

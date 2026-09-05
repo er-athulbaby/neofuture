@@ -11,7 +11,7 @@ export async function GET() {
 
     CREATE TABLE IF NOT EXISTS doctors (
       id SERIAL PRIMARY KEY,
-      user_id INTEGER REFERENCES users(id),
+      user_id UUID REFERENCES users(id),
       name VARCHAR(200) NOT NULL,
       photo_url TEXT,
       qualification VARCHAR(200),
@@ -37,7 +37,7 @@ export async function GET() {
 
     CREATE TABLE IF NOT EXISTS consultations (
       id SERIAL PRIMARY KEY,
-      patient_id INTEGER REFERENCES users(id),
+      patient_id UUID REFERENCES users(id),
       doctor_id INTEGER REFERENCES doctors(id),
       slot_datetime TIMESTAMPTZ NOT NULL,
       duration_minutes INTEGER DEFAULT 30,
