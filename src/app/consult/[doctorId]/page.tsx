@@ -59,7 +59,9 @@ export default function ConsultBookPage() {
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(new Date(), weekOffset * 7 + i))
 
-  const neopulseDiscount = useNeopulse && doctor ? Math.min(99, doctor.consultation_fee - 1, neopulseBalance) : 0
+  // 10 NeoПulse points = ₹1, max ₹99 discount
+  const neopulseRupees = Math.floor(neopulseBalance / 10)
+  const neopulseDiscount = useNeopulse && doctor ? Math.min(99, doctor.consultation_fee - 1, neopulseRupees) : 0
   const finalFee = doctor ? (freeFollowup ? 0 : doctor.consultation_fee - neopulseDiscount) : 0
 
   async function handleBook() {
@@ -67,41 +69,54 @@ export default function ConsultBookPage() {
     if (!session?.user) { router.push('/login?callbackUrl=/consult/' + doctorId); return }
     setLoading(true)
 
-    const res = await fetch('/api/consult/book', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ doctor_id: doctor.id, slot_datetime: selectedSlot, use_neopulse: useNeopulse }),
-    })
-    const data = await res.json()
-
-    if (data.is_free) {
-      router.push('/account/appointments?booked=1')
-      return
-    }
-
-    const script = document.createElement('script')
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-    document.body.appendChild(script)
-    script.onload = () => {
-      const rzp = new window.Razorpay({
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: finalFee * 100,
-        currency: 'INR',
-        name: 'NeoFuture',
-        description: `Consultation with ${doctor.name}`,
-        order_id: data.razorpay_order_id,
-        handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
-          await fetch('/api/consult/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ consultation_id: data.consultation_id, ...response }),
-          })
-          router.push('/account/appointments?booked=1')
-        },
-        prefill: { name: session?.user?.name, email: session?.user?.email },
-        theme: { color: '#D4236A' },
+    try {
+      const res = await fetch('/api/consult/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doctor_id: doctor.id, slot_datetime: selectedSlot, use_neopulse: useNeopulse }),
       })
-      rzp.open()
+      const data = await res.json()
+
+      if (!res.ok || data.error) {
+        alert(data.error || 'Booking failed. Please try again.')
+        setLoading(false)
+        return
+      }
+
+      if (data.is_free) {
+        router.push('/account/appointments?booked=1')
+        return
+      }
+
+      const script = document.createElement('script')
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+      document.body.appendChild(script)
+      script.onerror = () => { alert('Payment gateway failed to load. Please try again.'); setLoading(false) }
+      script.onload = () => {
+        const rzp = new window.Razorpay({
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+          amount: finalFee * 100,
+          currency: 'INR',
+          name: 'NeoFuture',
+          description: `Consultation with ${doctor.name}`,
+          order_id: data.razorpay_order_id,
+          handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
+            await fetch('/api/consult/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ consultation_id: data.consultation_id, ...response }),
+            })
+            router.push('/account/appointments?booked=1')
+          },
+          prefill: { name: session?.user?.name, email: session?.user?.email },
+          theme: { color: '#D4236A' },
+          modal: { ondismiss: () => setLoading(false) },
+        })
+        rzp.open()
+        setLoading(false)
+      }
+    } catch {
+      alert('Something went wrong. Please try again.')
       setLoading(false)
     }
   }
@@ -187,12 +202,12 @@ export default function ConsultBookPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-brand-gray">Balance: <span className="font-semibold text-brand-dark">{neopulseBalance} pts</span></p>
-                {neopulseBalance > 0 && <p className="text-xs text-brand-gray mt-0.5">Save up to ₹99 on this consultation</p>}
+                {neopulseBalance > 0 && <p className="text-xs text-brand-gray mt-0.5">Save up to ₹{Math.min(99, neopulseRupees)} on this consultation (10 pts = ₹1)</p>}
               </div>
               {neopulseBalance > 0 && (
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <input type="checkbox" checked={useNeopulse} onChange={e => setUseNeopulse(e.target.checked)} className="rounded" />
-                  Use NeoPulse (save ₹{Math.min(99, neopulseBalance)})
+                  Use NeoPulse (save ₹{Math.min(99, neopulseRupees)})
                 </label>
               )}
             </div>
