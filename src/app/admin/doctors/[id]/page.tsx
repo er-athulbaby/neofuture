@@ -21,6 +21,10 @@ export default function AdminDoctorEditPage() {
   const [newSlot, setNewSlot] = useState({ day_of_week: 1, start_time: '09:00', end_time: '13:00', slot_duration: 30 })
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
+  const [credEmail, setCredEmail] = useState('')
+  const [credPassword, setCredPassword] = useState('')
+  const [credSaving, setCredSaving] = useState(false)
+  const [credMsg, setCredMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   const load = useCallback(async () => {
     if (isNew) return
@@ -44,6 +48,25 @@ export default function AdminDoctorEditPage() {
       const data = await res.json()
       setSaveError(data.error ?? 'Failed to save')
       setSaving(false)
+    }
+  }
+
+  async function saveCredentials() {
+    setCredSaving(true)
+    setCredMsg(null)
+    const res = await fetch(`/api/admin/doctors/${id}/credentials`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: credEmail, password: credPassword }),
+    })
+    const data = await res.json()
+    setCredSaving(false)
+    if (res.ok) {
+      setCredMsg({ ok: true, text: 'Login credentials saved. Doctor can now sign in.' })
+      setCredEmail('')
+      setCredPassword('')
+    } else {
+      setCredMsg({ ok: false, text: data.error ?? 'Failed to save credentials' })
     }
   }
 
@@ -122,6 +145,42 @@ export default function AdminDoctorEditPage() {
           <Save size={15} /> {saving ? 'Saving…' : 'Save Doctor'}
         </button>
       </div>
+
+      {!isNew && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
+          <h2 className="font-bold text-brand-dark mb-1">Doctor Login Account</h2>
+          <p className="text-xs text-brand-gray mb-4">
+            {doc.user_id
+              ? 'This doctor has a login account. Update their email or password below.'
+              : 'No login account yet. Create one so this doctor can access /doctor/dashboard.'}
+          </p>
+          <div className="grid grid-cols-2 gap-4 mb-3">
+            <div>
+              <label className="text-xs font-semibold text-brand-gray uppercase tracking-wide">Email</label>
+              <input type="email" value={credEmail} onChange={e => setCredEmail(e.target.value)}
+                placeholder="doctor@example.com"
+                className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-brand-gray uppercase tracking-wide">
+                {doc.user_id ? 'New Password' : 'Password'}
+              </label>
+              <input type="password" value={credPassword} onChange={e => setCredPassword(e.target.value)}
+                placeholder="Min 8 characters"
+                className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+          </div>
+          {credMsg && (
+            <p className={`text-sm mb-3 px-3 py-2 rounded-xl border ${credMsg.ok ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
+              {credMsg.text}
+            </p>
+          )}
+          <button onClick={saveCredentials} disabled={credSaving || !credEmail || !credPassword}
+            className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary/90 disabled:opacity-50">
+            {credSaving ? 'Saving…' : doc.user_id ? 'Update Login Credentials' : 'Create Login Account'}
+          </button>
+        </div>
+      )}
 
       {!isNew && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">

@@ -207,6 +207,7 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
                     <Link href="/account/wishlist" className="flex items-center gap-2 px-4 py-2 text-sm text-brand-dark hover:bg-primary-light hover:text-primary">
                       <Heart size={13} /> Wishlist
                     </Link>
+                    <Link href="/account/appointments" className="block px-4 py-2 text-sm text-brand-dark hover:bg-primary-light hover:text-primary">My Appointments</Link>
                     <Link href="/account/period-calendar" className="block px-4 py-2 text-sm text-brand-dark hover:bg-primary-light hover:text-primary">Period Tracker</Link>
                     {session.user.is_admin && (
                       <>
@@ -245,6 +246,7 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
                 <MobileLink href="/account/profile" label="My Profile" onClick={() => setMenuOpen(false)} active={pathname === '/account/profile'} />
                 <MobileLink href="/neo-twin" label="Neo Twin ✦" onClick={() => setMenuOpen(false)} active={pathname === '/neo-twin'} />
                 <MobileLink href="/neopulse" label="NeoPulse" onClick={() => setMenuOpen(false)} active={pathname === '/neopulse'} />
+                <MobileLink href="/account/appointments" label="My Appointments" onClick={() => setMenuOpen(false)} active={pathname.startsWith('/account/appointments')} />
                 <MobileLink href="/account/period-calendar" label="Period Tracker" onClick={() => setMenuOpen(false)} active={pathname.startsWith('/account/period')} />
                 <MobileLink href="/account/wishlist" label="Wishlist" onClick={() => setMenuOpen(false)} active={pathname === '/account/wishlist'} />
               </>

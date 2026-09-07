@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { query, queryOne } from '@/lib/db'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-import { Sparkles, ShoppingBag, Calendar, Baby, Scale, Utensils, BarChart3, Droplets, ArrowRight, ChevronRight, Zap, Star, Lock, User, Mail, Phone } from 'lucide-react'
+import { Sparkles, ShoppingBag, Calendar, Baby, Scale, Utensils, BarChart3, Droplets, ArrowRight, ChevronRight, Zap, Star, Lock, User, Mail, Phone, Stethoscope } from 'lucide-react'
 import AccountPeriodWidget from './AccountPeriodWidget'
 
 export const metadata = { title: 'My Dashboard' }
@@ -57,12 +57,13 @@ export default async function AccountPage() {
   const checkinStress = todayCheckin ? todayCheckin.stress_level * 10 : null
   const checkinOverall = todayCheckin ? Math.round(Number(todayCheckin.wellness_score) * 10) : null
 
-  // Compute overall wellness score — prefer today's check-in, fall back to latest quiz
+  // Compute overall wellness score — prefer today's check-in, fall back to latest quiz.
+  // stress_score from quiz is a dysfunction score (higher = worse), so invert it.
   const scores: number[] = []
   if (!todayCheckin) {
-    if (latestScore?.hormone_score) scores.push(latestScore.hormone_score)
-    if (latestScore?.stress_score) scores.push(latestScore.stress_score)
-    if (latestScore?.energy_score) scores.push(latestScore.energy_score)
+    if (latestScore?.hormone_score != null && latestScore.hormone_score > 0) scores.push(latestScore.hormone_score)
+    if (latestScore?.stress_score != null) scores.push(100 - latestScore.stress_score)
+    if (latestScore?.energy_score != null && latestScore.energy_score > 0) scores.push(latestScore.energy_score)
   }
   const overallScore = todayCheckin ? checkinOverall : (scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null)
 
@@ -211,6 +212,29 @@ export default async function AccountPage() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* ── MY CONSULTATIONS ── */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-bold text-brand-dark flex items-center gap-2">
+                <Stethoscope size={17} className="text-primary" /> My Consultations
+              </h2>
+              <Link href="/account/appointments" className="text-xs text-primary hover:underline flex items-center gap-1 font-medium">
+                View all <ArrowRight size={12} />
+              </Link>
+            </div>
+            <Link href="/account/appointments"
+              className="flex items-center gap-4 bg-gradient-to-r from-primary-light to-purple-50 rounded-xl p-4 hover:from-primary/10 hover:to-purple-100 transition-colors">
+              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                <Stethoscope size={18} className="text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-brand-dark">View Appointments &amp; Reports</p>
+                <p className="text-xs text-brand-gray mt-0.5">Check your upcoming consultations, prescriptions, and doctor reports</p>
+              </div>
+              <ChevronRight size={16} className="ml-auto text-primary flex-shrink-0" />
+            </Link>
           </div>
 
           {/* ── PERIOD TRACKER ── */}
