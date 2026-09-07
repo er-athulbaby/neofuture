@@ -17,7 +17,10 @@ export default function AdminDoctorEditPage() {
 
   const [doc, setDoc] = useState<Doctor>({ name: '', qualification: '', specialisation: '', bio: '', consultation_fee: 299, registration_no: '', state_medical_council: '', photo_url: '', signature_url: '', is_active: true, user_id: '', availability: [] })
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [newSlot, setNewSlot] = useState({ day_of_week: 1, start_time: '09:00', end_time: '13:00', slot_duration: 30 })
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
 
   const load = useCallback(async () => {
     if (isNew) return
@@ -30,10 +33,18 @@ export default function AdminDoctorEditPage() {
 
   async function save() {
     setSaving(true)
+    setSaveError('')
     const url = isNew ? '/api/admin/doctors' : `/api/admin/doctors/${id}`
     const method = isNew ? 'POST' : 'PUT'
-    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(doc) })
-    if (res.ok) { router.push('/admin/doctors') } else { setSaving(false) }
+    const payload = isNew ? { ...doc, login_email: loginEmail, login_password: loginPassword } : doc
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    if (res.ok) {
+      router.push('/admin/doctors')
+    } else {
+      const data = await res.json()
+      setSaveError(data.error ?? 'Failed to save')
+      setSaving(false)
+    }
   }
 
   async function addSlot() {
@@ -80,6 +91,32 @@ export default function AdminDoctorEditPage() {
           <input type="checkbox" checked={doc.is_active} onChange={e => setDoc(p => ({ ...p, is_active: e.target.checked }))} className="rounded" />
           Active
         </label>
+
+        {/* Login credentials — only shown when creating new doctor */}
+        {isNew && (
+          <div className="border-t border-gray-100 pt-4">
+            <p className="text-xs font-semibold text-brand-gray uppercase tracking-wide mb-3">Doctor Login Account</p>
+            <p className="text-xs text-brand-gray mb-3">Create login credentials so the doctor can access their dashboard at <strong>/doctor/dashboard</strong></p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-brand-gray uppercase tracking-wide">Email</label>
+                <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
+                  placeholder="doctor@example.com"
+                  className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-brand-gray uppercase tracking-wide">Password</label>
+                <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)}
+                  placeholder="Min 8 characters"
+                  className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              </div>
+            </div>
+            <p className="text-xs text-brand-gray mt-2">Leave blank to create doctor without a login account (can be linked later).</p>
+          </div>
+        )}
+
+        {saveError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{saveError}</p>}
+
         <button onClick={save} disabled={saving}
           className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary/90 disabled:opacity-50">
           <Save size={15} /> {saving ? 'Saving…' : 'Save Doctor'}

@@ -3,9 +3,11 @@ import { auth } from '@/lib/auth'
 import { query, queryOne } from '@/lib/db'
 import Razorpay from 'razorpay'
 
+const TEST_MODE = process.env.CONSULTATION_TEST_MODE === 'true'
+
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
+  key_id: process.env.RAZORPAY_KEY_ID ?? 'rzp_test_placeholder',
+  key_secret: process.env.RAZORPAY_KEY_SECRET ?? 'placeholder',
 })
 
 export async function POST(req: NextRequest) {
@@ -68,6 +70,12 @@ export async function POST(req: NextRequest) {
      VALUES ($1,$2,$3,$4,$5,'pending',$6,$7) RETURNING id`,
     [session.user.id, doctor_id, slot_datetime, neopulseRedeemed, neopulsePointsUsed, JSON.stringify(lab_reports ?? []), true]
   )
+
+  // Test mode — skip payment, confirm directly
+  if (TEST_MODE) {
+    await query(`UPDATE consultations SET status='confirmed' WHERE id=$1`, [consult!.id])
+    return NextResponse.json({ consultation_id: consult!.id, is_free: true, amount: 0, test_mode: true })
+  }
 
   const order = await razorpay.orders.create({
     amount: fee * 100,
