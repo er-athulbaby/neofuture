@@ -3,12 +3,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Calendar, Clock, Zap, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Calendar, Clock, Zap, AlertCircle, ChevronLeft, ChevronRight, Upload, X, FileText, Image } from 'lucide-react'
 import Link from 'next/link'
 
 interface Doctor { id: number; name: string; photo_url: string; qualification: string; specialisation: string; bio: string; consultation_fee: number; registration_no: string; state_medical_council: string }
 interface Slot { datetime: string; available: boolean }
 interface FreeFollowup { id: number; followup_expires_at: string }
+interface LabReport { key: string; name: string; size: number; type: string }
 
 declare global { interface Window { Razorpay: new (opts: object) => { open(): void } } }
 
@@ -32,6 +33,10 @@ export default function ConsultBookPage() {
   const [freeFollowup, setFreeFollowup] = useState<FreeFollowup | null>(null)
   const [loading, setLoading] = useState(false)
   const [weekOffset, setWeekOffset] = useState(0)
+  const [labReports, setLabReports] = useState<LabReport[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [consent1, setConsent1] = useState(false)
+  const [consent2, setConsent2] = useState(false)
 
   useEffect(() => {
     fetch(`/api/consult/doctors`).then(r => r.json()).then((docs: Doctor[]) => {
@@ -59,6 +64,26 @@ export default function ConsultBookPage() {
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(new Date(), weekOffset * 7 + i))
 
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    setUploading(true)
+    for (const file of files) {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/consult/upload', { method: 'POST', body: fd })
+      if (res.ok) {
+        const data = await res.json()
+        setLabReports(prev => [...prev, data])
+      } else {
+        const err = await res.json()
+        alert(err.error ?? 'Upload failed')
+      }
+    }
+    setUploading(false)
+    e.target.value = ''
+  }
+
   // 10 NeoПulse points = ₹1, max ₹99 discount
   const neopulseRupees = Math.floor(neopulseBalance / 10)
   const neopulseDiscount = useNeopulse && doctor ? Math.min(99, doctor.consultation_fee - 1, neopulseRupees) : 0
@@ -73,7 +98,7 @@ export default function ConsultBookPage() {
       const res = await fetch('/api/consult/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ doctor_id: doctor.id, slot_datetime: selectedSlot, use_neopulse: useNeopulse }),
+        body: JSON.stringify({ doctor_id: doctor.id, slot_datetime: selectedSlot, use_neopulse: useNeopulse, lab_reports: labReports, teleconsult_consent: consent1 && consent2 }),
       })
       const data = await res.json()
 
@@ -214,6 +239,56 @@ export default function ConsultBookPage() {
           </div>
         )}
 
+        {/* Lab Reports Upload */}
+        {session?.user && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
+            <h2 className="font-semibold text-brand-dark flex items-center gap-2 mb-1"><FileText size={16} className="text-primary" /> Lab Reports / Test Results</h2>
+            <p className="text-xs text-brand-gray mb-3">Optional — upload any recent tests or reports for the doctor to review before the consultation.</p>
+            <label className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-xl py-4 cursor-pointer transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : 'border-gray-200 hover:border-primary hover:bg-primary/5'}`}>
+              <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden" onChange={handleFileUpload} disabled={uploading} />
+              <Upload size={16} className="text-brand-gray" />
+              <span className="text-sm text-brand-gray">{uploading ? 'Uploading…' : 'Click to upload PDF or image (max 10MB each)'}</span>
+            </label>
+            {labReports.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {labReports.map((r, i) => (
+                  <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2">
+                    {r.type.startsWith('image/') ? <Image size={14} className="text-blue-500 flex-shrink-0" /> : <FileText size={14} className="text-red-500 flex-shrink-0" />}
+                    <span className="text-xs text-brand-dark flex-1 truncate">{r.name}</span>
+                    <span className="text-xs text-brand-gray">{(r.size / 1024).toFixed(0)} KB</span>
+                    <button onClick={() => setLabReports(p => p.filter((_, j) => j !== i))} className="text-gray-400 hover:text-red-500"><X size={14} /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Teleconsultation Consent */}
+        {session?.user && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
+            <h2 className="font-semibold text-brand-dark mb-3 flex items-center gap-2">
+              <AlertCircle size={16} className="text-primary" /> Teleconsultation Consent
+            </h2>
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" checked={consent1} onChange={e => setConsent1(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-primary flex-shrink-0" />
+                <span className="text-xs text-brand-gray leading-relaxed">
+                  I confirm that the symptoms, medical history and other information shared by me are true and complete to the best of my knowledge. I understand that the doctor&apos;s advice and treatment will be based on the information provided during this teleconsultation. I understand the limitations of teleconsultation and agree to follow the doctor&apos;s advice, including seeking in-person or emergency care when recommended.
+                </span>
+              </label>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" checked={consent2} onChange={e => setConsent2(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-primary flex-shrink-0" />
+                <span className="text-xs text-brand-gray leading-relaxed">
+                  I have read, understood and agree to proceed with the teleconsultation.
+                </span>
+              </label>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -231,12 +306,17 @@ export default function ConsultBookPage() {
               </p>
             )}
           </div>
-          <button onClick={handleBook} disabled={!selectedSlot || loading}
+          {session?.user && (!consent1 || !consent2) && selectedSlot && (
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3">
+              Please accept both consent statements above to proceed.
+            </p>
+          )}
+          <button onClick={handleBook} disabled={!selectedSlot || loading || (!!session?.user && (!consent1 || !consent2))}
             className="w-full bg-primary text-white py-3 rounded-xl font-semibold text-base hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
             {loading ? 'Processing…' : !selectedSlot ? 'Select a Time Slot' : freeFollowup ? 'Book Free Follow-up' : `Pay ₹${finalFee} & Book`}
           </button>
           {!session?.user && (
-            <p className="text-xs text-center text-brand-gray mt-2">You'll be asked to log in before payment</p>
+            <p className="text-xs text-center text-brand-gray mt-2">You&apos;ll be asked to log in before payment</p>
           )}
         </div>
       </div>

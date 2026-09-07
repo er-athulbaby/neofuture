@@ -12,7 +12,8 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { doctor_id, slot_datetime, use_neopulse } = await req.json()
+  const { doctor_id, slot_datetime, use_neopulse, lab_reports, teleconsult_consent } = await req.json()
+  if (!teleconsult_consent) return NextResponse.json({ error: 'Teleconsultation consent is required' }, { status: 400 })
 
   const doctor = await queryOne<{ id: number; name: string; consultation_fee: number }>(
     'SELECT id, name, consultation_fee FROM doctors WHERE id = $1 AND is_active = true',
@@ -38,9 +39,9 @@ export async function POST(req: NextRequest) {
   if (freeFollowup) {
     // Create free follow-up directly
     const consult = await queryOne<{ id: number }>(
-      `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, status, is_followup, parent_consultation_id)
-       VALUES ($1,$2,$3,'confirmed',true,$4) RETURNING id`,
-      [session.user.id, doctor_id, slot_datetime, freeFollowup.id]
+      `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, status, is_followup, parent_consultation_id, lab_reports, teleconsult_consent)
+       VALUES ($1,$2,$3,'confirmed',true,$4,$5,$6) RETURNING id`,
+      [session.user.id, doctor_id, slot_datetime, freeFollowup.id, JSON.stringify(lab_reports ?? []), true]
     )
     return NextResponse.json({ consultation_id: consult!.id, is_free: true, amount: 0 })
   }
@@ -63,9 +64,9 @@ export async function POST(req: NextRequest) {
   }
 
   const consult = await queryOne<{ id: number }>(
-    `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, neopulse_redeemed, neopulse_points_used, status)
-     VALUES ($1,$2,$3,$4,$5,'pending') RETURNING id`,
-    [session.user.id, doctor_id, slot_datetime, neopulseRedeemed, neopulsePointsUsed]
+    `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, neopulse_redeemed, neopulse_points_used, status, lab_reports, teleconsult_consent)
+     VALUES ($1,$2,$3,$4,$5,'pending',$6,$7) RETURNING id`,
+    [session.user.id, doctor_id, slot_datetime, neopulseRedeemed, neopulsePointsUsed, JSON.stringify(lab_reports ?? []), true]
   )
 
   const order = await razorpay.orders.create({

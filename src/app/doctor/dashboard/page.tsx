@@ -7,7 +7,7 @@ import Link from 'next/link'
 interface Consultation {
   id: number; patient_name: string; patient_email: string; slot_datetime: string;
   duration_minutes: number; meet_link: string; status: string; report_id: number | null;
-  is_followup: boolean;
+  is_followup: boolean; lab_reports: { key: string; name: string; size: number; type: string }[];
 }
 interface ReportForm {
   diagnosis: string; notes: string; additional_instructions: string;
@@ -199,24 +199,47 @@ export default function DoctorDashboard() {
 function ConsultCard({ c, onReport, canJoin }: { c: Consultation; onReport: () => void; canJoin: boolean }) {
   const time = new Date(c.slot_datetime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
   const date = new Date(c.slot_datetime).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+  const reports = Array.isArray(c.lab_reports) ? c.lab_reports : []
+
+  async function viewReport(key: string, name: string) {
+    const res = await fetch(`/api/doctor/lab-report?key=${encodeURIComponent(key)}`)
+    const data = await res.json()
+    if (data.url) window.open(data.url, '_blank')
+  }
+
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between gap-4">
-      <div>
-        <p className="font-semibold text-brand-dark">{c.patient_name}</p>
-        <p className="text-xs text-brand-gray">{c.patient_email} · {date} at {time} · {c.duration_minutes} min</p>
-        {c.is_followup && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Free Follow-up</span>}
+    <div className="bg-white rounded-xl border border-gray-100 p-4 gap-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="font-semibold text-brand-dark">{c.patient_name}</p>
+          <p className="text-xs text-brand-gray">{c.patient_email} · {date} at {time} · {c.duration_minutes} min</p>
+          {c.is_followup && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Free Follow-up</span>}
+        </div>
+        <div className="flex items-center gap-2">
+          {c.report_id
+            ? <span className="text-xs text-green-600 font-medium flex items-center gap-1"><FileText size={12} /> Report Sent</span>
+            : c.status === 'confirmed' && <button onClick={onReport} className="flex items-center gap-1 text-xs bg-orange-50 text-orange-600 border border-orange-200 px-3 py-1.5 rounded-lg font-medium hover:bg-orange-100"><FileText size={12} /> Fill Report</button>}
+          {c.meet_link && (
+            <a href={`/consult/room/${c.id}`} target="_blank" rel="noopener noreferrer"
+              className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${canJoin ? 'bg-primary text-white hover:bg-primary/90' : 'bg-gray-100 text-gray-400 cursor-not-allowed pointer-events-none'}`}>
+              <Video size={12} /> Join Meet
+            </a>
+          )}
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        {c.report_id
-          ? <span className="text-xs text-green-600 font-medium flex items-center gap-1"><FileText size={12} /> Report Sent</span>
-          : c.status === 'confirmed' && <button onClick={onReport} className="flex items-center gap-1 text-xs bg-orange-50 text-orange-600 border border-orange-200 px-3 py-1.5 rounded-lg font-medium hover:bg-orange-100"><FileText size={12} /> Fill Report</button>}
-        {c.meet_link && (
-          <a href={`/consult/room/${c.id}`} target="_blank" rel="noopener noreferrer"
-            className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${canJoin ? 'bg-primary text-white hover:bg-primary/90' : 'bg-gray-100 text-gray-400 cursor-not-allowed pointer-events-none'}`}>
-            <Video size={12} /> Join Meet
-          </a>
-        )}
-      </div>
+      {reports.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <p className="text-xs font-semibold text-brand-gray mb-2">Lab Reports from Patient</p>
+          <div className="flex flex-wrap gap-2">
+            {reports.map((r, i) => (
+              <button key={i} onClick={() => viewReport(r.key, r.name)}
+                className="flex items-center gap-1.5 text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-100">
+                <FileText size={11} /> {r.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
