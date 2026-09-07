@@ -24,6 +24,7 @@ export default function DoctorDashboard() {
   const [activeReport, setActiveReport] = useState<number | null>(null)
   const [form, setForm] = useState<ReportForm>(INIT_FORM)
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const [connected, setConnected] = useState<string | null>(null)
 
   useEffect(() => {
@@ -52,17 +53,26 @@ export default function DoctorDashboard() {
 
   async function submitReport(consultationId: number) {
     setSubmitting(true)
-    const res = await fetch(`/api/doctor/consultations/${consultationId}/report`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    })
-    setSubmitting(false)
-    if (res.ok) {
-      setActiveReport(null)
-      setForm(INIT_FORM)
-      const updated = await fetch('/api/doctor/consultations').then(r => r.json())
-      if (Array.isArray(updated)) setConsultations(updated)
+    setSubmitError('')
+    try {
+      const res = await fetch(`/api/doctor/consultations/${consultationId}/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (res.ok) {
+        setActiveReport(null)
+        setForm(INIT_FORM)
+        const updated = await fetch('/api/doctor/consultations').then(r => r.json())
+        if (Array.isArray(updated)) setConsultations(updated)
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setSubmitError(data.error ?? `Error ${res.status} — please try again`)
+      }
+    } catch {
+      setSubmitError('Network error — please check your connection and try again')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -107,13 +117,25 @@ export default function DoctorDashboard() {
           <h2 className="font-bold text-brand-dark mb-3">Upcoming ({upcoming.filter(c => !today.includes(c)).length})</h2>
           <div className="space-y-3">
             {upcoming.filter(c => !today.includes(c)).map(c => (
-              <ConsultCard key={c.id} c={c} onReport={() => {}} canJoin={false} />
+              <ConsultCard key={c.id} c={c} onReport={() => { setActiveReport(c.id); setForm(INIT_FORM) }} canJoin={false} />
             ))}
             {upcoming.filter(c => !today.includes(c)).length === 0 && (
               <p className="text-sm text-brand-gray bg-white rounded-xl px-4 py-6 text-center border border-gray-100">No upcoming appointments.</p>
             )}
           </div>
         </div>
+
+        {/* Past — show only if there are past consultations needing a report */}
+        {past.filter(c => !today.includes(c)).length > 0 && (
+          <div>
+            <h2 className="font-bold text-brand-dark mb-3">Past Consultations ({past.filter(c => !today.includes(c)).length})</h2>
+            <div className="space-y-3">
+              {past.filter(c => !today.includes(c)).map(c => (
+                <ConsultCard key={c.id} c={c} onReport={() => { setActiveReport(c.id); setForm(INIT_FORM) }} canJoin={false} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Report Modal */}
@@ -182,12 +204,17 @@ export default function DoctorDashboard() {
                 </div>
               </div>
             </div>
-            <div className="p-6 border-t border-gray-100 flex gap-3">
-              <button onClick={() => setActiveReport(null)} className="flex-1 border border-gray-200 text-brand-gray py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-50">Cancel</button>
-              <button onClick={() => submitReport(activeReport)} disabled={!form.diagnosis || submitting}
-                className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary/90 disabled:opacity-50">
-                {submitting ? 'Generating PDF…' : 'Submit & Send to Patient'}
-              </button>
+            <div className="p-6 border-t border-gray-100 space-y-3">
+              {submitError && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{submitError}</p>
+              )}
+              <div className="flex gap-3">
+                <button onClick={() => { setActiveReport(null); setSubmitError('') }} className="flex-1 border border-gray-200 text-brand-gray py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-50">Cancel</button>
+                <button onClick={() => submitReport(activeReport)} disabled={!form.diagnosis || submitting}
+                  className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary/90 disabled:opacity-50">
+                  {submitting ? 'Generating PDF…' : 'Submit & Send to Patient'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
