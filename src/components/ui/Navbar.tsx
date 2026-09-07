@@ -209,6 +209,12 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
                     </Link>
                     <Link href="/account/appointments" className="block px-4 py-2 text-sm text-brand-dark hover:bg-primary-light hover:text-primary">My Appointments</Link>
                     <Link href="/account/period-calendar" className="block px-4 py-2 text-sm text-brand-dark hover:bg-primary-light hover:text-primary">Period Tracker</Link>
+                    {session.user.is_doctor && (
+                      <>
+                        <hr className="my-1 border-gray-100" />
+                        <Link href="/doctor/dashboard" className="block px-4 py-2 text-sm text-blue-600 font-medium hover:bg-blue-50">Doctor Dashboard</Link>
+                      </>
+                    )}
                     {session.user.is_admin && (
                       <>
                         <hr className="my-1 border-gray-100" />
@@ -274,6 +280,9 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
             {session?.user && (
               <>
                 <hr className="my-2 border-gray-100" />
+                {session.user.is_doctor && (
+                  <MobileLink href="/doctor/dashboard" label="Doctor Dashboard" onClick={() => setMenuOpen(false)} className="text-blue-600 font-semibold" />
+                )}
                 {session.user.is_admin && (
                   <MobileLink href="/admin" label="Admin Panel" onClick={() => setMenuOpen(false)} className="text-neo-orange font-semibold" />
                 )}
