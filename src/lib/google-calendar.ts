@@ -40,6 +40,10 @@ export async function createMeetingEvent(
 
   const calendar = google.calendar({ version: 'v3', auth: oauth2 })
 
+  const attendees = [opts.patientEmail, opts.doctorEmail]
+    .filter(e => e && e.includes('@'))
+    .map(email => ({ email }))
+
   const res = await calendar.events.insert({
     calendarId: 'primary',
     conferenceDataVersion: 1,
@@ -48,7 +52,7 @@ export async function createMeetingEvent(
       description: opts.description,
       start: { dateTime: opts.startTime, timeZone: 'Asia/Kolkata' },
       end: { dateTime: opts.endTime, timeZone: 'Asia/Kolkata' },
-      attendees: [{ email: opts.patientEmail }, { email: opts.doctorEmail }],
+      attendees,
       conferenceData: {
         createRequest: {
           requestId: `neofuture-${Date.now()}`,

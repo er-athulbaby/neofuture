@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { query, queryOne } from '@/lib/db'
 import Razorpay from 'razorpay'
+import { createMeetingEvent } from '@/lib/google-calendar'
+
+async function buildMeetLink(doctorId: number, consultId: number, slotDatetime: string, patientId: string): Promise<string> {
+  try {
+    const [doc, patient] = await Promise.all([
+      queryOne<{ name: string; google_refresh_token: string | null }>('SELECT name, google_refresh_token FROM doctors WHERE id=$1', [doctorId]),
+      queryOne<{ name: string; email: string }>('SELECT name, email FROM users WHERE id=$1', [patientId]),
+    ])
+    if (!doc?.google_refresh_token) return ''
+    const event = await createMeetingEvent(doc.google_refresh_token, {
+      title: `NeoFuture Consultation — ${patient?.name} with ${doc.name}`,
+      startTime: new Date(slotDatetime).toISOString(),
+      endTime: new Date(new Date(slotDatetime).getTime() + 30 * 60000).toISOString(),
+      patientEmail: patient?.email ?? '',
+      doctorEmail: '',
+      description: `NeoFuture teleconsultation. Consultation ID: TC-${String(consultId).padStart(6, '0')}`,
+    })
+    return event.meetLink
+  } catch { return '' }
+}
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -42,6 +62,8 @@ export async function POST(req: NextRequest) {
        VALUES ($1,$2,$3,'confirmed',true,$4,$5,$6) RETURNING id`,
       [session.user.id, doctor_id, slot_datetime, freeFollowup.id, JSON.stringify(lab_reports ?? []), true]
     )
+    const meetLink = await buildMeetLink(doctor_id, consult!.id, slot_datetime, session.user.id)
+    if (meetLink) await query('UPDATE consultations SET meet_link=$1 WHERE id=$2', [meetLink, consult!.id])
     return NextResponse.json({ consultation_id: consult!.id, is_free: true, amount: 0 })
   }
 
