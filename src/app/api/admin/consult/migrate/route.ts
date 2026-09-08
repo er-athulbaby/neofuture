@@ -51,8 +51,13 @@ export async function GET() {
       parent_consultation_id INTEGER REFERENCES consultations(id),
       is_followup BOOLEAN DEFAULT false,
       followup_expires_at TIMESTAMPTZ,
+      lab_reports JSONB DEFAULT '[]',
+      teleconsult_consent BOOLEAN DEFAULT false,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    ALTER TABLE consultations ADD COLUMN IF NOT EXISTS lab_reports JSONB DEFAULT '[]';
+    ALTER TABLE consultations ADD COLUMN IF NOT EXISTS teleconsult_consent BOOLEAN DEFAULT false;
 
     CREATE TABLE IF NOT EXISTS consultation_reports (
       id SERIAL PRIMARY KEY,
