@@ -215,7 +215,7 @@ function AppointCard({
         {c.status === 'confirmed' && (
           c.report_id ? (
             pdfUrl ? (
-              <a href={pdfUrl} target="_blank" rel="noopener noreferrer" style={{
+              <a href={`/api/pdf-link?url=${encodeURIComponent(pdfUrl)}`} target="_blank" rel="noopener noreferrer" style={{
                 flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 padding: '8px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600, textDecoration: 'none',
                 background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0'
@@ -538,7 +538,7 @@ export default function DoctorDashboard() {
             <div style={{ fontWeight: 700, fontSize: 18, color: '#0F1B2D', marginBottom: 8 }}>Report Generated!</div>
             <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 24px' }}>Prescription PDF has been generated and emailed to the patient.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <a href={lastPdfUrl} target="_blank" rel="noopener noreferrer" style={{
+              <a href={`/api/pdf-link?url=${encodeURIComponent(lastPdfUrl)}`} target="_blank" rel="noopener noreferrer" style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 padding: '12px', borderRadius: 12, background: '#0EA5C8', color: '#fff',
                 fontSize: 14, fontWeight: 700, textDecoration: 'none'

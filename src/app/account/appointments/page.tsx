@@ -190,7 +190,7 @@ function AppointmentCard({ a, expanded, onToggle }: { a: Appointment; expanded: 
               </a>
             )}
             {a.pdf_url && (
-              <a href={a.pdf_url} target="_blank" rel="noopener noreferrer"
+              <a href={`/api/pdf-link?url=${encodeURIComponent(a.pdf_url)}`} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg font-semibold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors">
                 <Download size={13} /> Download Prescription
               </a>
