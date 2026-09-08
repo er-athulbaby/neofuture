@@ -168,12 +168,17 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   const [data, setData] = useState<PatientDetail | null>(null)
   const [tab, setTab] = useState<Tab>('overview')
   const [loading, setLoading] = useState(true)
+  // vitals kept in separate state so VitalsPanel can update it without re-fetching
+  const [vitals, setVitals] = useState<Vitals | null>(null)
 
   useEffect(() => {
-    fetch(`/api/doctor/patients/${patientId}`).then(r => r.json()).then(d => {
-      if (d.patient) setData(d)
-      setLoading(false)
-    })
+    fetch(`/api/doctor/patients/${patientId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.patient) { setData(d); setVitals(d.vitals ?? null) }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [patientId])
 
   async function viewLab(key: string) {
@@ -201,8 +206,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
     )
   }
 
-  const { patient, vitals: initVitals, consultations } = data
-  const [vitals, setVitals] = useState<Vitals | null>(initVitals)
+  const { patient, consultations } = data
 
   const a = age(vitals?.dob ?? null)
   const latestRx = consultations.find(c => c.prescription && c.prescription.length > 0)?.prescription ?? []
