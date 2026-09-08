@@ -85,12 +85,12 @@ export default function PatientListPage() {
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#FCD34D' }} />
               <span style={{ fontSize: 12, color: '#92400E', fontWeight: 600 }}>Demo preview — no confirmed consultations yet</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16, opacity: 0.55, pointerEvents: 'none' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
               {[
                 { name: 'Priya Sharma', email: 'priya.sharma@example.com', visits: 3, lastDate: '12 Jan 2025', bp: '118/76', pulse: 72, weight: 58 },
                 { name: 'Ananya Menon', email: 'ananya.m@example.com', visits: 1, lastDate: '5 Feb 2025', bp: null, pulse: null, weight: null },
               ].map((p, i) => (
-                <div key={i} style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E9F0', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+                <div key={i} onClick={() => router.push('/doctor/patients/demo')} style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E9F0', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', overflow: 'hidden', cursor: 'pointer', opacity: 0.75 }}>
                   <div style={{ height: 3, background: TEAL }} />
                   <div style={{ padding: '18px 20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
