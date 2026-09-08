@@ -22,8 +22,8 @@ const providers = [
         email: string
         password_hash: string
         is_admin: boolean
-        avatar: string
-      }>('SELECT id, name, email, password_hash, is_admin, avatar FROM users WHERE email = $1', [
+        image: string
+      }>('SELECT id, name, email, password_hash, is_admin, image FROM users WHERE email = $1', [
         credentials.email,
       ])
 
@@ -36,7 +36,7 @@ const providers = [
         id: user.id,
         name: user.name,
         email: user.email,
-        image: user.avatar,
+        image: user.image,
         is_admin: user.is_admin,
       }
     },
@@ -56,6 +56,7 @@ if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PostgresAdapter(pool),
   providers,
+  trustHost: true,
   session: {
     strategy: 'jwt',
     maxAge: 24 * 60 * 60,    // 24-hour session lifetime

@@ -11,7 +11,7 @@ interface Slot { datetime: string; available: boolean }
 interface FreeFollowup { id: number; followup_expires_at: string }
 interface LabReport { key: string; name: string; size: number; type: string }
 
-declare global { interface Window { Razorpay: new (opts: object) => { open(): void } } }
+declare global { interface Window { Razorpay: new (options: Record<string, unknown>) => { open: () => void } } }
 
 function addDays(date: Date, n: number) {
   const d = new Date(date); d.setDate(d.getDate() + n); return d

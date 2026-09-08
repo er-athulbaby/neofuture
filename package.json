@@ -19,8 +19,8 @@
     "date-fns": "^4.4.0",
     "googleapis": "^178.0.0",
     "lucide-react": "^1.21.0",
-    "next": "16.2.9",
-    "next-auth": "^5.0.0-beta.31",
+    "next": "^16.3.4",
+    "next-auth": "^1.12.1",
     "nodemailer": "^7.0.13",
     "pg": "^8.22.0",
     "puppeteer": "^25.10.0",
@@ -35,7 +35,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^20",
+    "@types/node": "^22",
     "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
@@ -43,6 +43,11 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^6"
+  },
+  "allowScripts": {
+    "puppeteer@25.10.0": true,
+    "sharp@0.35.4": true,
+    "unrs-resolver@1.12.2": true
   }
 }

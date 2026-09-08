@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Save, Plus, Trash2, ArrowLeft } from 'lucide-react'
+import { Save, Plus, Trash2, ArrowLeft, Upload } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
@@ -25,6 +26,20 @@ export default function AdminDoctorEditPage() {
   const [credPassword, setCredPassword] = useState('')
   const [credSaving, setCredSaving] = useState(false)
   const [credMsg, setCredMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [uploading, setUploading] = useState<{ photo?: boolean; signature?: boolean }>({})
+  const photoRef = useRef<HTMLInputElement>(null)
+  const sigRef = useRef<HTMLInputElement>(null)
+
+  async function uploadFile(file: File, key: 'photo_url' | 'signature_url') {
+    const which = key === 'photo_url' ? 'photo' : 'signature'
+    setUploading(p => ({ ...p, [which]: true }))
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetch('/api/upload', { method: 'POST', body: form })
+    const data = await res.json()
+    setUploading(p => ({ ...p, [which]: false }))
+    if (data.url) setDoc(p => ({ ...p, [key]: data.url }))
+  }
 
   const load = useCallback(async () => {
     if (isNew) return
@@ -102,8 +117,32 @@ export default function AdminDoctorEditPage() {
           {field('Consultation Fee (₹)', 'consultation_fee', 'number')}
           {field('Registration No.', 'registration_no')}
           {field('State Medical Council', 'state_medical_council')}
-          {field('Photo URL', 'photo_url')}
-          {field('Signature URL', 'signature_url')}
+          <div>
+            <label className="text-xs font-semibold text-brand-gray uppercase tracking-wide">Photo</label>
+            <div className="mt-1 flex items-center gap-2">
+              {doc.photo_url && <Image src={doc.photo_url} alt="Photo" width={48} height={48} className="w-12 h-12 rounded-full object-cover border" />}
+              <button type="button" onClick={() => photoRef.current?.click()}
+                className="flex items-center gap-1 border border-gray-200 rounded-xl px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
+                disabled={!!uploading.photo}>
+                <Upload size={14} /> {uploading.photo ? 'Uploading…' : 'Upload Photo'}
+              </button>
+              <input ref={photoRef} type="file" accept="image/*" className="hidden"
+                onChange={e => e.target.files?.[0] && uploadFile(e.target.files[0], 'photo_url')} />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-brand-gray uppercase tracking-wide">Signature</label>
+            <div className="mt-1 flex items-center gap-2">
+              {doc.signature_url && <Image src={doc.signature_url} alt="Signature" width={80} height={40} className="h-10 object-contain border rounded" />}
+              <button type="button" onClick={() => sigRef.current?.click()}
+                className="flex items-center gap-1 border border-gray-200 rounded-xl px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
+                disabled={!!uploading.signature}>
+                <Upload size={14} /> {uploading.signature ? 'Uploading…' : 'Upload Signature'}
+              </button>
+              <input ref={sigRef} type="file" accept="image/*" className="hidden"
+                onChange={e => e.target.files?.[0] && uploadFile(e.target.files[0], 'signature_url')} />
+            </div>
+          </div>
         </div>
         <div>
           <label className="text-xs font-semibold text-brand-gray uppercase tracking-wide">Bio</label>

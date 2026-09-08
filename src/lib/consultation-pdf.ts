@@ -44,7 +44,7 @@ export async function generatePrescriptionPDF(data: PrescriptionData): Promise<B
   try {
     const page = await browser.newPage()
     const html = buildPrescriptionHtml(data)
-    await page.setContent(html, { waitUntil: 'networkidle0' })
+    await page.setContent(html, { waitUntil: 'load' })
     const pdf = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' } })
     return Buffer.from(pdf)
   } finally {

@@ -11,21 +11,22 @@ CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR(255),
   email VARCHAR(255) UNIQUE NOT NULL,
-  email_verified TIMESTAMPTZ,
+  "emailVerified" TIMESTAMPTZ,
+  image VARCHAR(500),
   password_hash VARCHAR(255),
   phone VARCHAR(20),
-  avatar VARCHAR(500),
   is_admin BOOLEAN DEFAULT false,
+  is_doctor BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE accounts (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   type VARCHAR(255) NOT NULL,
   provider VARCHAR(255) NOT NULL,
-  provider_account_id VARCHAR(255) NOT NULL,
+  "providerAccountId" VARCHAR(255) NOT NULL,
   refresh_token TEXT,
   access_token TEXT,
   expires_at INTEGER,
@@ -33,13 +34,13 @@ CREATE TABLE accounts (
   scope VARCHAR(255),
   id_token TEXT,
   session_state VARCHAR(255),
-  UNIQUE(provider, provider_account_id)
+  UNIQUE(provider, "providerAccountId")
 );
 
 CREATE TABLE sessions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  session_token VARCHAR(255) UNIQUE NOT NULL,
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  "sessionToken" VARCHAR(255) UNIQUE NOT NULL,
+  "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   expires TIMESTAMPTZ NOT NULL
 );
 

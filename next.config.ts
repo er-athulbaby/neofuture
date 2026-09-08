@@ -29,9 +29,6 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }]
   },
@@ -40,6 +37,11 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'neofuture.in',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.s3.ap-south-1.amazonaws.com',
         pathname: '/**',
       },
     ],

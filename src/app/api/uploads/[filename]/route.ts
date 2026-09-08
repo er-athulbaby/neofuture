@@ -1,39 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readFile } from 'fs/promises'
-import path from 'path'
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 
-function getUploadDir(): string {
-  return process.env.UPLOAD_DIR ?? path.join(process.cwd(), 'public', 'uploads')
-}
-
-// SVG excluded — serving SVG with image/svg+xml from same origin enables stored XSS
 const MIME: Record<string, string> = {
   jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
   webp: 'image/webp', gif: 'image/gif',
 }
+
+const s3 = new S3Client({
+  region: process.env.AWS_REGION ?? 'ap-south-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+})
 
 interface Props { params: Promise<{ filename: string }> }
 
 export async function GET(_req: NextRequest, { params }: Props) {
   const { filename } = await params
 
-  // Block path traversal attacks
   if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
     return new NextResponse('Not found', { status: 404 })
   }
 
-  const filePath = path.join(getUploadDir(), filename)
-
   const ext = filename.split('.').pop()?.toLowerCase() ?? ''
   const contentType = MIME[ext]
-  // Refuse to serve file types not in the allowlist (e.g. pre-existing SVGs)
   if (!contentType) {
     return new NextResponse('Not found', { status: 404 })
   }
 
   try {
-    const buffer = await readFile(filePath)
-
+    const response = await s3.send(new GetObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET ?? 'neofuture',
+      Key: `uploads/${filename}`,
+    }))
+    const buffer = Buffer.from(await response.Body!.transformToByteArray())
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': contentType,
