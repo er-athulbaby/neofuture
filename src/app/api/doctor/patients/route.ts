@@ -13,13 +13,13 @@ export async function GET() {
 
   const rows = await query(`
     SELECT
-      u.id, u.name, u.email,
+      u.id::text, u.name, u.email,
       COUNT(c.id)::int AS consultation_count,
       MAX(c.slot_datetime) AS last_consultation,
       dpv.dob, dpv.weight_kg, dpv.height_cm, dpv.blood_pressure, dpv.pulse_bpm
     FROM consultations c
-    JOIN users u ON u.id = c.patient_id
-    LEFT JOIN doctor_patient_vitals dpv ON dpv.patient_id = u.id AND dpv.doctor_id = $1
+    JOIN users u ON u.id::text = c.patient_id::text
+    LEFT JOIN doctor_patient_vitals dpv ON dpv.patient_id = u.id::text AND dpv.doctor_id = $1
     WHERE c.doctor_id = $1 AND c.status IN ('confirmed','completed')
     GROUP BY u.id, u.name, u.email, dpv.dob, dpv.weight_kg, dpv.height_cm, dpv.blood_pressure, dpv.pulse_bpm
     ORDER BY MAX(c.slot_datetime) DESC

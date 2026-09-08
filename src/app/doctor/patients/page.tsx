@@ -24,10 +24,11 @@ export default function PatientListPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/doctor/patients').then(r => r.json()).then(data => {
-      if (Array.isArray(data)) setPatients(data)
-      setLoading(false)
-    })
+    fetch('/api/doctor/patients')
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setPatients(data) })
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
 
   const filtered = patients.filter(p =>
@@ -77,20 +78,53 @@ export default function PatientListPage() {
           <div style={{ textAlign: 'center', padding: '60px 24px', color: '#9CA3AF', fontSize: 14 }}>
             Loading patients…
           </div>
-        ) : filtered.length === 0 ? (
-          <div style={{
-            background: '#fff', borderRadius: 16, padding: '60px 24px', textAlign: 'center',
-            border: '1px solid #E5E9F0'
-          }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#F0F9FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <Users size={24} color={TEAL} />
+        ) : filtered.length === 0 && !search ? (
+          /* Empty state — show one demo card so design is visible */
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#FCD34D' }} />
+              <span style={{ fontSize: 12, color: '#92400E', fontWeight: 600 }}>Demo preview — no confirmed consultations yet</span>
             </div>
-            <p style={{ color: '#374151', fontWeight: 600, fontSize: 15, margin: '0 0 8px' }}>
-              {search ? 'No patients match your search' : 'No patients yet'}
-            </p>
-            <p style={{ color: '#9CA3AF', fontSize: 13, margin: 0 }}>
-              Patients will appear here after their first confirmed consultation.
-            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16, opacity: 0.55, pointerEvents: 'none' }}>
+              {[
+                { name: 'Priya Sharma', email: 'priya.sharma@example.com', visits: 3, lastDate: '12 Jan 2025', bp: '118/76', pulse: 72, weight: 58 },
+                { name: 'Ananya Menon', email: 'ananya.m@example.com', visits: 1, lastDate: '5 Feb 2025', bp: null, pulse: null, weight: null },
+              ].map((p, i) => (
+                <div key={i} style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E9F0', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+                  <div style={{ height: 3, background: TEAL }} />
+                  <div style={{ padding: '18px 20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+                      <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#E0F2FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: '#0369A1' }}>
+                        {initials(p.name)}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: '#0F1B2D' }}>{p.name}</div>
+                        <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{p.email}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 16, marginBottom: p.bp ? 12 : 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#6B7280' }}>
+                        <Activity size={12} color={TEAL} />{p.visits} visits
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#6B7280' }}>
+                        <Calendar size={12} color={TEAL} />Last: {p.lastDate}
+                      </div>
+                    </div>
+                    {p.bp && (
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <span style={{ fontSize: 11, background: '#FEF3C7', color: '#92400E', borderRadius: 6, padding: '3px 8px', fontWeight: 600 }}>BP {p.bp}</span>
+                        <span style={{ fontSize: 11, background: '#FCE7F3', color: '#9D174D', borderRadius: 6, padding: '3px 8px', fontWeight: 600 }}>♥ {p.pulse} BPM</span>
+                        <span style={{ fontSize: 11, background: '#F0FDF4', color: '#166534', borderRadius: 6, padding: '3px 8px', fontWeight: 600 }}>{p.weight} kg</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ background: '#fff', borderRadius: 16, padding: '40px 24px', textAlign: 'center', border: '1px solid #E5E9F0' }}>
+            <p style={{ color: '#374151', fontWeight: 600, margin: '0 0 8px' }}>No patients match your search</p>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
