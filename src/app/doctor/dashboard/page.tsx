@@ -18,7 +18,7 @@ interface DoctorProfile {
 }
 interface Consultation {
   id: number; patient_id: string; patient_name: string; patient_email: string; slot_datetime: string
-  duration_minutes: number; meet_link: string; status: string; report_id: number | null
+  duration_minutes: number; meet_link: string; status: string; report_id: number | null; report_pdf_url: string | null
   is_followup: boolean; lab_reports: { key: string; name: string; size: number; type: string }[]
 }
 interface ReportForm {
@@ -204,12 +204,19 @@ function AppointCard({
 
         {c.status === 'confirmed' && (
           c.report_id ? (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px',
-              borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#059669', background: '#ECFDF5'
-            }}>
-              <FileText size={14} /> Report Sent
-            </div>
+            c.report_pdf_url ? (
+              <a href={c.report_pdf_url} target="_blank" rel="noopener noreferrer" style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                padding: '8px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600, textDecoration: 'none',
+                background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0'
+              }}>
+                <FileText size={14} /> Download PDF
+              </a>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#059669', background: '#ECFDF5' }}>
+                <FileText size={14} /> Report Sent
+              </div>
+            )
           ) : (
             <button onClick={onReport} style={{
               flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -234,6 +241,7 @@ export default function DoctorDashboard() {
   const [form, setForm] = useState<ReportForm>(INIT_FORM)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [lastPdfUrl, setLastPdfUrl] = useState<string | null>(null)
   const [connected, setConnected] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
@@ -272,7 +280,10 @@ export default function DoctorDashboard() {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
       })
       if (res.ok) {
-        setActiveReport(null); setForm(INIT_FORM)
+        const data = await res.json()
+        setForm(INIT_FORM)
+        if (data.pdf_url) setLastPdfUrl(data.pdf_url)
+        else setActiveReport(null)
         const updated = await fetch('/api/doctor/consultations').then(r => r.json())
         if (Array.isArray(updated)) setConsultations(updated)
       } else {
@@ -497,6 +508,31 @@ export default function DoctorDashboard() {
       </div>
 
       {/* ── Report Modal ── */}
+      {lastPdfUrl && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: 32, maxWidth: 400, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <FileText size={26} color="#059669" />
+            </div>
+            <div style={{ fontWeight: 700, fontSize: 18, color: '#0F1B2D', marginBottom: 8 }}>Report Generated!</div>
+            <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 24px' }}>Prescription PDF has been generated and emailed to the patient.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <a href={lastPdfUrl} target="_blank" rel="noopener noreferrer" style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                padding: '12px', borderRadius: 12, background: '#0EA5C8', color: '#fff',
+                fontSize: 14, fontWeight: 700, textDecoration: 'none'
+              }}>
+                <FileText size={16} /> Download Prescription PDF
+              </a>
+              <button onClick={() => { setLastPdfUrl(null); setActiveReport(null) }} style={{
+                padding: '12px', borderRadius: 12, border: '1px solid #E5E9F0', background: '#fff',
+                color: '#374151', fontSize: 14, fontWeight: 600, cursor: 'pointer'
+              }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeReport && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100,

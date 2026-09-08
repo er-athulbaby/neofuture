@@ -182,6 +182,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   const [reportForm, setReportForm] = useState<ReportForm>(INIT_FORM)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [lastPdfUrl, setLastPdfUrl] = useState<string | null>(null)
 
   useEffect(() => {
     fetch(`/api/doctor/patients/${patientId}`)
@@ -205,7 +206,10 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reportForm),
       })
       if (res.ok) {
-        setActiveReport(null); setReportForm(INIT_FORM)
+        const d2 = await res.json()
+        setReportForm(INIT_FORM)
+        if (d2.pdf_url) setLastPdfUrl(d2.pdf_url)
+        else setActiveReport(null)
         // Refresh data
         fetch(`/api/doctor/patients/${patientId}`).then(r => r.json()).then(d => { if (d.patient) { setData(d); setVitals(d.vitals ?? null) } })
       } else {
@@ -654,6 +658,25 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
         </div>
       </div>
     </div>
+
+    {/* ── PDF Success ── */}
+    {lastPdfUrl && (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+        <div style={{ background: '#fff', borderRadius: 20, padding: 32, maxWidth: 400, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <FileText size={26} color="#059669" />
+          </div>
+          <div style={{ fontWeight: 700, fontSize: 18, color: DARK, marginBottom: 8 }}>Report Generated!</div>
+          <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 24px' }}>Prescription PDF sent to patient. Download a copy below.</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <a href={lastPdfUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', borderRadius: 12, background: TEAL, color: '#fff', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
+              <FileText size={16} /> Download Prescription PDF
+            </a>
+            <button onClick={() => { setLastPdfUrl(null); setActiveReport(null) }} style={{ padding: '12px', borderRadius: 12, border: '1px solid #E5E9F0', background: '#fff', color: '#374151', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Close</button>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* ── Report Modal ── */}
 
