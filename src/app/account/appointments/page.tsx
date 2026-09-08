@@ -167,17 +167,12 @@ function AppointmentCard({ a, expanded, onToggle }: { a: Appointment; expanded: 
             {a.is_followup && <span className="ml-2 bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Free Follow-up</span>}
           </p>
           {/* Join button always visible on card face */}
-          {a.status === 'confirmed' && (
+          {a.meet_link && a.status === 'confirmed' && (
             <div className="mt-2" onClick={e => e.stopPropagation()}>
-              {a.meet_link
-                ? <a href={a.meet_link} target="_blank" rel="noopener noreferrer"
-                    className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors ${joinable ? 'bg-primary text-white hover:bg-primary-dark' : 'bg-gray-100 text-gray-500 border border-gray-200'}`}>
-                    <Video size={12} /> {joinable ? 'Join Google Meet' : `Opens at ${timeStr}`}
-                  </a>
-                : <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-yellow-50 text-yellow-700 border border-yellow-200">
-                    <Video size={12} /> Meeting link pending
-                  </span>
-              }
+              <a href={a.meet_link} target="_blank" rel="noopener noreferrer"
+                className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors ${joinable ? 'bg-primary text-white hover:bg-primary-dark' : 'bg-gray-100 text-gray-500 border border-gray-200'}`}>
+                <Video size={12} /> {joinable ? 'Join Google Meet' : `Opens at ${timeStr}`}
+              </a>
             </div>
           )}
         </div>

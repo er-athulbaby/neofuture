@@ -2,15 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { query, queryOne } from '@/lib/db'
 import Razorpay from 'razorpay'
-import { createMeetingEvent } from '@/lib/google-calendar'
 
-const rzpKeyId = process.env.RAZORPAY_KEY_ID ?? ''
-const rzpKeySecret = process.env.RAZORPAY_KEY_SECRET ?? ''
-const KEYS_CONFIGURED = rzpKeyId.length > 10 && !rzpKeyId.includes('xxxx') && rzpKeySecret.length > 10 && !rzpKeySecret.includes('xxxx')
-
-const TEST_MODE = process.env.CONSULTATION_TEST_MODE === 'true' || !KEYS_CONFIGURED
-
-const razorpay = KEYS_CONFIGURED ? new Razorpay({ key_id: rzpKeyId, key_secret: rzpKeySecret }) : null
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID!,
+  key_secret: process.env.RAZORPAY_KEY_SECRET!,
+})
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -41,7 +37,6 @@ export async function POST(req: NextRequest) {
   )
 
   if (freeFollowup) {
-    // Create free follow-up directly
     const consult = await queryOne<{ id: number }>(
       `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, status, is_followup, parent_consultation_id, lab_reports, teleconsult_consent)
        VALUES ($1,$2,$3,'confirmed',true,$4,$5,$6) RETURNING id`,
@@ -73,37 +68,18 @@ export async function POST(req: NextRequest) {
     [session.user.id, doctor_id, slot_datetime, neopulseRedeemed, neopulsePointsUsed, JSON.stringify(lab_reports ?? []), true]
   )
 
-  // Test mode — skip payment, confirm directly and create Google Meet if doctor is connected
-  if (TEST_MODE) {
-    let meetLink = ''
-    const doctorForMeet = await queryOne<{ name: string; google_refresh_token: string | null }>(
-      'SELECT name, google_refresh_token FROM doctors WHERE id=$1', [doctor_id]
-    )
-    const patient = await queryOne<{ name: string; email: string }>(
-      'SELECT name, email FROM users WHERE id=$1', [session.user.id]
-    )
-    if (doctorForMeet?.google_refresh_token) {
-      try {
-        const event = await createMeetingEvent(doctorForMeet.google_refresh_token, {
-          title: `NeoFuture Consultation — ${patient?.name} with ${doctorForMeet.name}`,
-          startTime: new Date(slot_datetime).toISOString(),
-          endTime: new Date(new Date(slot_datetime).getTime() + 30 * 60000).toISOString(),
-          patientEmail: patient?.email ?? '',
-          doctorEmail: '',
-          description: `NeoFuture teleconsultation. Consultation ID: TC-${String(consult!.id).padStart(6, '0')}`,
-        })
-        meetLink = event.meetLink
-      } catch { meetLink = '' }
-    }
-    await query(`UPDATE consultations SET status='confirmed', meet_link=$1 WHERE id=$2`, [meetLink, consult!.id])
-    return NextResponse.json({ consultation_id: consult!.id, is_free: true, amount: 0, test_mode: true })
+  let order
+  try {
+    order = await razorpay.orders.create({
+      amount: fee * 100,
+      currency: 'INR',
+      receipt: `consult_${consult!.id}`,
+    })
+  } catch (err) {
+    await query(`DELETE FROM consultations WHERE id=$1`, [consult!.id])
+    console.error('[book] Razorpay order creation failed:', err)
+    return NextResponse.json({ error: 'Payment gateway unavailable. Please try again.' }, { status: 500 })
   }
-
-  const order = await razorpay!.orders.create({
-    amount: fee * 100,
-    currency: 'INR',
-    receipt: `consult_${consult!.id}`,
-  })
 
   await query('UPDATE consultations SET razorpay_order_id=$1 WHERE id=$2', [order.id, consult!.id])
 
