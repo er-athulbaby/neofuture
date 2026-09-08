@@ -3,12 +3,13 @@ import { auth } from '@/lib/auth'
 import { query, queryOne } from '@/lib/db'
 import Razorpay from 'razorpay'
 
-const TEST_MODE = process.env.CONSULTATION_TEST_MODE === 'true'
+const rzpKeyId = process.env.RAZORPAY_KEY_ID ?? ''
+const rzpKeySecret = process.env.RAZORPAY_KEY_SECRET ?? ''
+const KEYS_CONFIGURED = rzpKeyId.length > 10 && !rzpKeyId.includes('xxxx') && rzpKeySecret.length > 10 && !rzpKeySecret.includes('xxxx')
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID ?? 'rzp_test_placeholder',
-  key_secret: process.env.RAZORPAY_KEY_SECRET ?? 'placeholder',
-})
+const TEST_MODE = process.env.CONSULTATION_TEST_MODE === 'true' || !KEYS_CONFIGURED
+
+const razorpay = KEYS_CONFIGURED ? new Razorpay({ key_id: rzpKeyId, key_secret: rzpKeySecret }) : null
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ consultation_id: consult!.id, is_free: true, amount: 0, test_mode: true })
   }
 
-  const order = await razorpay.orders.create({
+  const order = await razorpay!.orders.create({
     amount: fee * 100,
     currency: 'INR',
     receipt: `consult_${consult!.id}`,
