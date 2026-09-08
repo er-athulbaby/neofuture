@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import {
   Video, FileText, Plus, Trash2, Calendar, Users, Clock, Bell,
-  LogOut, Settings, LayoutDashboard, ChevronRight, X, AlertCircle,
-  Activity, TrendingUp, User, Link as LinkIcon
+  LogOut, Settings, LayoutDashboard, X, AlertCircle,
+  Activity, TrendingUp, Link as LinkIcon
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import Link from 'next/link'
@@ -244,6 +244,7 @@ export default function DoctorDashboard() {
   const [lastPdfUrl, setLastPdfUrl] = useState<string | null>(null)
   const [connected, setConnected] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [rxOptions, setRxOptions] = useState<Record<string, string[]>>({})
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
@@ -253,9 +254,15 @@ export default function DoctorDashboard() {
     Promise.all([
       fetch('/api/doctor/profile').then(r => r.json()),
       fetch('/api/doctor/consultations').then(r => r.json()),
-    ]).then(([profile, cons]) => {
+      fetch('/api/doctor/prescription-options').then(r => r.json()),
+    ]).then(([profile, cons, opts]) => {
       if (profile && !profile.error) setDoctor(profile)
       if (Array.isArray(cons)) setConsultations(cons)
+      if (opts && !opts.error) {
+        const flat: Record<string, string[]> = {}
+        for (const [k, v] of Object.entries(opts)) flat[k] = (v as { value: string }[]).map(x => x.value)
+        setRxOptions(flat)
+      }
     })
   }, [])
 
@@ -365,12 +372,11 @@ export default function DoctorDashboard() {
           ))}
 
           <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-            <Link href="/doctor/patients" style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-              borderRadius: 10, textDecoration: 'none', color: '#94A3B8', fontSize: 13,
-              fontWeight: 500, marginBottom: 2
-            }}>
+            <Link href="/doctor/patients" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, textDecoration: 'none', color: '#94A3B8', fontSize: 13, fontWeight: 500, marginBottom: 2 }}>
               <Users size={16} /> My Patients
+            </Link>
+            <Link href="/doctor/settings" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, textDecoration: 'none', color: '#94A3B8', fontSize: 13, fontWeight: 500, marginBottom: 2 }}>
+              <Settings size={16} /> Prescription Settings
             </Link>
             <a href="/api/doctor/google/connect" style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
@@ -590,11 +596,18 @@ export default function DoctorDashboard() {
                   {form.prescription.map((rx, i) => (
                     <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, background: '#F8FAFC', borderRadius: 10, padding: 10 }}>
                       {(['medicine', 'strength', 'dosage_route', 'frequency', 'duration', 'quantity'] as const).map(field => (
-                        <input key={field} value={(rx as Record<string, string>)[field]}
-                          onChange={e => updateRx(i, field, e.target.value)}
-                          placeholder={field.replace('_', ' ')}
-                          style={inputStyle}
-                        />
+                        <div key={field}>
+                          <datalist id={`dl-${field}`}>
+                            {(rxOptions[field] ?? []).map(v => <option key={v} value={v} />)}
+                          </datalist>
+                          <input
+                            list={`dl-${field}`}
+                            value={(rx as Record<string, string>)[field]}
+                            onChange={e => updateRx(i, field, e.target.value)}
+                            placeholder={field.replace('_', ' ')}
+                            style={inputStyle}
+                          />
+                        </div>
                       ))}
                       {form.prescription.length > 1 && (
                         <button
