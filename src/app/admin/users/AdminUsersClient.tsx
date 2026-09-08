@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/ToastProvider'
-import { Users, ShieldCheck, ShieldOff, Trash2, Search, RefreshCw, Heart, ChevronDown, ChevronUp, CheckCircle, XCircle } from 'lucide-react'
+import { Users, ShieldCheck, ShieldOff, Trash2, Search, RefreshCw, Heart, ChevronDown, ChevronUp, CheckCircle, XCircle, Stethoscope } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
 interface User {
-  id: string; name: string; email: string; is_admin: boolean
+  id: string; name: string; email: string; is_admin: boolean; is_doctor: boolean
   created_at: string; order_count: number
 }
 
@@ -86,6 +86,20 @@ export default function AdminUsersClient({ currentUserId }: { currentUserId: str
     } else toast('Failed', 'error')
   }
 
+  async function toggleDoctor(user: User) {
+    const action = user.is_doctor ? 'remove doctor role from' : 'make doctor'
+    if (!confirm(`Are you sure you want to ${action} ${user.email}?`)) return
+    const res = await fetch('/api/admin/users', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: user.id, is_doctor: !user.is_doctor }),
+    })
+    if (res.ok) {
+      toast(user.is_doctor ? 'Doctor role removed' : 'Doctor role granted')
+      setUsers((u) => u.map((x) => x.id === user.id ? { ...x, is_doctor: !x.is_doctor } : x))
+    } else toast('Failed', 'error')
+  }
+
   async function deleteUser(user: User) {
     if (!confirm(`Delete user ${user.email}? This cannot be undone.`)) return
     const res = await fetch('/api/admin/users', {
@@ -103,14 +117,16 @@ export default function AdminUsersClient({ currentUserId }: { currentUserId: str
   }
 
   const filtered = users.filter((u) => {
-    const matchTab = tab === 'all' || tab === 'health' || (tab === 'admin' ? u.is_admin : !u.is_admin)
+    const matchTab = tab === 'all' || tab === 'health'
+      || (tab === 'admin' ? u.is_admin : tab === 'doctor' ? u.is_doctor : (!u.is_admin && !u.is_doctor))
     const q = search.toLowerCase()
     const matchSearch = !q || u.name?.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
     return matchTab && matchSearch
   })
 
   const adminCount = users.filter((u) => u.is_admin).length
-  const userCount = users.filter((u) => !u.is_admin).length
+  const doctorCount = users.filter((u) => u.is_doctor).length
+  const userCount = users.filter((u) => !u.is_admin && !u.is_doctor).length
 
   const filteredHealth = healthUsers.filter((u) => {
     const q = search.toLowerCase()
@@ -136,7 +152,7 @@ export default function AdminUsersClient({ currentUserId }: { currentUserId: str
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-white border border-gray-100 rounded-2xl p-4 text-center">
           <p className="text-2xl font-bold text-brand-dark">{users.length}</p>
           <p className="text-xs text-brand-gray mt-0.5">Total Users</p>
@@ -144,6 +160,10 @@ export default function AdminUsersClient({ currentUserId }: { currentUserId: str
         <div className="bg-white border border-gray-100 rounded-2xl p-4 text-center">
           <p className="text-2xl font-bold text-neo-orange">{adminCount}</p>
           <p className="text-xs text-brand-gray mt-0.5">Admins</p>
+        </div>
+        <div className="bg-white border border-gray-100 rounded-2xl p-4 text-center">
+          <p className="text-2xl font-bold text-blue-600">{doctorCount}</p>
+          <p className="text-xs text-brand-gray mt-0.5">Doctors</p>
         </div>
         <div className="bg-white border border-gray-100 rounded-2xl p-4 text-center">
           <p className="text-2xl font-bold text-primary">{userCount}</p>
@@ -154,11 +174,12 @@ export default function AdminUsersClient({ currentUserId }: { currentUserId: str
       {/* Tabs + Search */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit flex-wrap">
-          {(['all', 'admin', 'users', 'health'] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
+          {(['all', 'admin', 'doctor', 'users', 'health'] as const).map((t) => (
+            <button key={t} onClick={() => setTab(t as typeof tab)}
               className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all capitalize ${tab === t ? 'bg-white text-brand-dark shadow-sm' : 'text-brand-gray hover:text-brand-dark'}`}>
               {t === 'all' ? `All (${users.length})`
                 : t === 'admin' ? `Admins (${adminCount})`
+                : t === 'doctor' ? `Doctors (${doctorCount})`
                 : t === 'users' ? `Users (${userCount})`
                 : <span className="flex items-center gap-1"><Heart size={12} /> Health Data</span>}
             </button>
@@ -317,14 +338,33 @@ export default function AdminUsersClient({ currentUserId }: { currentUserId: str
                       <td className="px-4 py-3 text-brand-gray text-xs">{formatDate(u.created_at)}</td>
                       <td className="px-4 py-3 text-center font-medium text-brand-dark">{u.order_count}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium ${u.is_admin ? 'bg-neo-orange-light text-neo-orange' : 'bg-gray-100 text-brand-gray'}`}>
-                          {u.is_admin ? <><ShieldCheck size={11} /> Admin</> : 'User'}
-                        </span>
+                        <div className="flex items-center justify-center gap-1 flex-wrap">
+                          {u.is_admin && (
+                            <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium bg-neo-orange-light text-neo-orange">
+                              <ShieldCheck size={11} /> Admin
+                            </span>
+                          )}
+                          {u.is_doctor && (
+                            <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium bg-blue-50 text-blue-700">
+                              <Stethoscope size={11} /> Doctor
+                            </span>
+                          )}
+                          {!u.is_admin && !u.is_doctor && (
+                            <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium bg-gray-100 text-brand-gray">
+                              User
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-2">
                           {u.id !== currentUserId && (
                             <>
+                              <button onClick={() => toggleDoctor(u)}
+                                title={u.is_doctor ? 'Remove doctor role' : 'Make doctor'}
+                                className={`p-1.5 rounded-lg transition-colors ${u.is_doctor ? 'text-blue-600 hover:bg-blue-50' : 'text-brand-gray hover:bg-blue-50 hover:text-blue-600'}`}>
+                                <Stethoscope size={15} />
+                              </button>
                               <button onClick={() => toggleAdmin(u)}
                                 title={u.is_admin ? 'Remove admin' : 'Make admin'}
                                 className={`p-1.5 rounded-lg transition-colors ${u.is_admin ? 'text-neo-orange hover:bg-neo-orange-light' : 'text-brand-gray hover:bg-primary-light hover:text-primary'}`}>

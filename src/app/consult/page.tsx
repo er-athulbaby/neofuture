@@ -2,7 +2,14 @@ import { query } from '@/lib/db'
 import Link from 'next/link'
 import { Stethoscope, Calendar, Clock } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 interface Doctor { id: number; name: string; photo_url: string; qualification: string; specialisation: string; bio: string; consultation_fee: number }
+
+// Show only base degrees (MBBS, BDS, etc.) — strip anything after " — " in each segment
+function baseQualification(qual: string): string {
+  return qual.split(', ').filter(p => !p.includes(' — ')).join(', ')
+}
 
 export default async function ConsultPage() {
   const doctors = await query<Doctor>('SELECT id, name, photo_url, qualification, specialisation, bio, consultation_fee FROM doctors WHERE is_active = true ORDER BY id')
@@ -39,7 +46,7 @@ export default async function ConsultPage() {
                   ? <img src={doc.photo_url} className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-sm mb-3" alt={doc.name} />
                   : <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-2xl border-4 border-white shadow-sm mb-3">{doc.name.charAt(0)}</div>}
                 <h3 className="font-bold text-brand-dark text-lg">{doc.name}</h3>
-                <p className="text-xs text-brand-gray mt-0.5">{doc.qualification}</p>
+                <p className="text-xs text-brand-gray mt-0.5">{baseQualification(doc.qualification)}</p>
                 <span className="mt-2 bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full">{doc.specialisation}</span>
               </div>
               <div className="p-4">

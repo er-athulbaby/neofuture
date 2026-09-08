@@ -13,6 +13,10 @@ interface LabReport { key: string; name: string; size: number; type: string }
 
 declare global { interface Window { Razorpay: new (options: Record<string, unknown>) => { open: () => void } } }
 
+function baseQualification(qual: string): string {
+  return qual.split(', ').filter(p => !p.includes(' — ')).join(', ')
+}
+
 function addDays(date: Date, n: number) {
   const d = new Date(date); d.setDate(d.getDate() + n); return d
 }
@@ -160,7 +164,7 @@ export default function ConsultBookPage() {
             : <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl flex-shrink-0">{doctor.name.charAt(0)}</div>}
           <div className="flex-1">
             <h1 className="text-xl font-bold text-brand-dark">{doctor.name}</h1>
-            <p className="text-brand-gray text-sm">{doctor.qualification}</p>
+            <p className="text-brand-gray text-sm">{baseQualification(doctor.qualification)}</p>
             <span className="inline-block mt-1 bg-primary/10 text-primary text-xs font-semibold px-3 py-0.5 rounded-full">{doctor.specialisation}</span>
             {doctor.bio && <p className="text-sm text-brand-gray mt-2">{doctor.bio}</p>}
             {doctor.registration_no && <p className="text-xs text-brand-gray mt-1">Reg: {doctor.registration_no} · {doctor.state_medical_council}</p>}

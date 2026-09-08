@@ -11,10 +11,10 @@ async function guard() {
 export async function GET() {
   const err = await guard(); if (err) return err
   const users = await query<{
-    id: string; name: string; email: string; is_admin: boolean
+    id: string; name: string; email: string; is_admin: boolean; is_doctor: boolean
     created_at: string; order_count: number
   }>(
-    `SELECT u.id, u.name, u.email, u.is_admin, u.created_at,
+    `SELECT u.id, u.name, u.email, u.is_admin, u.is_doctor, u.created_at,
        COUNT(o.id)::int as order_count
      FROM users u
      LEFT JOIN orders o ON o.user_id = u.id
@@ -27,9 +27,15 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   const err = await guard(); if (err) return err
-  const { id, is_admin } = await req.json()
+  const { id, is_admin, is_doctor } = await req.json()
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
-  await query('UPDATE users SET is_admin = $1 WHERE id = $2', [is_admin, id])
+
+  if (is_admin !== undefined) {
+    await query('UPDATE users SET is_admin = $1 WHERE id = $2', [is_admin, id])
+  }
+  if (is_doctor !== undefined) {
+    await query('UPDATE users SET is_doctor = $1 WHERE id = $2', [is_doctor, id])
+  }
   return NextResponse.json({ ok: true })
 }
 

@@ -7,6 +7,7 @@ import {
   Activity, TrendingUp, User, Link as LinkIcon
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
+import Link from 'next/link'
 
 /* ─────────── Types ─────────── */
 interface DoctorProfile {
@@ -348,6 +349,13 @@ export default function DoctorDashboard() {
           ))}
 
           <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <Link href="/doctor/patients" style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+              borderRadius: 10, textDecoration: 'none', color: '#94A3B8', fontSize: 13,
+              fontWeight: 500, marginBottom: 2
+            }}>
+              <Users size={16} /> My Patients
+            </Link>
             <a href="/api/doctor/google/connect" style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
               borderRadius: 10, textDecoration: 'none', color: '#94A3B8', fontSize: 13,
