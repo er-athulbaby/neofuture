@@ -119,19 +119,18 @@ function CheckoutForm() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // only on mount
 
-  // Pincode autocomplete via India Post free API
+  // Pincode autocomplete via server proxy
   const lookupPincode = useCallback(async (pin: string) => {
     if (!/^\d{6}$/.test(pin)) return
     setPincodeLoading(true)
     try {
-      const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`)
+      const res = await fetch(`/api/pincode/${pin}`)
       const data = await res.json()
-      if (data?.[0]?.Status === 'Success' && data[0].PostOffice?.length) {
-        const po = data[0].PostOffice[0]
+      if (res.ok && data.city) {
         setAddress((a) => ({
           ...a,
-          city: a.city || po.District || po.Name,
-          state: a.state || po.State,
+          city: data.city,
+          state: data.state,
         }))
       }
     } catch {}
