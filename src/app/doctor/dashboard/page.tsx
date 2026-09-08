@@ -107,7 +107,8 @@ export default function DoctorDashboard() {
           {today.length === 0 && <p className="text-sm text-brand-gray bg-white rounded-xl px-4 py-6 text-center border border-gray-100">No appointments today.</p>}
           <div className="space-y-3">
             {today.map(c => (
-              <ConsultCard key={c.id} c={c} onReport={() => { setActiveReport(c.id); setForm(INIT_FORM) }} canJoin={canJoin(c.slot_datetime)} />
+              <ConsultCard key={c.id} c={c} onReport={() => { setActiveReport(c.id); setForm(INIT_FORM) }} canJoin={canJoin(c.slot_datetime)}
+                onMeetGenerated={(id, link) => setConsultations(prev => prev.map(x => x.id === id ? { ...x, meet_link: link } : x))} />
             ))}
           </div>
         </div>
@@ -117,7 +118,8 @@ export default function DoctorDashboard() {
           <h2 className="font-bold text-brand-dark mb-3">Upcoming ({upcoming.filter(c => !today.includes(c)).length})</h2>
           <div className="space-y-3">
             {upcoming.filter(c => !today.includes(c)).map(c => (
-              <ConsultCard key={c.id} c={c} onReport={() => { setActiveReport(c.id); setForm(INIT_FORM) }} canJoin={false} />
+              <ConsultCard key={c.id} c={c} onReport={() => { setActiveReport(c.id); setForm(INIT_FORM) }} canJoin={false}
+                onMeetGenerated={(id, link) => setConsultations(prev => prev.map(x => x.id === id ? { ...x, meet_link: link } : x))} />
             ))}
             {upcoming.filter(c => !today.includes(c)).length === 0 && (
               <p className="text-sm text-brand-gray bg-white rounded-xl px-4 py-6 text-center border border-gray-100">No upcoming appointments.</p>
@@ -131,7 +133,8 @@ export default function DoctorDashboard() {
             <h2 className="font-bold text-brand-dark mb-3">Past Consultations ({past.filter(c => !today.includes(c)).length})</h2>
             <div className="space-y-3">
               {past.filter(c => !today.includes(c)).map(c => (
-                <ConsultCard key={c.id} c={c} onReport={() => { setActiveReport(c.id); setForm(INIT_FORM) }} canJoin={false} />
+                <ConsultCard key={c.id} c={c} onReport={() => { setActiveReport(c.id); setForm(INIT_FORM) }} canJoin={false}
+                  onMeetGenerated={(id, link) => setConsultations(prev => prev.map(x => x.id === id ? { ...x, meet_link: link } : x))} />
               ))}
             </div>
           </div>
@@ -223,15 +226,30 @@ export default function DoctorDashboard() {
   )
 }
 
-function ConsultCard({ c, onReport, canJoin }: { c: Consultation; onReport: () => void; canJoin: boolean }) {
+function ConsultCard({ c, onReport, canJoin, onMeetGenerated }: { c: Consultation; onReport: () => void; canJoin: boolean; onMeetGenerated: (id: number, link: string) => void }) {
   const time = new Date(c.slot_datetime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
   const date = new Date(c.slot_datetime).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
   const reports = Array.isArray(c.lab_reports) ? c.lab_reports : []
+  const [generatingMeet, setGeneratingMeet] = useState(false)
+  const [meetError, setMeetError] = useState('')
 
   async function viewReport(key: string, name: string) {
     const res = await fetch(`/api/doctor/lab-report?key=${encodeURIComponent(key)}`)
     const data = await res.json()
     if (data.url) window.open(data.url, '_blank')
+  }
+
+  async function generateMeet() {
+    setGeneratingMeet(true)
+    setMeetError('')
+    const res = await fetch(`/api/doctor/consultations/${c.id}/meet`, { method: 'POST' })
+    const data = await res.json()
+    setGeneratingMeet(false)
+    if (res.ok) {
+      onMeetGenerated(c.id, data.meet_link)
+    } else {
+      setMeetError(data.error ?? 'Failed to create Meet link')
+    }
   }
 
   return (
@@ -242,18 +260,23 @@ function ConsultCard({ c, onReport, canJoin }: { c: Consultation; onReport: () =
           <p className="text-xs text-brand-gray">{c.patient_email} · {date} at {time} · {c.duration_minutes} min</p>
           {c.is_followup && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Free Follow-up</span>}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           {c.report_id
             ? <span className="text-xs text-green-600 font-medium flex items-center gap-1"><FileText size={12} /> Report Sent</span>
             : c.status === 'confirmed' && <button onClick={onReport} className="flex items-center gap-1 text-xs bg-orange-50 text-orange-600 border border-orange-200 px-3 py-1.5 rounded-lg font-medium hover:bg-orange-100"><FileText size={12} /> Fill Report</button>}
-          {c.meet_link && (
-            <a href={`/consult/room/${c.id}`} target="_blank" rel="noopener noreferrer"
-              className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${canJoin ? 'bg-primary text-white hover:bg-primary/90' : 'bg-gray-100 text-gray-400 cursor-not-allowed pointer-events-none'}`}>
-              <Video size={12} /> Join Meet
-            </a>
-          )}
+          {c.meet_link
+            ? <a href={c.meet_link} target="_blank" rel="noopener noreferrer"
+                className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${canJoin ? 'bg-primary text-white hover:bg-primary/90' : 'bg-gray-100 text-gray-400'}`}>
+                <Video size={12} /> {canJoin ? 'Join Google Meet' : 'Meet Link'}
+              </a>
+            : <button onClick={generateMeet} disabled={generatingMeet}
+                className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg font-medium hover:bg-blue-100 disabled:opacity-50">
+                <Video size={12} /> {generatingMeet ? 'Creating…' : 'Generate Meet Link'}
+              </button>
+          }
         </div>
       </div>
+      {meetError && <p className="text-xs text-red-600 mt-2 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5">{meetError}</p>}
       {reports.length > 0 && (
         <div className="mt-3 pt-3 border-t border-gray-100">
           <p className="text-xs font-semibold text-brand-gray mb-2">Lab Reports from Patient</p>
