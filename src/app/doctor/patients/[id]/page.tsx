@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, Edit3, Save, X, FileText, Activity,
   Calendar, Clock, ChevronRight, User, Pill,
-  FlaskConical, StickyNote, Video, Link as LinkIcon, Plus, Trash2
+  FlaskConical, StickyNote, Video, Link as LinkIcon, Plus, Trash2, Heart, Zap
 } from 'lucide-react'
 
 /* ─── Types ─── */
@@ -696,7 +696,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                 {reportForm.prescription.map((rx, i) => (
                   <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, background: '#F8FAFC', borderRadius: 10, padding: 10 }}>
                     {(['medicine', 'strength', 'dosage_route', 'frequency', 'duration', 'quantity'] as const).map(field => (
-                      <input key={field} value={(rx as Record<string, string>)[field]}
+                      <input key={field} value={(rx as unknown as Record<string, string>)[field]}
                         onChange={e => {
                           const rx2 = [...reportForm.prescription]; rx2[i] = { ...rx2[i], [field]: e.target.value }
                           setReportForm(f => ({ ...f, prescription: rx2 }))
