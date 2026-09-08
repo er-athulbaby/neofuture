@@ -72,9 +72,10 @@ export async function POST(req: NextRequest) {
     [session.user.id, doctor_id, slot_datetime, neopulseRedeemed, neopulsePointsUsed, JSON.stringify(lab_reports ?? []), true]
   )
 
-  // Test mode — skip payment, confirm directly
+  // Test mode — skip payment, confirm directly with a fallback meet link
   if (TEST_MODE) {
-    await query(`UPDATE consultations SET status='confirmed' WHERE id=$1`, [consult!.id])
+    const meetLink = `https://meet.jit.si/NeoFuture-TC-${String(consult!.id).padStart(6, '0')}`
+    await query(`UPDATE consultations SET status='confirmed', meet_link=$1 WHERE id=$2`, [meetLink, consult!.id])
     return NextResponse.json({ consultation_id: consult!.id, is_free: true, amount: 0, test_mode: true })
   }
 

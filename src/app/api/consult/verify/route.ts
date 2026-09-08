@@ -40,8 +40,9 @@ export async function POST(req: NextRequest) {
     [consult.patient_id]
   )
 
-  // Create Google Meet via Calendar API
-  let meetLink = ''
+  // Create Google Meet via Calendar API; fall back to Jitsi if doctor has no Google token
+  const fallbackMeetLink = `https://meet.jit.si/NeoFuture-TC-${String(consultation_id).padStart(6, '0')}`
+  let meetLink = fallbackMeetLink
   let googleEventId = ''
   if (doctor?.google_refresh_token) {
     const startTime = new Date(consult.slot_datetime).toISOString()
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
       meetLink = event.meetLink
       googleEventId = event.eventId
     } catch {
-      meetLink = `https://meet.google.com/neofuture-${consultation_id}`
+      meetLink = fallbackMeetLink
     }
   }
 

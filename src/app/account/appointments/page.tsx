@@ -166,6 +166,15 @@ function AppointmentCard({ a, expanded, onToggle }: { a: Appointment; expanded: 
             <Calendar size={11} /> {dateStr} at {timeStr}
             {a.is_followup && <span className="ml-2 bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Free Follow-up</span>}
           </p>
+          {/* Join button always visible on card face */}
+          {a.meet_link && a.status === 'confirmed' && (
+            <div className="mt-2" onClick={e => e.stopPropagation()}>
+              <a href={a.meet_link} target="_blank" rel="noopener noreferrer"
+                className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors ${joinable ? 'bg-primary text-white hover:bg-primary-dark' : 'bg-gray-100 text-gray-500 border border-gray-200'}`}>
+                <Video size={12} /> {joinable ? 'Join Meeting' : `Opens at ${timeStr}`}
+              </a>
+            </div>
+          )}
         </div>
         <ChevronRight size={16} className={`text-gray-300 flex-shrink-0 transition-transform mt-0.5 ${expanded ? 'rotate-90' : ''}`} />
       </div>
@@ -175,9 +184,9 @@ function AppointmentCard({ a, expanded, onToggle }: { a: Appointment; expanded: 
           {/* Actions */}
           <div className="flex gap-2 flex-wrap">
             {a.meet_link && a.status === 'confirmed' && (
-              <a href={`/consult/room/${a.id}`} target="_blank" rel="noopener noreferrer"
+              <a href={a.meet_link} target="_blank" rel="noopener noreferrer"
                 className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg font-semibold transition-colors ${joinable ? 'bg-primary text-white hover:bg-primary-dark' : 'bg-gray-100 text-gray-400 cursor-not-allowed pointer-events-none'}`}>
-                <Video size={13} /> {joinable ? 'Join Meet' : 'Not open yet'}
+                <Video size={13} /> {joinable ? 'Join Meeting' : 'Not open yet'}
               </a>
             )}
             {a.pdf_url && (
