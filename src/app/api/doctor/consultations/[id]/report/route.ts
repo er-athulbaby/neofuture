@@ -23,10 +23,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   )
   if (!consult) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const patient = await queryOne<{ name: string; email: string; phone: string; dob: string; gender: string }>(
-    'SELECT name, email, phone, dob, gender FROM users WHERE id=$1',
-    [consult.patient_id]
-  )
+  const [patient, patientVitals] = await Promise.all([
+    queryOne<{ name: string; email: string; phone: string }>(
+      'SELECT name, email, phone FROM users WHERE id=$1',
+      [consult.patient_id]
+    ),
+    queryOne<{ dob: string | null }>(
+      'SELECT dob FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2::text',
+      [doctor.id, consult.patient_id]
+    ).catch(() => null),
+  ])
 
   const { diagnosis, notes, prescription, additional_instructions, followup_weeks, followup_date } = await req.json()
 
@@ -45,8 +51,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     [id, diagnosis, notes, JSON.stringify(prescription), additional_instructions, followup_weeks ?? null, followup_date ?? null, JSON.stringify(wellnessSnapshot)]
   )
 
-  // Compute age
-  const age = patient?.dob ? Math.floor((Date.now() - new Date(patient.dob).getTime()) / 31557600000) : 0
+  // Compute age from vitals DOB (users table has no dob column)
+  const age = patientVitals?.dob ? Math.floor((Date.now() - new Date(patientVitals.dob).getTime()) / 31557600000) : 0
   const consultDate = new Date(consult.slot_datetime)
   const dateStr = consultDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
   const timeStr = consultDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
@@ -58,7 +64,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     patientId: `P-${String(consult.patient_id).padStart(6, '0')}`,
     date: dateStr,
     time: timeStr,
-    patient: { name: patient?.name ?? '', age, gender: (patient as { gender?: string })?.gender ?? 'Female', mobile: patient?.phone ?? '' },
+    patient: { name: patient?.name ?? '', age, gender: 'Female', mobile: patient?.phone ?? '' },
     doctor: {
       name: doctor.name,
       qualification: doctor.qualification ?? '',
