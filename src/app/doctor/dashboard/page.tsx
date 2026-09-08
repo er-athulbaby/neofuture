@@ -83,11 +83,21 @@ function AppointCard({
   const join = canJoin(c.slot_datetime)
   const [genMeet, setGenMeet] = useState(false)
   const [meetErr, setMeetErr] = useState('')
+  const [genPdf, setGenPdf] = useState(false)
+  const [pdfUrl, setPdfUrl] = useState<string | null>(c.report_pdf_url)
 
   async function viewLab(key: string) {
     const res = await fetch(`/api/doctor/lab-report?key=${encodeURIComponent(key)}`)
     const data = await res.json()
     if (data.url) window.open(data.url, '_blank')
+  }
+
+  async function generatePdf() {
+    setGenPdf(true)
+    const res = await fetch(`/api/doctor/consultations/${c.id}/report/pdf`, { method: 'POST' })
+    const data = await res.json()
+    setGenPdf(false)
+    if (res.ok && data.pdf_url) setPdfUrl(data.pdf_url)
   }
 
   async function generateMeet() {
@@ -204,8 +214,8 @@ function AppointCard({
 
         {c.status === 'confirmed' && (
           c.report_id ? (
-            c.report_pdf_url ? (
-              <a href={c.report_pdf_url} target="_blank" rel="noopener noreferrer" style={{
+            pdfUrl ? (
+              <a href={pdfUrl} target="_blank" rel="noopener noreferrer" style={{
                 flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 padding: '8px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600, textDecoration: 'none',
                 background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0'
@@ -213,9 +223,14 @@ function AppointCard({
                 <FileText size={14} /> Download PDF
               </a>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#059669', background: '#ECFDF5' }}>
-                <FileText size={14} /> Report Sent
-              </div>
+              <button onClick={generatePdf} disabled={genPdf} style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                padding: '8px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                background: '#FFF7ED', color: '#C2410C', border: '1px solid #FED7AA',
+                opacity: genPdf ? 0.6 : 1
+              }}>
+                <FileText size={14} /> {genPdf ? 'Generating…' : 'Generate PDF'}
+              </button>
             )
           ) : (
             <button onClick={onReport} style={{
