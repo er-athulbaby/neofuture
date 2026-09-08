@@ -34,8 +34,8 @@ export async function GET(_req: NextRequest, { params }: Props) {
       [doctor.id, patientId]
     ).catch(() => null),
     query(`
-      SELECT c.id, c.slot_datetime, c.status, c.is_followup, c.lab_reports,
-        cr.diagnosis, cr.notes, cr.prescription, cr.additional_instructions, cr.created_at AS report_date
+      SELECT c.id, c.slot_datetime, c.status, c.is_followup, c.lab_reports, c.meet_link,
+        cr.id AS report_id, cr.diagnosis, cr.notes, cr.prescription, cr.additional_instructions, cr.created_at AS report_date
       FROM consultations c
       LEFT JOIN consultation_reports cr ON cr.consultation_id = c.id
       WHERE c.doctor_id=$1 AND c.patient_id::text=$2::text AND c.status IN ('confirmed','completed')

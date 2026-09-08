@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, Edit3, Save, X, FileText, Activity,
   Calendar, Clock, ChevronRight, User, Pill,
-  FlaskConical, StickyNote, Heart, Zap
+  FlaskConical, StickyNote, Video, Link as LinkIcon, Plus, Trash2
 } from 'lucide-react'
 
 /* ─── Types ─── */
@@ -13,9 +13,17 @@ interface Vitals { dob: string | null; weight_kg: number | null; height_cm: numb
 interface Consultation {
   id: number; slot_datetime: string; status: string; is_followup: boolean
   lab_reports: { key: string; name: string; size: number; type: string }[]
+  meet_link: string | null; report_id: number | null
   diagnosis: string | null; notes: string | null; prescription: PrescriptionItem[] | null
   additional_instructions: string | null; report_date: string | null
 }
+interface ReportForm {
+  diagnosis: string; notes: string; additional_instructions: string
+  followup_weeks: number; followup_date: string
+  prescription: PrescriptionItem[]
+}
+const EMPTY_RX: PrescriptionItem = { medicine: '', strength: '', dosage_route: '', frequency: '', duration: '', quantity: '' }
+const INIT_FORM: ReportForm = { diagnosis: '', notes: '', additional_instructions: '', followup_weeks: 6, followup_date: '', prescription: [{ ...EMPTY_RX }] }
 interface PrescriptionItem { medicine: string; strength: string; dosage_route: string; frequency: string; duration: string; quantity: string }
 interface PatientDetail {
   patient: { id: string; name: string; email: string; phone: string | null }
@@ -170,6 +178,10 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   const [loading, setLoading] = useState(true)
   // vitals kept in separate state so VitalsPanel can update it without re-fetching
   const [vitals, setVitals] = useState<Vitals | null>(null)
+  const [activeReport, setActiveReport] = useState<number | null>(null)
+  const [reportForm, setReportForm] = useState<ReportForm>(INIT_FORM)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   useEffect(() => {
     fetch(`/api/doctor/patients/${patientId}`)
@@ -180,6 +192,29 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [patientId])
+
+  function canJoin(slot: string) {
+    const t = new Date(slot).getTime(); const now = Date.now()
+    return now >= t - 15 * 60000 && now <= t + 60 * 60000
+  }
+
+  async function submitReport(consultationId: number) {
+    setSubmitting(true); setSubmitError('')
+    try {
+      const res = await fetch(`/api/doctor/consultations/${consultationId}/report`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reportForm),
+      })
+      if (res.ok) {
+        setActiveReport(null); setReportForm(INIT_FORM)
+        // Refresh data
+        fetch(`/api/doctor/patients/${patientId}`).then(r => r.json()).then(d => { if (d.patient) { setData(d); setVitals(d.vitals ?? null) } })
+      } else {
+        const d = await res.json().catch(() => ({}))
+        setSubmitError(d.error ?? `Error ${res.status}`)
+      }
+    } catch { setSubmitError('Network error — please try again') }
+    finally { setSubmitting(false) }
+  }
 
   async function viewLab(key: string) {
     const res = await fetch(`/api/doctor/lab-report?key=${encodeURIComponent(key)}`)
@@ -214,6 +249,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   const allLabFiles = consultations.flatMap(c => (c.lab_reports ?? []).map(r => ({ ...r, date: c.slot_datetime })))
 
   return (
+    <>
     <div style={{ minHeight: '100vh', display: 'flex', background: '#F0F4F8', fontFamily: "'Geist', system-ui, sans-serif" }}>
 
       {/* ── Slim icon strip ── */}
@@ -460,6 +496,34 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                           {c.notes && <p style={{ margin: '8px 0 0', fontSize: 13, color: '#374151' }}>{c.notes}</p>}
                         </div>
                       )}
+                      {/* Meet + Report buttons */}
+                      <div style={{ borderTop: '1px solid #F3F4F6', marginTop: 12, paddingTop: 12, display: 'flex', gap: 8 }}>
+                        {c.meet_link ? (
+                          <a href={c.meet_link} target="_blank" rel="noopener noreferrer" style={{
+                            display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
+                            borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none',
+                            background: canJoin(c.slot_datetime) ? TEAL : '#F3F4F6',
+                            color: canJoin(c.slot_datetime) ? '#fff' : '#6B7280'
+                          }}>
+                            <Video size={13} /> {canJoin(c.slot_datetime) ? 'Join Meet' : 'Meet Link'}
+                          </a>
+                        ) : null}
+                        {c.status === 'confirmed' && (
+                          c.report_id ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, background: '#ECFDF5', color: '#059669' }}>
+                              <FileText size={13} /> Report Sent
+                            </span>
+                          ) : (
+                            <button onClick={() => { setActiveReport(c.id); setReportForm(INIT_FORM) }} style={{
+                              display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
+                              borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                              background: '#FFF7ED', color: '#C2410C', border: '1px solid #FED7AA'
+                            }}>
+                              <FileText size={13} /> Fill Report
+                            </button>
+                          )
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -590,5 +654,98 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
         </div>
       </div>
     </div>
+
+    {/* ── Report Modal ── */}
+
+    {activeReport && (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '32px 16px' }}>
+        <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 640, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+          <div style={{ padding: '20px 24px', borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FileText size={18} color="#C2410C" />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: DARK }}>Post-Consultation Report</div>
+                <div style={{ fontSize: 12, color: '#6B7280' }}>{patient.name}</div>
+              </div>
+            </div>
+            <button onClick={() => { setActiveReport(null); setSubmitError('') }} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E5E9F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <X size={15} color="#6B7280" />
+            </button>
+          </div>
+          <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Diagnosis */}
+            <div>
+              <label style={labelStyle}>Diagnosis / Clinical Assessment *</label>
+              <textarea value={reportForm.diagnosis} onChange={e => setReportForm(f => ({ ...f, diagnosis: e.target.value }))} rows={2} style={taStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Doctor Notes</label>
+              <textarea value={reportForm.notes} onChange={e => setReportForm(f => ({ ...f, notes: e.target.value }))} rows={2} style={taStyle} />
+            </div>
+            {/* Prescription */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <label style={labelStyle}>Prescription</label>
+                <button onClick={() => setReportForm(f => ({ ...f, prescription: [...f.prescription, { ...EMPTY_RX }] }))} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: TEAL, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <Plus size={13} /> Add Medicine
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {reportForm.prescription.map((rx, i) => (
+                  <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, background: '#F8FAFC', borderRadius: 10, padding: 10 }}>
+                    {(['medicine', 'strength', 'dosage_route', 'frequency', 'duration', 'quantity'] as const).map(field => (
+                      <input key={field} value={(rx as Record<string, string>)[field]}
+                        onChange={e => {
+                          const rx2 = [...reportForm.prescription]; rx2[i] = { ...rx2[i], [field]: e.target.value }
+                          setReportForm(f => ({ ...f, prescription: rx2 }))
+                        }}
+                        placeholder={field.replace('_', ' ')} style={inStyle} />
+                    ))}
+                    {reportForm.prescription.length > 1 && (
+                      <button onClick={() => setReportForm(f => ({ ...f, prescription: f.prescription.filter((_, j) => j !== i) }))}
+                        style={{ gridColumn: 'span 3', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, fontSize: 12, color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        <Trash2 size={12} /> Remove
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label style={labelStyle}>Additional Instructions (one per line)</label>
+              <textarea value={reportForm.additional_instructions} onChange={e => setReportForm(f => ({ ...f, additional_instructions: e.target.value }))} rows={2} placeholder={"Take medicines after food\nAvoid stress"} style={taStyle} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Follow-up after (weeks)</label>
+                <input type="number" value={reportForm.followup_weeks} onChange={e => setReportForm(f => ({ ...f, followup_weeks: Number(e.target.value) }))} style={inStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Follow-up Date</label>
+                <input type="date" value={reportForm.followup_date} onChange={e => setReportForm(f => ({ ...f, followup_date: e.target.value }))} style={inStyle} />
+              </div>
+            </div>
+          </div>
+          <div style={{ padding: '16px 24px', borderTop: '1px solid #F3F4F6' }}>
+            {submitError && (
+              <div style={{ fontSize: 13, color: '#DC2626', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '8px 12px', marginBottom: 12 }}>{submitError}</div>
+            )}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => { setActiveReport(null); setSubmitError('') }} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid #E5E9F0', background: '#fff', color: '#374151', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => submitReport(activeReport)} disabled={!reportForm.diagnosis || submitting} style={{ flex: 2, padding: '10px', borderRadius: 12, border: 'none', background: !reportForm.diagnosis || submitting ? '#E5E9F0' : TEAL, color: !reportForm.diagnosis || submitting ? '#9CA3AF' : '#fff', fontSize: 14, fontWeight: 700, cursor: !reportForm.diagnosis || submitting ? 'not-allowed' : 'pointer' }}>
+                {submitting ? 'Generating PDF…' : 'Submit & Send to Patient'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
+
+const labelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.6, display: 'block', marginBottom: 6 }
+const inStyle: React.CSSProperties = { width: '100%', border: '1px solid #E5E9F0', borderRadius: 8, padding: '8px 10px', fontSize: 13, color: '#0F1B2D', outline: 'none', background: '#fff', boxSizing: 'border-box' }
+const taStyle: React.CSSProperties = { width: '100%', border: '1px solid #E5E9F0', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: '#0F1B2D', outline: 'none', resize: 'vertical', background: '#fff', boxSizing: 'border-box' }

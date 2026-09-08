@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 /* ─────────── Types ─────────── */
 interface DoctorProfile {
@@ -16,7 +17,7 @@ interface DoctorProfile {
   google_refresh_token: string | null
 }
 interface Consultation {
-  id: number; patient_name: string; patient_email: string; slot_datetime: string
+  id: number; patient_id: string; patient_name: string; patient_email: string; slot_datetime: string
   duration_minutes: number; meet_link: string; status: string; report_id: number | null
   is_followup: boolean; lab_reports: { key: string; name: string; size: number; type: string }[]
 }
@@ -77,6 +78,7 @@ function AppointCard({
   onReport: () => void
   onMeetGenerated: (id: number, link: string) => void
 }) {
+  const router = useRouter()
   const f = fmt(c.slot_datetime)
   const join = canJoin(c.slot_datetime)
   const [genMeet, setGenMeet] = useState(false)
@@ -112,7 +114,10 @@ function AppointCard({
       <div style={{ padding: '18px 20px', flex: 1 }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div
+            onClick={() => c.patient_id && router.push(`/doctor/patients/${c.patient_id}`)}
+            style={{ display: 'flex', gap: 12, alignItems: 'center', cursor: c.patient_id ? 'pointer' : 'default', flex: 1 }}
+          >
             <div style={{
               width: 44, height: 44, borderRadius: '50%', background: '#E0F2FE',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -121,7 +126,7 @@ function AppointCard({
               {initials(c.patient_name)}
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: '#0F1B2D' }}>{c.patient_name}</div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#0F1B2D', textDecoration: c.patient_id ? 'underline' : 'none', textDecorationColor: '#CBD5E0' }}>{c.patient_name}</div>
               <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{c.patient_email}</div>
             </div>
           </div>

@@ -15,7 +15,7 @@ export async function GET() {
 
   const rows = await query(`
     SELECT c.*,
-      u.name AS patient_name, u.email AS patient_email,
+      u.id::text AS patient_id, u.name AS patient_name, u.email AS patient_email,
       r.id AS report_id
     FROM consultations c
     JOIN users u ON u.id = c.patient_id
