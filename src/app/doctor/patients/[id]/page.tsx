@@ -13,7 +13,7 @@ interface Vitals { dob: string | null; weight_kg: number | null; height_cm: numb
 interface Consultation {
   id: number; slot_datetime: string; status: string; is_followup: boolean
   lab_reports: { key: string; name: string; size: number; type: string }[]
-  meet_link: string | null; report_id: number | null
+  meet_link: string | null; report_id: number | null; pdf_url: string | null
   diagnosis: string | null; notes: string | null; prescription: PrescriptionItem[] | null
   additional_instructions: string | null; report_date: string | null
 }
@@ -512,20 +512,23 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                             <Video size={13} /> {canJoin(c.slot_datetime) ? 'Join Meet' : 'Meet Link'}
                           </a>
                         ) : null}
-                        {c.status === 'confirmed' && (
-                          c.report_id ? (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, background: '#ECFDF5', color: '#059669' }}>
-                              <FileText size={13} /> Report Sent
-                            </span>
-                          ) : (
-                            <button onClick={() => { setActiveReport(c.id); setReportForm(INIT_FORM) }} style={{
-                              display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
-                              borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                              background: '#FFF7ED', color: '#C2410C', border: '1px solid #FED7AA'
-                            }}>
-                              <FileText size={13} /> Fill Report
-                            </button>
-                          )
+                        {c.pdf_url && (
+                          <a href={c.pdf_url} target="_blank" rel="noopener noreferrer" style={{
+                            display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
+                            borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none',
+                            background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0'
+                          }}>
+                            <FileText size={13} /> View PDF
+                          </a>
+                        )}
+                        {c.status === 'confirmed' && !c.report_id && (
+                          <button onClick={() => { setActiveReport(c.id); setReportForm(INIT_FORM) }} style={{
+                            display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
+                            borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                            background: '#FFF7ED', color: '#C2410C', border: '1px solid #FED7AA'
+                          }}>
+                            <FileText size={13} /> Fill Report
+                          </button>
                         )}
                       </div>
                     </div>
