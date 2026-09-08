@@ -31,7 +31,7 @@ export default function AdminUsersClient({ currentUserId }: { currentUserId: str
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [tab, setTab] = useState<'all' | 'admin' | 'users' | 'health'>('all')
+  const [tab, setTab] = useState<'all' | 'admin' | 'doctor' | 'users' | 'health'>('all')
 
   // Health tab state
   const [healthUsers, setHealthUsers] = useState<HealthUser[]>([])
