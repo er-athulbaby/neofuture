@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Paid booking
-  let fee = doctor.consultation_fee
+  let fee = Number(doctor.consultation_fee)
   let neopulseRedeemed = 0
   let neopulsePointsUsed = 0
 
