@@ -198,6 +198,9 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
     const t = new Date(slot).getTime(); const now = Date.now()
     return now >= t - 15 * 60000 && now <= t + 60 * 60000
   }
+  function meetingOver(slot: string) {
+    return Date.now() > new Date(slot).getTime() + 60 * 60000
+  }
 
   async function submitReport(consultationId: number) {
     setSubmitting(true); setSubmitError('')
@@ -502,7 +505,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                       )}
                       {/* Meet + Report buttons */}
                       <div style={{ borderTop: '1px solid #F3F4F6', marginTop: 12, paddingTop: 12, display: 'flex', gap: 8 }}>
-                        {c.meet_link ? (
+                        {c.meet_link && !meetingOver(c.slot_datetime) ? (
                           <a href={c.meet_link} target="_blank" rel="noopener noreferrer" style={{
                             display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
                             borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none',

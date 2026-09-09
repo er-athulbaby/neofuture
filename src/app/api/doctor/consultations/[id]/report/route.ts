@@ -24,8 +24,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!consult) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const [patient, patientVitals] = await Promise.all([
-    queryOne<{ name: string; email: string; phone: string }>(
-      'SELECT name, email, phone FROM users WHERE id=$1',
+    queryOne<{ name: string; email: string; phone: string; gender: string | null }>(
+      'SELECT name, email, phone, gender FROM users WHERE id=$1',
       [consult.patient_id]
     ),
     queryOne<{ dob: string | null }>(
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     patientId: `P-${String(consult.patient_id).padStart(6, '0')}`,
     date: dateStr,
     time: timeStr,
-    patient: { name: patient?.name ?? '', age, gender: 'Female', mobile: patient?.phone ?? '' },
+    patient: { name: patient?.name ?? '', age, gender: patient?.gender ?? 'Not specified', mobile: patient?.phone ?? '' },
     doctor: {
       name: doctor.name,
       qualification: doctor.qualification ?? '',

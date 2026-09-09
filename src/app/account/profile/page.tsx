@@ -4,10 +4,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { User, Mail, Phone, MapPin, Plus, Edit2, Trash2, Check, X, ChevronLeft, Star } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Plus, Edit2, Trash2, Check, X, ChevronLeft, Star, Venus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-interface UserProfile { name: string; email: string; phone: string | null }
+interface UserProfile { name: string; email: string; phone: string | null; gender: string | null }
 
 interface Address {
   id: number
@@ -34,7 +34,7 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [editingProfile, setEditingProfile] = useState(false)
-  const [profileForm, setProfileForm] = useState({ name: '', phone: '' })
+  const [profileForm, setProfileForm] = useState({ name: '', phone: '', gender: '' })
   const [savingProfile, setSavingProfile] = useState(false)
   const [profileMsg, setProfileMsg] = useState('')
 
@@ -50,7 +50,7 @@ export default function ProfilePage() {
     if (res.ok) {
       const d = await res.json()
       setProfile(d)
-      setProfileForm({ name: d.name, phone: d.phone ?? '' })
+      setProfileForm({ name: d.name, phone: d.phone ?? '', gender: d.gender ?? '' })
     }
   }, [])
 
@@ -74,7 +74,7 @@ export default function ProfilePage() {
     const res = await fetch('/api/user/profile', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(profileForm),
+      body: JSON.stringify({ ...profileForm, gender: profileForm.gender || null }),
     })
     setSavingProfile(false)
     if (res.ok) {
@@ -141,7 +141,7 @@ export default function ProfilePage() {
 
   if (status === 'loading' || !profile) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-brand-gray text-sm">Loading...</div>
       </div>
     )
@@ -150,7 +150,7 @@ export default function ProfilePage() {
   const showForm = addingAddr || editingAddr
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Back */}
         <Link href="/account" className="flex items-center gap-1.5 text-sm text-brand-gray hover:text-primary mb-6 transition-colors">
@@ -177,6 +177,7 @@ export default function ProfilePage() {
               <InfoRow icon={<User size={16} />} label="Name" value={profile.name} />
               <InfoRow icon={<Mail size={16} />} label="Email" value={profile.email} />
               <InfoRow icon={<Phone size={16} />} label="Phone" value={profile.phone ?? 'Not set'} muted={!profile.phone} />
+              <InfoRow icon={<Venus size={16} />} label="Gender" value={profile.gender ?? 'Not set'} muted={!profile.gender} />
             </div>
           ) : (
             <form onSubmit={saveProfile} className="space-y-4">
@@ -210,10 +211,27 @@ export default function ProfilePage() {
                   placeholder="+91 XXXXX XXXXX"
                 />
               </div>
+              <div>
+                <label className="text-xs font-semibold text-brand-gray uppercase tracking-wide mb-1.5 block">Gender</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['Male', 'Female', 'Other'].map((g) => (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => setProfileForm((p) => ({ ...p, gender: p.gender === g ? '' : g }))}
+                      className={cn('py-2.5 rounded-xl text-sm font-medium border-2 transition-all',
+                        profileForm.gender === g
+                          ? 'border-primary bg-primary text-white'
+                          : 'border-gray-200 text-brand-gray hover:border-primary')}>
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => { setEditingProfile(false); setProfileForm({ name: profile.name, phone: profile.phone ?? '' }) }}
+                  onClick={() => { setEditingProfile(false); setProfileForm({ name: profile.name, phone: profile.phone ?? '', gender: profile.gender ?? '' }) }}
                   className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-brand-gray hover:bg-gray-50 transition-colors">
                   <X size={14} /> Cancel
                 </button>

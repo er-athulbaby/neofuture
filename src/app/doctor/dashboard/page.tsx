@@ -51,6 +51,9 @@ function canJoin(slot: string) {
   const now = Date.now()
   return now >= t - 15 * 60000 && now <= t + 60 * 60000
 }
+function meetingOver(slot: string) {
+  return Date.now() > new Date(slot).getTime() + 60 * 60000
+}
 function initials(name: string) {
   return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 }
@@ -81,6 +84,7 @@ function AppointCard({
   const router = useRouter()
   const f = fmt(c.slot_datetime)
   const join = canJoin(c.slot_datetime)
+  const ended = meetingOver(c.slot_datetime)
   const [genMeet, setGenMeet] = useState(false)
   const [meetErr, setMeetErr] = useState('')
   const [genPdf, setGenPdf] = useState(false)
@@ -192,7 +196,7 @@ function AppointCard({
 
       {/* Action buttons */}
       <div style={{ padding: '12px 20px', borderTop: '1px solid #F3F4F6', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {c.meet_link ? (
+        {c.meet_link && !ended ? (
           <a href={c.meet_link} target="_blank" rel="noopener noreferrer" style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             padding: '8px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600, textDecoration: 'none',
@@ -201,7 +205,7 @@ function AppointCard({
           }}>
             <Video size={14} /> {join ? 'Join Meet' : 'Meet Link'}
           </a>
-        ) : (
+        ) : !ended ? (
           <button onClick={generateMeet} disabled={genMeet} style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             padding: '8px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer',
@@ -210,7 +214,7 @@ function AppointCard({
           }}>
             <LinkIcon size={14} /> {genMeet ? 'Creating…' : 'Gen Meet'}
           </button>
-        )}
+        ) : null}
 
         {c.status === 'confirmed' && (
           c.report_id ? (
