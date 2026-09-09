@@ -84,6 +84,21 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Free booking (zero fee doctor or full NeoПulse redemption)
+  if (fee === 0) {
+    const consult = await queryOne<{ id: number }>(
+      `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, neopulse_redeemed, neopulse_points_used, status, lab_reports, teleconsult_consent)
+       VALUES ($1,$2,$3,$4,$5,'confirmed',$6,$7) RETURNING id`,
+      [session.user.id, doctor_id, slot_datetime, neopulseRedeemed, neopulsePointsUsed, JSON.stringify(lab_reports ?? []), true]
+    )
+    if (neopulsePointsUsed > 0) {
+      await query('UPDATE users SET neopulse_balance = neopulse_balance - $1 WHERE id = $2', [neopulsePointsUsed, session.user.id])
+    }
+    const meetLink = await buildMeetLink(doctor_id, consult!.id, slot_datetime, session.user.id)
+    if (meetLink) await query('UPDATE consultations SET meet_link=$1 WHERE id=$2', [meetLink, consult!.id])
+    return NextResponse.json({ consultation_id: consult!.id, is_free: true, amount: 0 })
+  }
+
   const consult = await queryOne<{ id: number }>(
     `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, neopulse_redeemed, neopulse_points_used, status, lab_reports, teleconsult_consent)
      VALUES ($1,$2,$3,$4,$5,'pending',$6,$7) RETURNING id`,

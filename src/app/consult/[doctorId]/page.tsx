@@ -171,7 +171,10 @@ export default function ConsultBookPage() {
           </div>
           <div className="text-right">
             <p className="text-xs text-brand-gray">Fee</p>
-            <p className="text-2xl font-bold text-brand-dark">₹{doctor.consultation_fee}</p>
+            {doctor.consultation_fee === 0
+              ? <p className="text-2xl font-bold text-green-600">Free</p>
+              : <p className="text-2xl font-bold text-brand-dark">₹{doctor.consultation_fee}</p>
+            }
           </div>
         </div>
 
