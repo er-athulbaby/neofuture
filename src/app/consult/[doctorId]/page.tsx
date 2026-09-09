@@ -230,7 +230,8 @@ export default function ConsultBookPage() {
         {/* Pricing & Book */}
         {!freeFollowup && session?.user && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
-            <h2 className="font-semibold text-brand-dark flex items-center gap-2 mb-3"><Zap size={16} className="text-primary" /> NeoPulse</h2>
+            <h2 className="font-semibold text-brand-dark flex items-center gap-2 mb-1"><Zap size={16} className="text-primary" /> NeoPulse</h2>
+            <p className="text-xs text-primary font-semibold mb-3">*Neocare — Use Neopulse for Teleconsultation Discount</p>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-brand-gray">Balance: <span className="font-semibold text-brand-dark">{neopulseBalance} pts</span></p>

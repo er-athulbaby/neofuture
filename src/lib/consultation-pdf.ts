@@ -105,8 +105,8 @@ function buildPrescriptionHtml(d: PrescriptionData, logoDataUri: string, qrDataU
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Arial, sans-serif; font-size: 13px; color: #1a1535; background: #fff; }
-  .header { background: #fa4505; color: #fff; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0; }
-  .date-box { background: rgba(255,255,255,0.18); border-radius: 6px; padding: 8px 14px; text-align: right; font-size: 12px; white-space: nowrap; }
+  .header { background: #fff; color: #1a1535; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0; border-bottom: 2px solid #fa4505; }
+  .date-box { background: #fff7ed; border-radius: 6px; padding: 8px 14px; text-align: right; font-size: 12px; white-space: nowrap; color: #1a1535; }
   .ids-row { display: flex; gap: 0; border: 1px solid #e5e7eb; margin: 0 0 12px; }
   .id-cell { flex: 1; padding: 10px 14px; border-right: 1px solid #e5e7eb; }
   .id-cell:last-child { border-right: none; }
@@ -147,14 +147,14 @@ function buildPrescriptionHtml(d: PrescriptionData, logoDataUri: string, qrDataU
   <div class="header">
     <div style="display:flex;align-items:center;gap:12px;">
       ${logoDataUri ? `<img src="${logoDataUri}" style="height:44px;object-fit:contain;" alt="NeoFuture"/>` : `<span style="font-size:20px;font-weight:900;letter-spacing:-1px;">neo<span style="color:#fda4af">future</span></span>`}
-      <div style="border-left:1px solid rgba(255,255,255,0.4);padding-left:12px;">
-        <div style="font-size:14px;font-weight:800;letter-spacing:0.5px;">PRESCRIPTION / MEDICATION SLIP</div>
-        <div style="font-size:10px;opacity:0.85;letter-spacing:1.5px;margin-top:1px;">TELECONSULTATION · NEOFUTURE WELLNESS</div>
+      <div style="border-left:2px solid #fa4505;padding-left:12px;">
+        <div style="font-size:14px;font-weight:800;letter-spacing:0.5px;color:#1a1535;">PRESCRIPTION / MEDICATION SLIP</div>
+        <div style="font-size:10px;color:#fa4505;letter-spacing:1.5px;margin-top:1px;">TELECONSULTATION · NEOFUTURE WELLNESS</div>
       </div>
     </div>
     <div class="date-box">
-      <div style="font-size:10px;opacity:0.75">Date &amp; Time</div>
-      <div style="font-weight:700">${d.date}, ${d.time}</div>
+      <div style="font-size:10px;color:#6b7280;">Date &amp; Time</div>
+      <div style="font-weight:700;color:#1a1535;">${d.date}, ${d.time}</div>
     </div>
   </div>
 

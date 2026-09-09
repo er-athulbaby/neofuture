@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  ArrowLeft, Edit3, Save, X, FileText, Activity,
+  ArrowLeft, Edit, Edit3, Save, X, FileText, Activity,
   Calendar, Clock, ChevronRight, User, Pill,
   FlaskConical, StickyNote, Video, Link as LinkIcon, Plus, Trash2, Heart, Zap
 } from 'lucide-react'
@@ -179,6 +179,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   // vitals kept in separate state so VitalsPanel can update it without re-fetching
   const [vitals, setVitals] = useState<Vitals | null>(null)
   const [activeReport, setActiveReport] = useState<number | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
   const [reportForm, setReportForm] = useState<ReportForm>(INIT_FORM)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -202,11 +203,28 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
     return Date.now() > new Date(slot).getTime() + 60 * 60000
   }
 
+  async function openEditReport(consultationId: number) {
+    const res = await fetch(`/api/doctor/consultations/${consultationId}/report`)
+    if (res.ok) {
+      const d = await res.json()
+      setReportForm({
+        diagnosis: d.diagnosis ?? '',
+        notes: d.notes ?? '',
+        additional_instructions: d.additional_instructions ?? '',
+        followup_weeks: d.followup_weeks ?? 6,
+        followup_date: d.followup_date ? d.followup_date.slice(0, 10) : '',
+        prescription: Array.isArray(d.prescription) && d.prescription.length ? d.prescription : [{ ...EMPTY_RX }],
+      })
+    }
+    setIsEditing(true)
+    setActiveReport(consultationId)
+  }
+
   async function submitReport(consultationId: number) {
     setSubmitting(true); setSubmitError('')
     try {
       const res = await fetch(`/api/doctor/consultations/${consultationId}/report`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reportForm),
+        method: isEditing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reportForm),
       })
       if (res.ok) {
         const d2 = await res.json()
@@ -525,12 +543,21 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                           </a>
                         )}
                         {c.status === 'confirmed' && !c.report_id && (
-                          <button onClick={() => { setActiveReport(c.id); setReportForm(INIT_FORM) }} style={{
+                          <button onClick={() => { setIsEditing(false); setActiveReport(c.id); setReportForm(INIT_FORM) }} style={{
                             display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
                             borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
                             background: '#FFF7ED', color: '#C2410C', border: '1px solid #FED7AA'
                           }}>
                             <FileText size={13} /> Fill Report
+                          </button>
+                        )}
+                        {c.status === 'confirmed' && c.report_id && (
+                          <button onClick={() => openEditReport(c.id)} style={{
+                            display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
+                            borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                            background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE'
+                          }}>
+                            <Edit size={13} /> Edit Report
                           </button>
                         )}
                       </div>
@@ -695,11 +722,11 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                 <FileText size={18} color="#C2410C" />
               </div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 16, color: DARK }}>Post-Consultation Report</div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: DARK }}>{isEditing ? 'Edit Report' : 'Post-Consultation Report'}</div>
                 <div style={{ fontSize: 12, color: '#6B7280' }}>{patient.name}</div>
               </div>
             </div>
-            <button onClick={() => { setActiveReport(null); setSubmitError('') }} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E5E9F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button onClick={() => { setIsEditing(false); setActiveReport(null); setSubmitError('') }} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E5E9F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <X size={15} color="#6B7280" />
             </button>
           </div>
@@ -746,15 +773,9 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               <label style={labelStyle}>Additional Instructions (one per line)</label>
               <textarea value={reportForm.additional_instructions} onChange={e => setReportForm(f => ({ ...f, additional_instructions: e.target.value }))} rows={2} placeholder={"Take medicines after food\nAvoid stress"} style={taStyle} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <label style={labelStyle}>Follow-up after (weeks)</label>
-                <input type="number" value={reportForm.followup_weeks} onChange={e => setReportForm(f => ({ ...f, followup_weeks: Number(e.target.value) }))} style={inStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>Follow-up Date</label>
-                <input type="date" value={reportForm.followup_date} onChange={e => setReportForm(f => ({ ...f, followup_date: e.target.value }))} style={inStyle} />
-              </div>
+            <div>
+              <label style={labelStyle}>Follow-up Date</label>
+              <input type="date" value={reportForm.followup_date} onChange={e => setReportForm(f => ({ ...f, followup_date: e.target.value }))} style={inStyle} />
             </div>
           </div>
           <div style={{ padding: '16px 24px', borderTop: '1px solid #F3F4F6' }}>
@@ -762,9 +783,9 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               <div style={{ fontSize: 13, color: '#DC2626', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '8px 12px', marginBottom: 12 }}>{submitError}</div>
             )}
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => { setActiveReport(null); setSubmitError('') }} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid #E5E9F0', background: '#fff', color: '#374151', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => { setIsEditing(false); setActiveReport(null); setSubmitError('') }} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid #E5E9F0', background: '#fff', color: '#374151', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
               <button onClick={() => submitReport(activeReport)} disabled={!reportForm.diagnosis || submitting} style={{ flex: 2, padding: '10px', borderRadius: 12, border: 'none', background: !reportForm.diagnosis || submitting ? '#E5E9F0' : TEAL, color: !reportForm.diagnosis || submitting ? '#9CA3AF' : '#fff', fontSize: 14, fontWeight: 700, cursor: !reportForm.diagnosis || submitting ? 'not-allowed' : 'pointer' }}>
-                {submitting ? 'Generating PDF…' : 'Submit & Send to Patient'}
+                {submitting ? 'Generating PDF…' : isEditing ? 'Update & Resend PDF' : 'Submit & Send to Patient'}
               </button>
             </div>
           </div>

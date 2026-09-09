@@ -297,12 +297,13 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-10">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5 mb-10">
             {[
               { icon: '🌱', label: 'Daily Check-ins', desc: 'Earn NP every day you check in and rate your wellness metrics.' },
               { icon: '🧬', label: 'Grow Neo Twin', desc: 'Invest Neo Pulse to unlock new Neo Twin levels and advanced AI insights.' },
               { icon: '🔥', label: 'Streak Insurance', desc: 'Protect your wellness streak even if you miss a day.' },
               { icon: '🎁', label: 'Redeem Rewards', desc: 'Redeem Neo Pulse for exclusive offers and product savings.' },
+              { icon: '⚡', label: '*Neocare — Use Neopulse for Teleconsultation Discount', desc: 'Use your NeoPulse points for up to ₹99 off on every teleconsultation booking.' },
             ].map((item) => (
               <div key={item.label} className="bg-brand-light rounded-2xl p-6 text-center hover:shadow-md transition-shadow">
                 <div className="text-4xl mb-3">{item.icon}</div>
@@ -362,7 +363,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
                   </div>
                   <div>
                     <p className="text-white font-bold">Dr. Alma Baby</p>
-                    <p className="text-white/70 text-sm">MBBS, MD — Gynaecology</p>
+                    <p className="text-white/70 text-sm">MBBS</p>
                   </div>
                   <div className="ml-auto text-right">
                     <p className="text-white/70 text-xs">Consultation fee</p>
@@ -537,7 +538,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
           <p className="text-brand-gray text-lg leading-relaxed mb-8 max-w-2xl mx-auto">{config.community_subtitle}</p>
           <div className="flex flex-wrap justify-center gap-6 mb-8">
             {[
-              { icon: <Users size={20} className="text-green-600" />, stat: '200+', label: 'Women & Mothers' },
+              { icon: <Users size={20} className="text-green-600" />, stat: '1000+', label: 'Women & Mothers' },
               { icon: <Stethoscope size={20} className="text-primary" />, stat: 'Live', label: 'Doctor Guidance' },
               { icon: <MessageCircle size={20} className="text-green-600" />, stat: '24/7', label: 'Active Community' },
             ].map((s) => (

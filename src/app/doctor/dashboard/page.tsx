@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import {
   Video, FileText, Plus, Trash2, Calendar, Users, Clock, Bell,
   LogOut, Settings, LayoutDashboard, X, AlertCircle,
-  Activity, TrendingUp, Link as LinkIcon
+  Activity, TrendingUp, Link as LinkIcon, Edit
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import Link from 'next/link'
@@ -75,10 +75,11 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: n
 
 /* ─────────── Appointment Card ─────────── */
 function AppointCard({
-  c, onReport, onMeetGenerated
+  c, onReport, onEditReport, onMeetGenerated
 }: {
   c: Consultation
   onReport: () => void
+  onEditReport: () => void
   onMeetGenerated: (id: number, link: string) => void
 }) {
   const router = useRouter()
@@ -218,7 +219,8 @@ function AppointCard({
 
         {c.status === 'confirmed' && (
           c.report_id ? (
-            pdfUrl ? (
+            <>
+            {pdfUrl ? (
               <a href={`/api/pdf-link?url=${encodeURIComponent(pdfUrl)}`} target="_blank" rel="noopener noreferrer" style={{
                 flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 padding: '8px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600, textDecoration: 'none',
@@ -235,7 +237,15 @@ function AppointCard({
               }}>
                 <FileText size={14} /> {genPdf ? 'Generating…' : 'Generate PDF'}
               </button>
-            )
+            )}
+            <button onClick={onEditReport} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '8px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE'
+            }}>
+              <Edit size={14} /> Edit
+            </button>
+            </>
           ) : (
             <button onClick={onReport} style={{
               flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -257,6 +267,7 @@ export default function DoctorDashboard() {
   const [consultations, setConsultations] = useState<Consultation[]>([])
   const [activeNav, setActiveNav] = useState<'today' | 'upcoming' | 'past'>('today')
   const [activeReport, setActiveReport] = useState<number | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
   const [form, setForm] = useState<ReportForm>(INIT_FORM)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -299,11 +310,28 @@ export default function DoctorDashboard() {
     })
   }
 
+  async function openEditReport(c: Consultation) {
+    const res = await fetch(`/api/doctor/consultations/${c.id}/report`)
+    if (res.ok) {
+      const d = await res.json()
+      setForm({
+        diagnosis: d.diagnosis ?? '',
+        notes: d.notes ?? '',
+        additional_instructions: d.additional_instructions ?? '',
+        followup_weeks: d.followup_weeks ?? 6,
+        followup_date: d.followup_date ? d.followup_date.slice(0, 10) : '',
+        prescription: Array.isArray(d.prescription) && d.prescription.length ? d.prescription : [{ ...EMPTY_RX }],
+      })
+    }
+    setIsEditing(true)
+    setActiveReport(c.id)
+  }
+
   async function submitReport(consultationId: number) {
     setSubmitting(true); setSubmitError('')
     try {
       const res = await fetch(`/api/doctor/consultations/${consultationId}/report`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
+        method: isEditing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
       })
       if (res.ok) {
         const data = await res.json()
@@ -523,7 +551,8 @@ export default function DoctorDashboard() {
                 <AppointCard
                   key={c.id}
                   c={c}
-                  onReport={() => { setActiveReport(c.id); setForm(INIT_FORM) }}
+                  onReport={() => { setIsEditing(false); setActiveReport(c.id); setForm(INIT_FORM) }}
+                  onEditReport={() => openEditReport(c)}
                   onMeetGenerated={(id, link) => setConsultations(prev => prev.map(x => x.id === id ? { ...x, meet_link: link } : x))}
                 />
               ))}
@@ -578,7 +607,7 @@ export default function DoctorDashboard() {
                   </div>
                 </div>
               </div>
-              <button onClick={() => { setActiveReport(null); setSubmitError('') }} style={{
+              <button onClick={() => { setIsEditing(false); setActiveReport(null); setSubmitError('') }} style={{
                 width: 32, height: 32, borderRadius: 8, border: '1px solid #E5E9F0',
                 background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
@@ -651,14 +680,9 @@ export default function DoctorDashboard() {
                 />
               </Field>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <Field label="Follow-up after (weeks)">
-                  <input type="number" value={form.followup_weeks} onChange={e => setForm(f => ({ ...f, followup_weeks: Number(e.target.value) }))} style={inputStyle} />
-                </Field>
-                <Field label="Follow-up Date">
-                  <input type="date" value={form.followup_date} onChange={e => setForm(f => ({ ...f, followup_date: e.target.value }))} style={inputStyle} />
-                </Field>
-              </div>
+              <Field label="Follow-up Date">
+                <input type="date" value={form.followup_date} onChange={e => setForm(f => ({ ...f, followup_date: e.target.value }))} style={inputStyle} />
+              </Field>
             </div>
 
             {/* Modal footer */}
@@ -670,7 +694,7 @@ export default function DoctorDashboard() {
               )}
               <div style={{ display: 'flex', gap: 10 }}>
                 <button
-                  onClick={() => { setActiveReport(null); setSubmitError('') }}
+                  onClick={() => { setIsEditing(false); setActiveReport(null); setSubmitError('') }}
                   style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid #E5E9F0', background: '#fff', color: '#374151', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
                 >
                   Cancel

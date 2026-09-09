@@ -116,7 +116,6 @@ export default function AdminDoctorEditPage() {
           {field('Specialisation', 'specialisation')}
           {field('Consultation Fee (₹)', 'consultation_fee', 'number')}
           {field('Registration No.', 'registration_no')}
-          {field('State Medical Council', 'state_medical_council')}
           <div>
             <label className="text-xs font-semibold text-brand-gray uppercase tracking-wide">Photo</label>
             <div className="mt-1 flex items-center gap-2">
