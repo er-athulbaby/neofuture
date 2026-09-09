@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useToast } from '@/components/ui/ToastProvider'
-import { Settings, Save, Upload, Image as ImageIcon, Palette, Type, Share2 } from 'lucide-react'
+import { Settings, Save, Upload, Image as ImageIcon, Palette, Type, Share2, Mail } from 'lucide-react'
 
 type Cfg = {
   site_name: string; tagline: string; logo_url: string; favicon_url: string
@@ -21,6 +21,11 @@ type Cfg = {
   cod_enabled: string
   gst_rate: string
   gst_type: string
+  smtp_host: string
+  smtp_port: string
+  smtp_user: string
+  smtp_pass: string
+  smtp_from: string
 }
 
 const D: Cfg = {
@@ -54,6 +59,11 @@ const D: Cfg = {
   cod_enabled: 'false',
   gst_rate: '0',
   gst_type: 'inclusive',
+  smtp_host: 'smtp.gmail.com',
+  smtp_port: '587',
+  smtp_user: '',
+  smtp_pass: '',
+  smtp_from: '',
 }
 
 export default function AdminSettingsPage() {
@@ -282,6 +292,24 @@ export default function AdminSettingsPage() {
             <label className={lbl}>Business Address</label>
             <TextA name="address" value={s.address} onChange={fc} rows={2} placeholder="Your registered address" />
           </div>
+        </Sec>
+
+        {/* Email / SMTP */}
+        <Sec icon={<Mail size={16} />} title="Email (SMTP / Gmail)">
+          <div className="text-xs text-brand-gray bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 space-y-1">
+            <p className="font-semibold text-blue-700">Gmail Setup</p>
+            <p>Use <strong>smtp.gmail.com</strong> with port <strong>587</strong>. For the password, go to your Google Account → Security → 2-Step Verification → App passwords, generate a 16-character app password, and paste it below.</p>
+            <p>For the <strong>From</strong> field use format: <code>NeoFuture &lt;your@gmail.com&gt;</code></p>
+          </div>
+          <Row>
+            <F label="SMTP Host" name="smtp_host" value={s.smtp_host} onChange={fc} placeholder="smtp.gmail.com" />
+            <F label="SMTP Port" name="smtp_port" value={s.smtp_port} onChange={fc} placeholder="587" />
+          </Row>
+          <Row>
+            <F label="Gmail Address (Username)" name="smtp_user" value={s.smtp_user} onChange={fc} placeholder="your@gmail.com" />
+            <F label="App Password" name="smtp_pass" value={s.smtp_pass} onChange={fc} type="password" placeholder="16-character Google App Password" />
+          </Row>
+          <F label='From Name & Address (e.g. NeoFuture <your@gmail.com>)' name="smtp_from" value={s.smtp_from} onChange={fc} placeholder="NeoFuture <noreply@gmail.com>" />
         </Sec>
 
         {/* Payment */}

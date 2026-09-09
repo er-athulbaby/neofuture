@@ -42,6 +42,11 @@ export interface SiteConfig {
   founder2_title: string
   founder2_bio: string
   founder2_image: string
+  smtp_host: string
+  smtp_port: string
+  smtp_user: string
+  smtp_pass: string
+  smtp_from: string
 }
 
 export const CONFIG_DEFAULTS: SiteConfig = {
@@ -85,6 +90,11 @@ export const CONFIG_DEFAULTS: SiteConfig = {
   founder2_title: 'Co-founder & Chief Executive Officer (CEO)',
   founder2_bio: 'With a vision to redefine the future of healthcare, Dr. Sachin Vengat leads NeoFuture at the intersection of medicine, technology, and innovation. He drives the development of AI-powered solutions that enhance healthcare experiences, empowering women with smarter, more personalized, and accessible care.',
   founder2_image: '',
+  smtp_host: '',
+  smtp_port: '587',
+  smtp_user: '',
+  smtp_pass: '',
+  smtp_from: '',
 }
 
 export const getSiteConfig = cache(async function getSiteConfigFn(): Promise<SiteConfig> {

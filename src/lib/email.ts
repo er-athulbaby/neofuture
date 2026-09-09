@@ -1,14 +1,44 @@
 import nodemailer from 'nodemailer'
+import { query } from './db'
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT ?? 587),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-})
+async function getSmtpConfig() {
+  try {
+    const rows = await query<{ key: string; value: string }>(
+      `SELECT key, value FROM site_settings WHERE key IN ('smtp_host','smtp_port','smtp_user','smtp_pass','smtp_from')`,
+      []
+    )
+    const m: Record<string, string> = {}
+    rows.forEach((r) => { m[r.key] = r.value })
+    return {
+      host: m.smtp_host || process.env.SMTP_HOST || '',
+      port: Number(m.smtp_port || process.env.SMTP_PORT || 587),
+      user: m.smtp_user || process.env.SMTP_USER || '',
+      pass: m.smtp_pass || process.env.SMTP_PASS || '',
+      from: m.smtp_from || process.env.SMTP_FROM || '',
+    }
+  } catch {
+    return {
+      host: process.env.SMTP_HOST || '',
+      port: Number(process.env.SMTP_PORT || 587),
+      user: process.env.SMTP_USER || '',
+      pass: process.env.SMTP_PASS || '',
+      from: process.env.SMTP_FROM || '',
+    }
+  }
+}
+
+async function getTransporter() {
+  const cfg = await getSmtpConfig()
+  return {
+    transport: nodemailer.createTransport({
+      host: cfg.host,
+      port: cfg.port,
+      secure: cfg.port === 465,
+      auth: { user: cfg.user, pass: cfg.pass },
+    }),
+    from: cfg.from,
+  }
+}
 
 export async function sendOrderConfirmation(
   to: string,
@@ -49,8 +79,9 @@ export async function sendOrderConfirmation(
       <span style="color:#666">${addr.line1 ?? ''}, ${addr.city ?? ''}, ${addr.state ?? ''} – ${addr.pincode ?? ''}</span>
     </div>` : ''
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM,
+  const { transport, from } = await getTransporter()
+  await transport.sendMail({
+    from,
     to,
     subject: `Order Confirmed — #${order.orderNumber} | NeoFuture`,
     html: `
@@ -117,8 +148,9 @@ export async function sendOrderConfirmation(
 }
 
 export async function sendPasswordReset(to: string, resetUrl: string) {
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM,
+  const { transport, from } = await getTransporter()
+  await transport.sendMail({
+    from,
     to,
     subject: 'Reset your NeoFuture password',
     html: `
@@ -145,8 +177,9 @@ export async function sendAbandonedCartEmail(
     .map((i) => `<tr><td style="padding:8px 0">${i.name}</td><td style="padding:8px 0;text-align:right">×${i.quantity}</td><td style="padding:8px 0;text-align:right">₹${i.price}</td></tr>`)
     .join('')
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM,
+  const { transport, from } = await getTransporter()
+  await transport.sendMail({
+    from,
     to,
     subject: 'You left something behind 🛍️ | NeoFuture',
     html: `
@@ -180,8 +213,9 @@ export async function sendConsultationConfirmation(
   const dateStr = dt.toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
   const timeStr = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM,
+  const { transport, from } = await getTransporter()
+  await transport.sendMail({
+    from,
     to,
     subject: `${opts.isFollowup ? 'Follow-up' : 'Consultation'} Confirmed — ${dateStr} | NeoFuture`,
     html: `
@@ -219,8 +253,9 @@ export async function sendConsultationReport(
   to: string,
   opts: { patientName: string; doctorName: string; pdfBuffer: Buffer }
 ) {
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM,
+  const { transport, from } = await getTransporter()
+  await transport.sendMail({
+    from,
     to,
     subject: `Your Prescription from ${opts.doctorName} | NeoFuture`,
     html: `
@@ -248,8 +283,9 @@ export async function sendShippingUpdate(
   to: string,
   order: { orderNumber: string; trackingNumber: string }
 ) {
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM,
+  const { transport, from } = await getTransporter()
+  await transport.sendMail({
+    from,
     to,
     subject: `Your order ${order.orderNumber} has shipped! | NeoFuture`,
     html: `
