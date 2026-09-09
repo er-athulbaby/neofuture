@@ -184,7 +184,6 @@ function buildPrescriptionHtml(d: PrescriptionData, logoDataUri: string, qrDataU
         <p>${d.doctor.qualification} · ${d.doctor.specialisation}</p>
         <div class="doctor-reg">
           <div class="reg-item"><div class="label">Medical Registration No.</div><div class="value">${d.doctor.registrationNo || '—'}</div></div>
-          <div class="reg-item"><div class="label">State Medical Council</div><div class="value">${d.doctor.stateMedicalCouncil || '—'}</div></div>
         </div>
       </div>
     </div>
@@ -219,8 +218,7 @@ function buildPrescriptionHtml(d: PrescriptionData, logoDataUri: string, qrDataU
     <div class="bottom-grid">
       <div class="followup-box">
         <h4>Follow-Up</h4>
-        ${d.followupWeeks ? `<p style="font-size:12px">After <strong>${d.followupWeeks} weeks</strong></p>` : ''}
-        ${followupDateStr ? `<p style="font-size:12px;margin-top:4px">Follow-up Date: <strong>${followupDateStr}</strong></p>` : '<p style="font-size:12px;color:#6b7280">As advised by doctor</p>'}
+        ${followupDateStr ? `<p style="font-size:12px">Follow-up Date: <strong>${followupDateStr}</strong></p>` : '<p style="font-size:12px;color:#6b7280">As advised by doctor</p>'}
       </div>
       <div class="important-box">
         <h4>⚠ Important</h4>
