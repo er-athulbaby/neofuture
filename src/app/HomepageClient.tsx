@@ -42,39 +42,44 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
       {/* HERO */}
       <section className="relative bg-gradient-to-br from-primary-light via-white to-purple-50 py-20 px-4 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-10 right-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-56 h-56 bg-neo-purple/5 rounded-full blur-2xl" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-primary/8 rounded-full blur-3xl -translate-y-1/4 translate-x-1/4" />
+          <div className="absolute bottom-0 left-0 w-72 h-72 bg-neo-purple/8 rounded-full blur-2xl translate-y-1/4 -translate-x-1/4" />
+          <div className="absolute top-1/2 left-1/2 w-48 h-48 bg-neo-orange/5 rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2" />
         </div>
         <div className="max-w-5xl mx-auto text-center relative">
           <div className="inline-flex items-center gap-2 bg-primary-light text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-6 border border-primary/20">
             <Sparkles size={13} /> AI-Powered Healthcare
           </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-brand-dark leading-tight mb-5">
+          <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-brand-dark leading-tight mb-5">
             {config.hero_title}
           </h1>
           <p className="text-lg text-brand-gray mb-10 max-w-2xl mx-auto leading-relaxed">
             {config.hero_subtitle}
           </p>
-          <div className="flex justify-center">
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
             <button onClick={() => setQuizOpen(true)}
-              className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-semibold hover:bg-primary-dark transition-colors shadow-xl shadow-primary/25 text-base">
+              className="inline-flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-semibold hover:bg-primary-dark transition-colors shadow-xl shadow-primary/25 text-base">
               <Sparkles size={18} /> AI Wellness Check-in
             </button>
+            <Link href="/consult"
+              className="inline-flex items-center justify-center gap-2 border-2 border-primary/30 text-primary px-8 py-4 rounded-xl font-semibold hover:border-primary hover:bg-primary-light transition-colors text-base">
+              View Doctors <ArrowRight size={16} />
+            </Link>
           </div>
 
         </div>
       </section>
 
       {/* TRUST BAR */}
-      <div className="bg-brand-dark text-white py-3">
+      <div className="bg-primary-light border-y border-primary/15 py-3">
         <div className="max-w-6xl mx-auto px-4 flex flex-wrap justify-center gap-6 md:gap-10 text-sm">
           {[
-            { icon: '💜', text: 'AI Wellness Ecosystem' },
-            { icon: '👩‍⚕️', text: 'Medical Expert Verified' },
-            { icon: '📈', text: 'Personalized Health Journey' },
-            { icon: '🔒', text: 'Private & Secure' },
+            { icon: <Sparkles size={14} className="text-primary" />, text: 'AI Wellness Ecosystem' },
+            { icon: <Stethoscope size={14} className="text-primary" />, text: 'Medical Expert Verified' },
+            { icon: <Activity size={14} className="text-primary" />, text: 'Personalized Health Journey' },
+            { icon: <ShieldCheck size={14} className="text-primary" />, text: 'Private & Secure' },
           ].map((t) => (
-            <span key={t.text} className="flex items-center gap-2 text-gray-300"><span>{t.icon}</span> {t.text}</span>
+            <span key={t.text} className="flex items-center gap-2 text-brand-dark font-medium">{t.icon} {t.text}</span>
           ))}
         </div>
       </div>

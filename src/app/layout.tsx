@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Geist } from 'next/font/google'
+import { Geist, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import { SessionProvider } from 'next-auth/react'
 import { auth } from '@/lib/auth'
@@ -11,6 +11,7 @@ import WhatsAppButton from '@/components/ui/WhatsAppButton'
 import { getSiteConfig } from '@/lib/settings'
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
+const playfair = Playfair_Display({ subsets: ['latin'], weight: ['600', '700'], variable: '--font-playfair' })
 
 export const dynamic = 'force-dynamic'
 
@@ -44,7 +45,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   `
 
   return (
-    <html lang="en" className={`${geist.variable} h-full antialiased`}>
+    <html lang="en" className={`${geist.variable} ${playfair.variable} h-full antialiased`}>
       <head>
         <style dangerouslySetInnerHTML={{ __html: themeVars }} />
         {config.favicon_url && /^https?:\/\//.test(config.favicon_url) ? (

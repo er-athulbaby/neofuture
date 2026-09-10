@@ -11,12 +11,14 @@
   --color-brand-dark: #1A1535;
   --color-brand-gray: #6B7280;
   --color-brand-light: #FAF9FF;
+  --color-brand-muted: #F0ECF8;
   --color-success: #16A34A;
   --color-warning: #D97706;
   --color-danger: #DC2626;
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-playfair), 'Playfair Display', Georgia, serif;
 }
 
 :root {
@@ -68,3 +70,26 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0,0,0,0.1);
 }
+
+/* Active tap states for touch devices */
+.product-card:active { transform: translateY(-1px) scale(0.99); }
+.tool-card:active    { transform: scale(0.98); }
+
+/* Focus ring — visible for keyboard navigation */
+:focus-visible {
+  outline: 2px solid #D4236A;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+/* Reduced motion — suppress all non-essential animation */
+@media (prefers-reduced-motion: reduce) {
+  .score-bar    { animation: none; width: var(--bar-width); }
+  .product-card:hover,
+  .tool-card:hover { transform: none; box-shadow: inherit; }
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* Display font utility */
+.font-display { font-family: var(--font-display); }
