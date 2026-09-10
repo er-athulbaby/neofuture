@@ -240,7 +240,7 @@ GOOGLE_SA_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-
             <YAxis tick={{ fontSize: 11, fill: '#6B7280' }} />
             <Tooltip
               contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }}
-              formatter={(v: number | undefined) => [fmt(v ?? 0), metricLabels[activeMetric]] as [string, string]}
+              formatter={(v: unknown) => [fmt(Number(v ?? 0)), metricLabels[activeMetric]] as [string, string]}
             />
             <Area type="monotone" dataKey={activeMetric} stroke="#D4236A" strokeWidth={2} fill="url(#gaGradient)" dot={false} activeDot={{ r: 4 }} />
           </AreaChart>
@@ -288,7 +288,7 @@ GOOGLE_SA_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-
                 <XAxis type="number" tick={{ fontSize: 11, fill: '#6B7280' }} />
                 <YAxis type="category" dataKey="channel" tick={{ fontSize: 11, fill: '#6B7280' }} width={90} />
                 <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }}
-                  formatter={(v: number | undefined) => [fmt(v ?? 0), 'Sessions'] as [string, string]} />
+                  formatter={(v: unknown) => [fmt(Number(v ?? 0)), 'Sessions'] as [string, string]} />
                 <Bar dataKey="sessions" radius={[0, 6, 6, 0]}>
                   {(data.sources ?? []).map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -316,7 +316,7 @@ GOOGLE_SA_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-
                     ))}
                   </Pie>
                   <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }}
-                    formatter={(v: number | undefined) => [fmt(v ?? 0), 'Sessions'] as [string, string]} />
+                    formatter={(v: unknown) => [fmt(Number(v ?? 0)), 'Sessions'] as [string, string]} />
                   <Legend iconSize={8} formatter={(v) => <span className="text-xs text-brand-gray">{v}</span>} />
                 </PieChart>
               </ResponsiveContainer>
