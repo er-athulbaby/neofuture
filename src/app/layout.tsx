@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Geist, Playfair_Display } from 'next/font/google'
+import { GoogleAnalytics } from '@next/third-parties/google'
 import './globals.css'
 import { SessionProvider } from 'next-auth/react'
 import { auth } from '@/lib/auth'
@@ -58,6 +59,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         )}
       </head>
       <body className="min-h-full flex flex-col bg-white text-brand-dark">
+        {process.env.NEXT_PUBLIC_GA_ID && (
+          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
+        )}
         <SessionProvider session={session}>
           <CartProvider>
             <ToastProvider>
