@@ -9,6 +9,7 @@ import Footer from '@/components/ui/Footer'
 import CartProvider from '@/components/cart/CartProvider'
 import ToastProvider from '@/components/ui/ToastProvider'
 import WhatsAppButton from '@/components/ui/WhatsAppButton'
+import CookieConsent from '@/components/ui/CookieConsent'
 import { getSiteConfig } from '@/lib/settings'
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
@@ -21,7 +22,13 @@ export const metadata: Metadata = {
   description: "From trusted hands to quality lives — Women's health and wellness products",
   keywords: ['PCOS', 'menstrual cup', 'pregnancy support', 'women wellness', 'nutraceuticals'],
   manifest: '/manifest.json',
-  openGraph: { siteName: 'NeoFuture', type: 'website' },
+  openGraph: {
+    siteName: 'NeoFuture',
+    type: 'website',
+    url: 'https://neofuture.in',
+    images: [{ url: 'https://neofuture.in/opengraph-image', width: 1200, height: 630 }],
+  },
+  twitter: { card: 'summary_large_image' },
 }
 
 // Only hex colors are valid CSS custom property values here.
@@ -78,6 +85,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 whatsappNumber={config.whatsapp_number}
               />
               <WhatsAppButton number={config.whatsapp_number} />
+              <CookieConsent />
             </ToastProvider>
           </CartProvider>
         </SessionProvider>

@@ -101,6 +101,7 @@ export default function Footer({
               <li><Link href="/faq" className="hover:text-primary transition-colors">FAQ</Link></li>
               <li><Link href="/refund-policy" className="hover:text-primary transition-colors">Refund & Return Policy</Link></li>
               <li><Link href="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="hover:text-primary transition-colors">Terms &amp; Conditions</Link></li>
             </ul>
             <div className="mt-5 space-y-2 text-sm text-gray-400">
               {contactEmail && (
