@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
         await query(`UPDATE abandoned_carts SET reminded_at = NOW() WHERE id = $1`, [cart.id])
         sent++
       } catch (err) {
-        console.error(`Failed to send abandoned cart email to ${cart.email}:`, err)
+        console.error('Failed to send abandoned cart email:', err)
       }
     }
 

@@ -8,7 +8,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params
 
   const doctor = await queryOne(`
-    SELECT d.*, u.email,
+    SELECT d.id, d.user_id, d.name, d.qualification, d.specialisation, d.bio,
+           d.consultation_fee, d.registration_no, d.state_medical_council,
+           d.photo_url, d.signature_url, d.is_active, d.created_at, d.updated_at,
+           u.email,
       (SELECT json_agg(a ORDER BY a.day_of_week, a.start_time)
        FROM doctor_availability a WHERE a.doctor_id = d.id) AS availability
     FROM doctors d LEFT JOIN users u ON u.id = d.user_id WHERE d.id = $1

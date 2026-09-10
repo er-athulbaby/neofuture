@@ -27,6 +27,7 @@ export default async function InvoicePage({ params }: Props) {
   ])
 
   if (!order) notFound()
+  if (!session?.user?.id && !session?.user?.is_admin) notFound()
   if (order.user_id && order.user_id !== session?.user?.id && !session?.user?.is_admin) notFound()
 
   const items = await query<ItemRow>(

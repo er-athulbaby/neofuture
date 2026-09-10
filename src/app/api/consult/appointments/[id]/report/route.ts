@@ -9,7 +9,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params
 
   const report = await queryOne(`
-    SELECT r.*, c.patient_id FROM consultation_reports r
+    SELECT r.id, r.consultation_id, r.diagnosis, r.notes, r.prescription,
+           r.additional_instructions, r.followup_date, r.pdf_url, r.created_at,
+           c.patient_id FROM consultation_reports r
     JOIN consultations c ON c.id = r.consultation_id
     WHERE r.consultation_id = $1
   `, [id])

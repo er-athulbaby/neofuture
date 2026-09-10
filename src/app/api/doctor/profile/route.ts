@@ -8,9 +8,9 @@ export async function GET() {
 
   const doctor = await queryOne<{
     id: number; name: string; photo_url: string | null; qualification: string | null
-    specialisation: string | null; registration_no: string | null; google_refresh_token: string | null
+    specialisation: string | null; registration_no: string | null
   }>(
-    'SELECT id, name, photo_url, qualification, specialisation, registration_no, google_refresh_token FROM doctors WHERE user_id = $1',
+    'SELECT id, name, photo_url, qualification, specialisation, registration_no FROM doctors WHERE user_id = $1',
     [session.user.id]
   )
 

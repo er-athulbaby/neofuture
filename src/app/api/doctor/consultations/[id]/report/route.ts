@@ -15,8 +15,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!doctor) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const report = await queryOne(
-    'SELECT diagnosis, notes, prescription, additional_instructions, followup_weeks, followup_date FROM consultation_reports WHERE consultation_id=$1',
-    [id]
+    `SELECT cr.diagnosis, cr.notes, cr.prescription, cr.additional_instructions, cr.followup_weeks, cr.followup_date
+     FROM consultation_reports cr
+     JOIN consultations c ON c.id = cr.consultation_id
+     WHERE cr.consultation_id=$1 AND c.doctor_id=$2`,
+    [id, doctor.id]
   )
   if (!report) return NextResponse.json({ error: 'No report' }, { status: 404 })
 

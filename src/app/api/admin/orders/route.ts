@@ -20,7 +20,10 @@ export async function GET(req: NextRequest) {
   const offset = Math.max(parseInt(searchParams.get('offset') ?? '0'), 0)
 
   const orders = await query(
-    `SELECT o.*, u.name as user_name, u.email as user_email FROM orders o
+    `SELECT o.id, o.order_number, o.status, o.payment_status, o.subtotal, o.discount,
+            o.shipping, o.tax, o.total, o.shipping_address, o.tracking_number, o.notes,
+            o.user_id, o.created_at, o.updated_at,
+            u.name as user_name, u.email as user_email FROM orders o
      LEFT JOIN users u ON u.id = o.user_id
      ${status ? 'WHERE o.status = $3' : ''}
      ORDER BY o.created_at DESC LIMIT $1 OFFSET $2`,

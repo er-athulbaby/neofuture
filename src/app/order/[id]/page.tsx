@@ -37,6 +37,8 @@ export default async function OrderPage({ params }: Props) {
   ).catch(() => null)
 
   if (!order) notFound()
+  // Guest orders (user_id = null) require an active session to prevent enumeration
+  if (!session?.user?.id && !session?.user?.is_admin) notFound()
   if (order.user_id && order.user_id !== session?.user?.id && !session?.user?.is_admin) notFound()
 
   const items = await query<ItemRow>(

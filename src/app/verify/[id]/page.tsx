@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
-import { CheckCircle, XCircle, Stethoscope, Calendar, User } from 'lucide-react'
+import { CheckCircle, XCircle, Stethoscope, Calendar } from 'lucide-react'
 
 interface VerifyResult {
   valid: boolean
@@ -13,8 +13,6 @@ interface VerifyResult {
   doctor?: string
   qualification?: string
   specialisation?: string
-  patient?: string
-  diagnosis?: string
 }
 
 export default function VerifyPage() {
@@ -57,13 +55,6 @@ export default function VerifyPage() {
               <Row label="Consultation ID" value={result.consultationId!} />
               <Row label="Issued On" value={result.date!} icon={<Calendar size={14} className="text-[#fa4505]" />} />
               <Row label="Prescribing Doctor" value={`${result.doctor} — ${result.qualification} · ${result.specialisation}`} icon={<Stethoscope size={14} className="text-[#fa4505]" />} />
-              <Row label="Patient" value={result.patient!} icon={<User size={14} className="text-[#fa4505]" />} />
-              {result.diagnosis && (
-                <div className="bg-orange-50 rounded-xl px-4 py-3">
-                  <p className="text-xs font-semibold text-[#fa4505] mb-1">Diagnosis</p>
-                  <p className="text-sm text-gray-700">{result.diagnosis}</p>
-                </div>
-              )}
             </div>
 
             <div className="bg-gray-50 px-6 py-3 text-center">
