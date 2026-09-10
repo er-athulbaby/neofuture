@@ -12,7 +12,7 @@ function getClient() {
   })
 }
 
-function val(row: { metricValues?: { value?: string }[] } | null | undefined, idx: number): number {
+function val(row: { metricValues?: Array<{ value?: string | null }> | null } | null | undefined, idx: number): number {
   return Number(row?.metricValues?.[idx]?.value ?? 0)
 }
 
@@ -78,7 +78,7 @@ export async function GET() {
           dimensions: [{ name: 'pagePath' }],
           metrics: [{ name: 'screenPageViews' }, { name: 'activeUsers' }],
           orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
-          limit: 10,
+          limit: '10',
         },
       }),
       // Traffic sources
@@ -89,7 +89,7 @@ export async function GET() {
           dimensions: [{ name: 'sessionDefaultChannelGroup' }],
           metrics: [{ name: 'sessions' }, { name: 'activeUsers' }],
           orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
-          limit: 8,
+          limit: '8',
         },
       }),
       // Devices
