@@ -191,16 +191,33 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [lastPdfUrl, setLastPdfUrl] = useState<string | null>(null)
+  const [rxOptions, setRxOptions] = useState<Record<string, string[]>>({})
+  const [draftSaved, setDraftSaved] = useState(false)
 
   useEffect(() => {
-    fetch(`/api/doctor/patients/${patientId}`)
-      .then(r => r.json())
-      .then(d => {
-        if (d.patient) { setData(d); setVitals(d.vitals ?? null) }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    Promise.all([
+      fetch(`/api/doctor/patients/${patientId}`).then(r => r.json()),
+      fetch('/api/doctor/prescription-options').then(r => r.json()),
+    ]).then(([d, opts]) => {
+      if (d.patient) { setData(d); setVitals(d.vitals ?? null) }
+      if (opts && !opts.error) {
+        const flat: Record<string, string[]> = {}
+        for (const [k, v] of Object.entries(opts)) flat[k] = (v as { value: string }[]).map(x => x.value)
+        setRxOptions(flat)
+      }
+    }).catch(() => {}).finally(() => setLoading(false))
   }, [patientId])
+
+  // Auto-save draft to localStorage on every form change (new reports only, not edits)
+  useEffect(() => {
+    if (!activeReport || isEditing) return
+    try {
+      localStorage.setItem(`nf_report_draft_${activeReport}`, JSON.stringify(reportForm))
+      setDraftSaved(true)
+      const t = setTimeout(() => setDraftSaved(false), 1500)
+      return () => clearTimeout(t)
+    } catch { /* localStorage blocked */ }
+  }, [reportForm, activeReport, isEditing])
 
   function canJoin(slot: string) {
     const t = new Date(slot).getTime(); const now = Date.now()
@@ -235,6 +252,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
       })
       if (res.ok) {
         const d2 = await res.json()
+        try { localStorage.removeItem(`nf_report_draft_${consultationId}`) } catch { /* ignore */ }
         setReportForm(INIT_FORM)
         if (d2.pdf_url) setLastPdfUrl(d2.pdf_url)
         else setActiveReport(null)
@@ -551,7 +569,14 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                           </a>
                         )}
                         {c.status === 'confirmed' && !c.report_id && (
-                          <button onClick={() => { setIsEditing(false); setActiveReport(c.id); setReportForm(INIT_FORM) }} style={{
+                          <button onClick={() => {
+                            setIsEditing(false)
+                            setActiveReport(c.id)
+                            try {
+                              const saved = localStorage.getItem(`nf_report_draft_${c.id}`)
+                              setReportForm(saved ? JSON.parse(saved) : INIT_FORM)
+                            } catch { setReportForm(INIT_FORM) }
+                          }} style={{
                             display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
                             borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
                             background: '#FFF7ED', color: '#C2410C', border: '1px solid #FED7AA'
@@ -856,12 +881,34 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               </div>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 16, color: DARK }}>{isEditing ? 'Edit Report' : 'Post-Consultation Report'}</div>
-                <div style={{ fontSize: 12, color: '#6B7280' }}>{patient.name}</div>
+                <div style={{ fontSize: 12, color: '#6B7280', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {patient.name}
+                  {!isEditing && draftSaved && <span style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>· Draft saved</span>}
+                </div>
               </div>
             </div>
-            <button onClick={() => { setIsEditing(false); setActiveReport(null); setSubmitError('') }} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E5E9F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <X size={15} color="#6B7280" />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* Copy last report button */}
+              {!isEditing && (() => {
+                const lastReport = consultations.find(c => c.diagnosis && c.id !== activeReport)
+                if (!lastReport) return null
+                return (
+                  <button onClick={() => setReportForm({
+                    diagnosis: lastReport.diagnosis ?? '',
+                    notes: lastReport.notes ?? '',
+                    additional_instructions: lastReport.additional_instructions ?? '',
+                    followup_weeks: 6,
+                    followup_date: '',
+                    prescription: Array.isArray(lastReport.prescription) && lastReport.prescription.length ? lastReport.prescription : [{ ...EMPTY_RX }],
+                  })} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 7, border: '1px solid #BAE6FD', background: '#F0F9FF', color: '#0369A1', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    Copy last report
+                  </button>
+                )
+              })()}
+              <button onClick={() => { setIsEditing(false); setActiveReport(null); setSubmitError('') }} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E5E9F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={15} color="#6B7280" />
+              </button>
+            </div>
           </div>
           <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Diagnosis */}
@@ -882,10 +929,18 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                 </button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {/* datalists for autocomplete */}
+                {(['medicine', 'strength', 'dosage_route', 'frequency', 'duration', 'quantity'] as const).map(field => (
+                  <datalist key={field} id={`pt-dl-${field}`}>
+                    {(rxOptions[field] ?? []).map(v => <option key={v} value={v} />)}
+                  </datalist>
+                ))}
                 {reportForm.prescription.map((rx, i) => (
                   <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, background: '#F8FAFC', borderRadius: 10, padding: 10 }}>
                     {(['medicine', 'strength', 'dosage_route', 'frequency', 'duration', 'quantity'] as const).map(field => (
-                      <input key={field} value={(rx as unknown as Record<string, string>)[field]}
+                      <input key={field}
+                        list={`pt-dl-${field}`}
+                        value={(rx as unknown as Record<string, string>)[field]}
                         onChange={e => {
                           const rx2 = [...reportForm.prescription]; rx2[i] = { ...rx2[i], [field]: e.target.value }
                           setReportForm(f => ({ ...f, prescription: rx2 }))
