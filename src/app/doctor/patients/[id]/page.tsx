@@ -54,7 +54,7 @@ function age(dob: string | null) {
   return { years: y, months: months % 12 }
 }
 function fmtDate(s: string) {
-  return new Date(s).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return new Date(s).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Kolkata' })
 }
 
 /* ─── Nav items (no chat/calls/messages) ─── */

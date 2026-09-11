@@ -34,14 +34,17 @@ const INIT_FORM: ReportForm = {
 }
 
 /* ─────────── Helpers ─────────── */
+const IST = 'Asia/Kolkata'
 function fmt(slot: string) {
   const d = new Date(slot)
+  const todayIST = new Date().toLocaleDateString('en-CA', { timeZone: IST })
+  const slotDateIST = d.toLocaleDateString('en-CA', { timeZone: IST })
   return {
-    time: d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
-    date: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-    shortDate: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-    dayName: d.toLocaleDateString('en-IN', { weekday: 'short' }),
-    isToday: d.toDateString() === new Date().toDateString(),
+    time: d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: IST }),
+    date: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: IST }),
+    shortDate: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: IST }),
+    dayName: d.toLocaleDateString('en-IN', { weekday: 'short', timeZone: IST }),
+    isToday: slotDateIST === todayIST,
     isPast: d < new Date(),
     isFuture: d > new Date(),
   }
@@ -348,8 +351,13 @@ export default function DoctorDashboard() {
     finally { setSubmitting(false) }
   }
 
-  const now = new Date()
-  const dateStr = now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const [clock, setClock] = useState(() => new Date())
+  useEffect(() => {
+    const t = setInterval(() => setClock(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  const dateStr = clock.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: IST })
+  const timeStr = clock.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: IST })
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Geist', system-ui, sans-serif", background: '#F0F4F8' }}>
@@ -476,6 +484,12 @@ export default function DoctorDashboard() {
                   : 'Past Consultations'}
             </div>
             <div style={{ fontSize: 12, color: '#6B7280' }}>{dateStr}</div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 10, background: '#F0F9FF', border: '1px solid #BAE6FD', flexShrink: 0 }}>
+            <Clock size={14} color="#0369A1" />
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#0369A1', fontVariantNumeric: 'tabular-nums', letterSpacing: 0.3 }}>{timeStr}</span>
+            <span style={{ fontSize: 11, color: '#7DD3FC', fontWeight: 600 }}>IST</span>
           </div>
 
           {connected && (

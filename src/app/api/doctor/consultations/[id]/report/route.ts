@@ -76,8 +76,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // Compute age from vitals DOB (users table has no dob column)
   const age = patientVitals?.dob ? Math.floor((Date.now() - new Date(patientVitals.dob).getTime()) / 31557600000) : 0
   const consultDate = new Date(consult.slot_datetime)
-  const dateStr = consultDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
-  const timeStr = consultDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  const dateStr = consultDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })
+  const timeStr = consultDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 
   // Generate PDF
   const pdfBuffer = await generatePrescriptionPDF({
@@ -168,8 +168,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const age = patientVitals?.dob ? Math.floor((Date.now() - new Date(patientVitals.dob).getTime()) / 31557600000) : 0
   const consultDate = new Date(consult.slot_datetime)
-  const dateStr = consultDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
-  const timeStr = consultDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  const dateStr = consultDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })
+  const timeStr = consultDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 
   const pdfBuffer = await generatePrescriptionPDF({
     prescriptionId: `RX-${dateStr.replace(/ /g, '').slice(0, 8)}-${String(existing.id).padStart(4, '0')}`,

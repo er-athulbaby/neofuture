@@ -145,8 +145,8 @@ export default function AppointmentsPage() {
 
 function AppointmentCard({ a, expanded, onToggle }: { a: Appointment; expanded: boolean; onToggle: () => void }) {
   const dt = new Date(a.slot_datetime)
-  const dateStr = dt.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
-  const timeStr = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  const dateStr = dt.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })
+  const timeStr = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
   const statusInfo = STATUS_LABELS[a.status] ?? { label: a.status, class: 'bg-gray-100 text-gray-600' }
   const joinable = canJoin(a.slot_datetime)
   const ended = meetingOver(a.slot_datetime)

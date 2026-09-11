@@ -49,8 +49,8 @@ export default async function AdminConsultationsPage() {
                   <p className="text-xs text-brand-gray">{r.specialisation}</p>
                 </td>
                 <td className="px-4 py-3 text-brand-gray">
-                  {new Date(r.slot_datetime).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}<br />
-                  <span className="text-xs">{new Date(r.slot_datetime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                  {new Date(r.slot_datetime).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}<br />
+                  <span className="text-xs">{new Date(r.slot_datetime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}</span>
                 </td>
                 <td className="px-4 py-3">
                   {r.is_followup ? <span className="text-green-600 font-medium text-xs">Free follow-up</span> : <span>₹{r.consultation_fee}{r.neopulse_redeemed > 0 ? <span className="text-xs text-brand-gray ml-1">(-₹{r.neopulse_redeemed} NP)</span> : null}</span>}

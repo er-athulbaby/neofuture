@@ -20,8 +20,8 @@ function baseQualification(qual: string): string {
 function addDays(date: Date, n: number) {
   const d = new Date(date); d.setDate(d.getDate() + n); return d
 }
-function fmtDate(d: Date) { return d.toISOString().slice(0, 10) }
-function fmtDisplay(d: Date) { return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }) }
+function fmtDate(d: Date) { return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }) }
+function fmtDisplay(d: Date) { return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' }) }
 
 export default function ConsultBookPage() {
   const { doctorId } = useParams<{ doctorId: string }>()
@@ -215,7 +215,7 @@ export default function ConsultBookPage() {
           {slots.length === 0 && <p className="text-sm text-brand-gray">No slots available on this day.</p>}
           <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
             {slots.map(s => {
-              const t = new Date(s.datetime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+              const t = new Date(s.datetime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
               const isSelected = selectedSlot === s.datetime
               return (
                 <button key={s.datetime} disabled={!s.available} onClick={() => setSelectedSlot(s.datetime)}

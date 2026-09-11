@@ -29,8 +29,8 @@ export default async function ConsultRoomPage({ params }: { params: Promise<{ bo
   )
 
   const slotTime = new Date(consult.slot_datetime)
-  const dateStr = slotTime.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-  const timeStr = slotTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  const dateStr = slotTime.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })
+  const timeStr = slotTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col">

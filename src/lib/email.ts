@@ -210,8 +210,8 @@ export async function sendConsultationConfirmation(
   opts: { patientName: string; doctorName: string; specialisation: string; slotDatetime: string; meetLink: string; fee: number; isFollowup: boolean }
 ) {
   const dt = new Date(opts.slotDatetime)
-  const dateStr = dt.toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
-  const timeStr = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  const dateStr = dt.toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })
+  const timeStr = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 
   const { transport, from } = await getTransporter()
   await transport.sendMail({
