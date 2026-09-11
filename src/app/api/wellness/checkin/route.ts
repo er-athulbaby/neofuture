@@ -66,6 +66,13 @@ export async function POST(req: NextRequest) {
       [userId, sleep_score, energy_score, stress_level, h, m, wellness_score]
     )
 
+    // Grant consent when user actively submits their first check-in
+    await query(
+      `UPDATE users SET health_data_consent = true, health_data_consent_at = NOW()
+       WHERE id = $1 AND health_data_consent = false`,
+      [userId]
+    ).catch(() => {})
+
     let npAwarded = 0
 
     // Daily check-in: 10 NP (once per day)

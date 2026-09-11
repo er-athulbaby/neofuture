@@ -25,10 +25,16 @@ interface ReportForm {
 const EMPTY_RX: PrescriptionItem = { medicine: '', strength: '', dosage_route: '', frequency: '', duration: '', quantity: '' }
 const INIT_FORM: ReportForm = { diagnosis: '', notes: '', additional_instructions: '', followup_weeks: 6, followup_date: '', prescription: [{ ...EMPTY_RX }] }
 interface PrescriptionItem { medicine: string; strength: string; dosage_route: string; frequency: string; duration: string; quantity: string }
+interface WellnessCheckin {
+  check_in_date: string; sleep_score: number; energy_score: number
+  stress_level: number; hydration_score: number | null
+  mood_score: number | null; wellness_score: number
+}
 interface PatientDetail {
   patient: { id: string; name: string; email: string; phone: string | null }
   vitals: Vitals | null
   consultations: Consultation[]
+  wellness: WellnessCheckin[]
 }
 
 const TEAL = '#0EA5C8'
@@ -52,7 +58,7 @@ function fmtDate(s: string) {
 }
 
 /* ─── Nav items (no chat/calls/messages) ─── */
-type Tab = 'overview' | 'history' | 'medications' | 'results' | 'files' | 'billing'
+type Tab = 'overview' | 'history' | 'medications' | 'results' | 'files' | 'billing' | 'wellness'
 const NAV: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'overview', label: 'Overview', icon: User },
   { id: 'history', label: 'History', icon: Clock },
@@ -60,6 +66,7 @@ const NAV: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'results', label: 'Lab Results', icon: FlaskConical },
   { id: 'files', label: 'Files', icon: FileText },
   { id: 'billing', label: 'Billing', icon: Activity },
+  { id: 'wellness', label: 'Wellness', icon: Heart },
 ]
 
 /* ─── Vitals Editor ─── */
@@ -266,7 +273,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
     )
   }
 
-  const { patient, consultations } = data
+  const { patient, consultations, wellness } = data
 
   const a = age(vitals?.dob ?? null)
   const latestRx = consultations.find(c => c.prescription && c.prescription.length > 0)?.prescription ?? []
@@ -687,6 +694,131 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               </div>
             </div>
           )}
+
+          {/* ── WELLNESS TAB ── */}
+          {tab === 'wellness' && (() => {
+            function scoreColor(v: number, invert = false) {
+              const good = invert ? v <= 3 : v >= 7
+              const bad = invert ? v >= 7 : v <= 3
+              if (good) return { bg: '#ECFDF5', color: '#059669' }
+              if (bad) return { bg: '#FEF2F2', color: '#DC2626' }
+              return { bg: '#FFFBEB', color: '#D97706' }
+            }
+            function wScore(v: number) {
+              if (v >= 70) return { bg: '#ECFDF5', color: '#059669' }
+              if (v >= 40) return { bg: '#FFFBEB', color: '#D97706' }
+              return { bg: '#FEF2F2', color: '#DC2626' }
+            }
+            const avg = (arr: (number | null)[]) => {
+              const vals = arr.filter((v): v is number => v !== null)
+              return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length) : null
+            }
+            const avgs = wellness.length ? {
+              sleep: avg(wellness.map(w => w.sleep_score)),
+              energy: avg(wellness.map(w => w.energy_score)),
+              stress: avg(wellness.map(w => w.stress_level)),
+              hydration: avg(wellness.map(w => w.hydration_score)),
+              mood: avg(wellness.map(w => w.mood_score)),
+              wellness: avg(wellness.map(w => Number(w.wellness_score))),
+            } : null
+
+            return (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <h3 style={{ fontWeight: 700, fontSize: 16, color: DARK, margin: 0 }}>Daily Wellness Check-ins</h3>
+                  {wellness.length > 0 && (
+                    <span style={{ fontSize: 12, color: '#9CA3AF' }}>{wellness.length} entries · last 90 days</span>
+                  )}
+                </div>
+
+                {wellness.length === 0 ? (
+                  <div style={{ background: '#fff', borderRadius: 16, padding: '48px 24px', textAlign: 'center', border: '1px solid #E5E9F0' }}>
+                    <Heart size={32} color="#E5E9F0" style={{ display: 'block', margin: '0 auto 14px' }} />
+                    <p style={{ color: '#374151', fontWeight: 600, margin: '0 0 6px' }}>No check-ins yet</p>
+                    <p style={{ color: '#9CA3AF', fontSize: 13, margin: 0 }}>This patient has not submitted any daily wellness check-ins.</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Average tiles */}
+                    {avgs && (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10, marginBottom: 20 }}>
+                        {[
+                          { label: 'Sleep', value: avgs.sleep, invert: false },
+                          { label: 'Energy', value: avgs.energy, invert: false },
+                          { label: 'Stress', value: avgs.stress, invert: true },
+                          { label: 'Hydration', value: avgs.hydration, invert: false },
+                          { label: 'Mood', value: avgs.mood, invert: false },
+                        ].map(({ label, value, invert }) => {
+                          if (value === null) return null
+                          const c = scoreColor(value, invert)
+                          return (
+                            <div key={label} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E5E9F0', padding: '14px 12px', textAlign: 'center' }}>
+                              <div style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>{label} avg</div>
+                              <div style={{ fontSize: 22, fontWeight: 800, color: c.color }}>{value.toFixed(1)}</div>
+                              <div style={{ fontSize: 10, color: '#CBD5E0', marginTop: 2 }}>out of 10</div>
+                            </div>
+                          )
+                        })}
+                        {avgs.wellness !== null && (() => {
+                          const c = wScore(avgs.wellness)
+                          return (
+                            <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E5E9F0', padding: '14px 12px', textAlign: 'center' }}>
+                              <div style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>Wellness avg</div>
+                              <div style={{ fontSize: 22, fontWeight: 800, color: c.color }}>{avgs.wellness.toFixed(0)}</div>
+                              <div style={{ fontSize: 10, color: '#CBD5E0', marginTop: 2 }}>score</div>
+                            </div>
+                          )
+                        })()}
+                      </div>
+                    )}
+
+                    {/* Check-in table */}
+                    <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E9F0', overflow: 'hidden' }}>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                          <thead>
+                            <tr style={{ background: '#F8FAFC' }}>
+                              {['Date', 'Sleep', 'Energy', 'Stress', 'Hydration', 'Mood', 'Wellness'].map(h => (
+                                <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #E5E9F0', whiteSpace: 'nowrap' }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {wellness.map((w, i) => {
+                              const wc = wScore(Number(w.wellness_score))
+                              return (
+                                <tr key={i} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                                  <td style={{ padding: '10px 14px', color: DARK, fontWeight: 600, whiteSpace: 'nowrap' }}>{fmtDate(w.check_in_date)}</td>
+                                  {[
+                                    { v: w.sleep_score, invert: false },
+                                    { v: w.energy_score, invert: false },
+                                    { v: w.stress_level, invert: true },
+                                    { v: w.hydration_score, invert: false },
+                                    { v: w.mood_score, invert: false },
+                                  ].map(({ v, invert }, j) => {
+                                    if (v === null) return <td key={j} style={{ padding: '10px 14px', color: '#CBD5E0' }}>—</td>
+                                    const c = scoreColor(v, invert)
+                                    return (
+                                      <td key={j} style={{ padding: '10px 14px' }}>
+                                        <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: c.bg, color: c.color }}>{v}</span>
+                                      </td>
+                                    )
+                                  })}
+                                  <td style={{ padding: '10px 14px' }}>
+                                    <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: wc.bg, color: wc.color }}>{Number(w.wellness_score).toFixed(0)}</span>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          })()}
 
         </div>
       </div>

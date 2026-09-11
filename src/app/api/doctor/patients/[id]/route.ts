@@ -22,7 +22,7 @@ export async function GET(_req: NextRequest, { params }: Props) {
   )
   if (!hasAccess) return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
 
-  const [patient, vitals, consultations] = await Promise.all([
+  const [patient, vitals, consultations, wellnessRows] = await Promise.all([
     queryOne<{ id: string; name: string; email: string; phone: string | null }>(
       'SELECT id::text, name, email, phone FROM users WHERE id::text = $1', [patientId]
     ),
@@ -41,7 +41,19 @@ export async function GET(_req: NextRequest, { params }: Props) {
       WHERE c.doctor_id=$1 AND c.patient_id::text=$2::text AND c.status IN ('confirmed','completed')
       ORDER BY c.slot_datetime DESC
     `, [doctor.id, patientId]),
+    query<{
+      check_in_date: string; sleep_score: number; energy_score: number
+      stress_level: number; hydration_score: number | null
+      mood_score: number | null; wellness_score: number
+    }>(
+      `SELECT check_in_date, sleep_score, energy_score, stress_level,
+              hydration_score, mood_score, wellness_score
+       FROM wellness_checkins
+       WHERE user_id = $1
+       ORDER BY check_in_date DESC LIMIT 90`,
+      [patientId]
+    ).catch(() => []),
   ])
 
-  return NextResponse.json({ patient, vitals: vitals ?? null, consultations })
+  return NextResponse.json({ patient, vitals: vitals ?? null, consultations, wellness: wellnessRows })
 }
