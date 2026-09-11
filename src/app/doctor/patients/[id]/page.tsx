@@ -252,6 +252,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
     const res = await fetch(`/api/doctor/lab-report?key=${encodeURIComponent(key)}`)
     const d = await res.json()
     if (d.url) window.open(d.url, '_blank')
+    else alert(d.error ?? 'Could not open file. Please try again.')
   }
 
   if (loading) {

@@ -98,6 +98,7 @@ function AppointCard({
     const res = await fetch(`/api/doctor/lab-report?key=${encodeURIComponent(key)}`)
     const data = await res.json()
     if (data.url) window.open(data.url, '_blank')
+    else alert(data.error ?? 'Could not open file. Please try again.')
   }
 
   async function generatePdf() {

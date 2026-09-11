@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     )
     if (!doctor) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     const hasRelation = await queryOne(
-      'SELECT id FROM consultations WHERE doctor_id=$1 AND patient_id=$2::text LIMIT 1',
+      'SELECT id FROM consultations WHERE doctor_id=$1 AND patient_id::text=$2 LIMIT 1',
       [doctor.id, patientUserId]
     )
     if (!hasRelation) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
