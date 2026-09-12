@@ -4,6 +4,14 @@ import { query, queryOne } from '@/lib/db'
 
 interface Props { params: Promise<{ id: string }> }
 
+async function ensureColumns() {
+  await Promise.all([
+    query(`ALTER TABLE consultation_reports ADD COLUMN IF NOT EXISTS observation TEXT`, []).catch(() => {}),
+    query(`ALTER TABLE consultation_reports ADD COLUMN IF NOT EXISTS doctor_attachments JSONB DEFAULT '[]'`, []).catch(() => {}),
+    query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS mobile VARCHAR(20)`, []).catch(() => {}),
+  ])
+}
+
 export async function GET(_req: NextRequest, { params }: Props) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -21,6 +29,8 @@ export async function GET(_req: NextRequest, { params }: Props) {
     [doctor.id, patientId]
   )
   if (!hasAccess) return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
+
+  await ensureColumns()
 
   const [patient, vitals, consultations, wellnessRows] = await Promise.all([
     queryOne<{ id: string; name: string; email: string; phone: string | null }>(
