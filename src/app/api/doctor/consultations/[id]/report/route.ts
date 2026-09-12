@@ -5,6 +5,13 @@ import { generatePrescriptionPDF } from '@/lib/consultation-pdf'
 import { uploadToS3 } from '@/lib/s3'
 import { sendConsultationReport } from '@/lib/email'
 
+async function ensureColumns() {
+  await Promise.all([
+    query(`ALTER TABLE consultation_reports ADD COLUMN IF NOT EXISTS observation TEXT`, []).catch(() => {}),
+    query(`ALTER TABLE consultation_reports ADD COLUMN IF NOT EXISTS doctor_attachments JSONB DEFAULT '[]'`, []).catch(() => {}),
+  ])
+}
+
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -15,7 +22,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!doctor) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const report = await queryOne(
-    `SELECT cr.diagnosis, cr.notes, cr.prescription, cr.additional_instructions, cr.followup_weeks, cr.followup_date
+    `SELECT cr.diagnosis, cr.observation, cr.notes, cr.prescription, cr.additional_instructions, cr.followup_weeks, cr.followup_date, cr.doctor_attachments
      FROM consultation_reports cr
      JOIN consultations c ON c.id = cr.consultation_id
      WHERE cr.consultation_id=$1 AND c.doctor_id=$2`,
@@ -24,7 +31,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!report) return NextResponse.json({ error: 'No report' }, { status: 404 })
 
   const prescription = typeof report.prescription === 'string' ? JSON.parse(report.prescription) : report.prescription
-  return NextResponse.json({ ...report, prescription })
+  const doctor_attachments = typeof (report as Record<string, unknown>).doctor_attachments === 'string'
+    ? JSON.parse((report as Record<string, unknown>).doctor_attachments as string)
+    : ((report as Record<string, unknown>).doctor_attachments ?? [])
+  return NextResponse.json({ ...report, prescription, doctor_attachments })
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -56,7 +66,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     ).catch(() => null),
   ])
 
-  const { diagnosis, notes, prescription, additional_instructions, followup_weeks, followup_date } = await req.json()
+  await ensureColumns()
+
+  const { diagnosis, observation, notes, prescription, additional_instructions, followup_weeks, followup_date, doctor_attachments } = await req.json()
 
   // Snapshot wellness scores
   const [latestScore, recentCheckins] = await Promise.all([
@@ -68,9 +80,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   // Save report
   const report = await queryOne<{ id: number }>(
-    `INSERT INTO consultation_reports (consultation_id, diagnosis, notes, prescription, additional_instructions, followup_weeks, followup_date, wellness_snapshot)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
-    [id, diagnosis, notes, JSON.stringify(prescription), additional_instructions, followup_weeks ?? null, followup_date ?? null, JSON.stringify(wellnessSnapshot)]
+    `INSERT INTO consultation_reports (consultation_id, diagnosis, observation, notes, prescription, additional_instructions, followup_weeks, followup_date, wellness_snapshot, doctor_attachments)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+    [id, diagnosis, observation || null, notes, JSON.stringify(prescription), additional_instructions, followup_weeks ?? null, followup_date ?? null, JSON.stringify(wellnessSnapshot), JSON.stringify(doctor_attachments ?? [])]
   )
 
   // Compute age from vitals DOB (users table has no dob column)
@@ -97,10 +109,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       signatureUrl: doctor.signature_url ?? undefined,
     },
     diagnosis,
+    observation: observation || undefined,
     prescription,
     additionalInstructions: additional_instructions,
     followupWeeks: followup_weeks,
     followupDate: followup_date,
+    doctorAttachments: doctor_attachments?.length ? doctor_attachments : undefined,
   })
 
   // Upload to S3
@@ -149,7 +163,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const existing = await queryOne<{ id: number }>('SELECT id FROM consultation_reports WHERE consultation_id=$1', [id])
   if (!existing) return NextResponse.json({ error: 'No report to edit' }, { status: 404 })
 
-  const { diagnosis, notes, prescription, additional_instructions, followup_date } = await req.json()
+  await ensureColumns()
+
+  const { diagnosis, observation, notes, prescription, additional_instructions, followup_date, doctor_attachments } = await req.json()
 
   const [patient, patientVitals] = await Promise.all([
     queryOne<{ name: string; email: string; phone: string; gender: string | null }>(
@@ -162,8 +178,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   ])
 
   await query(
-    `UPDATE consultation_reports SET diagnosis=$1, notes=$2, prescription=$3, additional_instructions=$4, followup_date=$5 WHERE id=$6`,
-    [diagnosis, notes, JSON.stringify(prescription), additional_instructions, followup_date ?? null, existing.id]
+    `UPDATE consultation_reports SET diagnosis=$1, observation=$2, notes=$3, prescription=$4, additional_instructions=$5, followup_date=$6, doctor_attachments=$7 WHERE id=$8`,
+    [diagnosis, observation || null, notes, JSON.stringify(prescription), additional_instructions, followup_date ?? null, JSON.stringify(doctor_attachments ?? []), existing.id]
   )
 
   const age = patientVitals?.dob ? Math.floor((Date.now() - new Date(patientVitals.dob).getTime()) / 31557600000) : 0
@@ -188,9 +204,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       signatureUrl: doctor.signature_url ?? undefined,
     },
     diagnosis,
+    observation: observation || undefined,
     prescription,
     additionalInstructions: additional_instructions,
     followupDate: followup_date,
+    doctorAttachments: doctor_attachments?.length ? doctor_attachments : undefined,
   })
 
   const s3Key = `prescriptions/${id}/report-${existing.id}.pdf`

@@ -25,6 +25,7 @@ export interface PrescriptionData {
     signatureUrl?: string
   }
   diagnosis: string
+  observation?: string
   prescription: Array<{
     medicine: string
     strength: string
@@ -36,6 +37,7 @@ export interface PrescriptionData {
   additionalInstructions?: string
   followupWeeks?: number
   followupDate?: string
+  doctorAttachments?: Array<{ key: string; name: string }>
 }
 
 function formatFollowupDate(raw: string): string {
@@ -194,6 +196,13 @@ function buildPrescriptionHtml(d: PrescriptionData, logoDataUri: string, qrDataU
       <div class="diagnosis-box">${d.diagnosis}</div>
     </div>
 
+    ${d.observation ? `
+    <!-- Observation -->
+    <div class="section">
+      <div class="section-title">Observation / Examination</div>
+      <div class="diagnosis-box" style="border-left-color:#7C3AED;background:#FAF5FF">${d.observation}</div>
+    </div>` : ''}
+
     <!-- Prescription table -->
     <div class="section">
       <div class="section-title">Prescription</div>
@@ -225,6 +234,15 @@ function buildPrescriptionHtml(d: PrescriptionData, logoDataUri: string, qrDataU
         <p>This prescription is issued based on the teleconsultation. Use medicines only as directed. In case of emergency or worsening of symptoms, seek immediate medical care.</p>
       </div>
     </div>
+
+    ${d.doctorAttachments && d.doctorAttachments.length > 0 ? `
+    <!-- Attached Files -->
+    <div class="section">
+      <div class="section-title">Files Attached by Doctor</div>
+      <ul style="padding-left:18px;color:#374151;line-height:2;font-size:12px">
+        ${d.doctorAttachments.map(f => `<li>${f.name}</li>`).join('')}
+      </ul>
+    </div>` : ''}
 
     <!-- Signature + QR -->
     <div class="sig-row">

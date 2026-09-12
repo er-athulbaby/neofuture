@@ -28,14 +28,15 @@ export async function GET(_req: NextRequest, { params }: Props) {
     ),
     queryOne<{
       dob: string | null; weight_kg: number | null; height_cm: number | null
-      blood_pressure: string | null; pulse_bpm: number | null; updated_at: string | null
+      blood_pressure: string | null; pulse_bpm: number | null; mobile: string | null; updated_at: string | null
     }>(
-      'SELECT dob, weight_kg, height_cm, blood_pressure, pulse_bpm, updated_at FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2',
+      'SELECT dob, weight_kg, height_cm, blood_pressure, pulse_bpm, mobile, updated_at FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2',
       [doctor.id, patientId]
     ).catch(() => null),
     query(`
       SELECT c.id, c.slot_datetime, c.status, c.is_followup, c.lab_reports, c.meet_link,
-        cr.id AS report_id, cr.pdf_url, cr.diagnosis, cr.notes, cr.prescription, cr.additional_instructions, cr.created_at AS report_date
+        cr.id AS report_id, cr.pdf_url, cr.diagnosis, cr.notes, cr.observation, cr.prescription,
+        cr.additional_instructions, cr.doctor_attachments, cr.created_at AS report_date
       FROM consultations c
       LEFT JOIN consultation_reports cr ON cr.consultation_id = c.id
       WHERE c.doctor_id=$1 AND c.patient_id::text=$2::text AND c.status IN ('confirmed','completed')

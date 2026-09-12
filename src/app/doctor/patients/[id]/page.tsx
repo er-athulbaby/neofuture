@@ -5,25 +5,27 @@ import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, Edit, Edit3, Save, X, FileText, Activity,
   Calendar, Clock, ChevronRight, User, Pill,
-  FlaskConical, StickyNote, Video, Link as LinkIcon, Plus, Trash2, Heart, Zap
+  FlaskConical, StickyNote, Video, Link as LinkIcon, Plus, Trash2, Heart, Zap, Paperclip
 } from 'lucide-react'
+import TemplateTextarea from '@/components/TemplateTextarea'
 
 /* ─── Types ─── */
-interface Vitals { dob: string | null; weight_kg: number | null; height_cm: number | null; blood_pressure: string | null; pulse_bpm: number | null; updated_at: string | null }
+interface Vitals { dob: string | null; weight_kg: number | null; height_cm: number | null; blood_pressure: string | null; pulse_bpm: number | null; mobile: string | null; updated_at: string | null }
 interface Consultation {
   id: number; slot_datetime: string; status: string; is_followup: boolean
   lab_reports: { key: string; name: string; size: number; type: string }[]
+  doctor_attachments: { key: string; name: string }[] | null
   meet_link: string | null; report_id: number | null; pdf_url: string | null
-  diagnosis: string | null; notes: string | null; prescription: PrescriptionItem[] | null
+  diagnosis: string | null; observation: string | null; notes: string | null; prescription: PrescriptionItem[] | null
   additional_instructions: string | null; report_date: string | null
 }
 interface ReportForm {
-  diagnosis: string; notes: string; additional_instructions: string
+  diagnosis: string; observation: string; notes: string; additional_instructions: string
   followup_weeks: number; followup_date: string
   prescription: PrescriptionItem[]
 }
 const EMPTY_RX: PrescriptionItem = { medicine: '', strength: '', dosage_route: '', frequency: '', duration: '', quantity: '' }
-const INIT_FORM: ReportForm = { diagnosis: '', notes: '', additional_instructions: '', followup_weeks: 6, followup_date: '', prescription: [{ ...EMPTY_RX }] }
+const INIT_FORM: ReportForm = { diagnosis: '', observation: '', notes: '', additional_instructions: '', followup_weeks: 6, followup_date: '', prescription: [{ ...EMPTY_RX }] }
 interface PrescriptionItem { medicine: string; strength: string; dosage_route: string; frequency: string; duration: string; quantity: string }
 interface WellnessCheckin {
   check_in_date: string; sleep_score: number; energy_score: number
@@ -79,6 +81,7 @@ function VitalsPanel({ vitals, patientId, onSaved }: { vitals: Vitals | null; pa
     height_cm: vitals?.height_cm ?? '',
     blood_pressure: vitals?.blood_pressure ?? '',
     pulse_bpm: vitals?.pulse_bpm ?? '',
+    mobile: vitals?.mobile ?? '',
   })
 
   async function save() {
@@ -88,7 +91,7 @@ function VitalsPanel({ vitals, patientId, onSaved }: { vitals: Vitals | null; pa
     })
     setSaving(false)
     if (res.ok) {
-      onSaved({ ...form, dob: form.dob || null, weight_kg: Number(form.weight_kg) || null, height_cm: Number(form.height_cm) || null, blood_pressure: form.blood_pressure || null, pulse_bpm: Number(form.pulse_bpm) || null, updated_at: new Date().toISOString() })
+      onSaved({ ...form, dob: form.dob || null, weight_kg: Number(form.weight_kg) || null, height_cm: Number(form.height_cm) || null, blood_pressure: form.blood_pressure || null, pulse_bpm: Number(form.pulse_bpm) || null, mobile: form.mobile || null, updated_at: new Date().toISOString() })
       setEditing(false)
     }
   }
@@ -103,6 +106,7 @@ function VitalsPanel({ vitals, patientId, onSaved }: { vitals: Vitals | null; pa
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
             { label: 'Date of Birth', key: 'dob', type: 'date' },
+            { label: 'Mobile Number', key: 'mobile', type: 'tel', placeholder: '+91 98765 43210' },
             { label: 'Weight (kg)', key: 'weight_kg', type: 'number' },
             { label: 'Height (cm)', key: 'height_cm', type: 'number' },
             { label: 'Blood Pressure', key: 'blood_pressure', type: 'text', placeholder: '120/80' },
@@ -164,6 +168,12 @@ function VitalsPanel({ vitals, patientId, onSaved }: { vitals: Vitals | null; pa
               <span style={{ fontSize: 15, fontWeight: 700, color: '#1E3A8A' }}>{vitals.height_cm} cm</span>
             </div>
           )}
+          {vitals.mobile && (
+            <div style={{ padding: '10px 14px', background: '#FFF7ED', borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gridColumn: 'span 2' }}>
+              <span style={{ fontSize: 12, color: '#C2410C', fontWeight: 600 }}>Mobile</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#9A3412' }}>{vitals.mobile}</span>
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ textAlign: 'center', padding: '24px 0', color: '#9CA3AF' }}>
@@ -193,6 +203,8 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   const [lastPdfUrl, setLastPdfUrl] = useState<string | null>(null)
   const [rxOptions, setRxOptions] = useState<Record<string, string[]>>({})
   const [draftSaved, setDraftSaved] = useState(false)
+  const [attachedFiles, setAttachedFiles] = useState<{ key: string; name: string }[]>([])
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -233,27 +245,48 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
       const d = await res.json()
       setReportForm({
         diagnosis: d.diagnosis ?? '',
+        observation: d.observation ?? '',
         notes: d.notes ?? '',
         additional_instructions: d.additional_instructions ?? '',
         followup_weeks: d.followup_weeks ?? 6,
         followup_date: d.followup_date ? d.followup_date.slice(0, 10) : '',
         prescription: Array.isArray(d.prescription) && d.prescription.length ? d.prescription : [{ ...EMPTY_RX }],
       })
+      setAttachedFiles(Array.isArray(d.doctor_attachments) ? d.doctor_attachments : [])
     }
     setIsEditing(true)
     setActiveReport(consultationId)
+  }
+
+  async function handleFileAttach(e: React.ChangeEvent<HTMLInputElement>, consultId: number) {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    setUploading(true)
+    for (const file of files) {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch(`/api/doctor/consultations/${consultId}/attach`, { method: 'POST', body: fd })
+      if (res.ok) {
+        const d = await res.json()
+        setAttachedFiles(prev => [...prev, { key: d.key, name: d.name }])
+      }
+    }
+    setUploading(false)
+    e.target.value = ''
   }
 
   async function submitReport(consultationId: number) {
     setSubmitting(true); setSubmitError('')
     try {
       const res = await fetch(`/api/doctor/consultations/${consultationId}/report`, {
-        method: isEditing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reportForm),
+        method: isEditing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...reportForm, doctor_attachments: attachedFiles }),
       })
       if (res.ok) {
         const d2 = await res.json()
         try { localStorage.removeItem(`nf_report_draft_${consultationId}`) } catch { /* ignore */ }
         setReportForm(INIT_FORM)
+        setAttachedFiles([])
         if (d2.pdf_url) setLastPdfUrl(d2.pdf_url)
         else setActiveReport(null)
         // Refresh data
@@ -297,7 +330,8 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   const a = age(vitals?.dob ?? null)
   const latestRx = consultations.find(c => c.prescription && c.prescription.length > 0)?.prescription ?? []
   const allNotes = consultations.filter(c => c.diagnosis || c.notes)
-  const allLabFiles = consultations.flatMap(c => (c.lab_reports ?? []).map(r => ({ ...r, date: c.slot_datetime })))
+  const allLabFiles = consultations.flatMap(c => (c.lab_reports ?? []).map(r => ({ ...r, date: c.slot_datetime, fromDoctor: false })))
+  const allDoctorFiles = consultations.flatMap(c => (c.doctor_attachments ?? []).map(r => ({ ...r, size: 0, type: '', date: c.slot_datetime, fromDoctor: true })))
 
   return (
     <>
@@ -423,7 +457,8 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                       {[
                         { label: 'Email', value: patient.email },
-                        { label: 'Phone', value: patient.phone ?? '—' },
+                        { label: 'Phone', value: patient.phone ?? (vitals?.mobile ?? '—') },
+                        ...(vitals?.mobile && patient.phone ? [{ label: 'Mobile (records)', value: vitals.mobile }] : []),
                       ].map(({ label, value }) => (
                         <div key={label}>
                           <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
@@ -654,28 +689,59 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               <h3 style={{ fontWeight: 700, fontSize: 16, color: DARK, margin: '0 0 16px' }}>
                 {tab === 'results' ? 'Lab Results' : 'Uploaded Files'}
               </h3>
-              {allLabFiles.length === 0 ? (
+              {allLabFiles.length === 0 && allDoctorFiles.length === 0 ? (
                 <div style={{ background: '#fff', borderRadius: 16, padding: '40px 24px', textAlign: 'center', border: '1px solid #E5E9F0' }}>
                   <FlaskConical size={28} color="#E5E9F0" style={{ display: 'block', margin: '0 auto 12px' }} />
-                  <p style={{ color: '#9CA3AF', margin: 0 }}>No files uploaded by this patient.</p>
+                  <p style={{ color: '#9CA3AF', margin: 0 }}>No files on record.</p>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
-                  {allLabFiles.map((f, i) => (
-                    <button key={i} onClick={() => viewLab(f.key)} style={{
-                      display: 'flex', alignItems: 'center', gap: 12, padding: 16,
-                      borderRadius: 14, border: '1px solid #E5E9F0', background: '#fff', cursor: 'pointer', textAlign: 'left'
-                    }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <FileText size={18} color={TEAL} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  {allLabFiles.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Patient Lab Files</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+                        {allLabFiles.map((f, i) => (
+                          <button key={i} onClick={() => viewLab(f.key)} style={{
+                            display: 'flex', alignItems: 'center', gap: 12, padding: 16,
+                            borderRadius: 14, border: '1px solid #E5E9F0', background: '#fff', cursor: 'pointer', textAlign: 'left'
+                          }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <FileText size={18} color={TEAL} />
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, fontSize: 13, color: DARK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</div>
+                              <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{fmtDate(f.date)}</div>
+                            </div>
+                            <ChevronRight size={14} color="#CBD5E0" />
+                          </button>
+                        ))}
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: DARK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</div>
-                        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{fmtDate(f.date)}</div>
+                    </div>
+                  )}
+                  {allDoctorFiles.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Paperclip size={13} color="#9CA3AF" /> Doctor Attached Files
                       </div>
-                      <ChevronRight size={14} color="#CBD5E0" />
-                    </button>
-                  ))}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+                        {allDoctorFiles.map((f, i) => (
+                          <button key={i} onClick={() => viewLab(f.key)} style={{
+                            display: 'flex', alignItems: 'center', gap: 12, padding: 16,
+                            borderRadius: 14, border: '1px solid #FEF3C7', background: '#FFFBEB', cursor: 'pointer', textAlign: 'left'
+                          }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 10, background: '#FEF9C3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <Paperclip size={18} color="#D97706" />
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, fontSize: 13, color: DARK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</div>
+                              <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{fmtDate(f.date)} · From Doctor</div>
+                            </div>
+                            <ChevronRight size={14} color="#CBD5E0" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -895,6 +961,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                 return (
                   <button onClick={() => setReportForm({
                     diagnosis: lastReport.diagnosis ?? '',
+                    observation: lastReport.observation ?? '',
                     notes: lastReport.notes ?? '',
                     additional_instructions: lastReport.additional_instructions ?? '',
                     followup_weeks: 6,
@@ -905,7 +972,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                   </button>
                 )
               })()}
-              <button onClick={() => { setIsEditing(false); setActiveReport(null); setSubmitError('') }} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E5E9F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button onClick={() => { setIsEditing(false); setActiveReport(null); setSubmitError(''); setAttachedFiles([]) }} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E5E9F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <X size={15} color="#6B7280" />
               </button>
             </div>
@@ -914,11 +981,15 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
             {/* Diagnosis */}
             <div>
               <label style={labelStyle}>Diagnosis / Clinical Assessment *</label>
-              <textarea value={reportForm.diagnosis} onChange={e => setReportForm(f => ({ ...f, diagnosis: e.target.value }))} rows={2} style={taStyle} />
+              <TemplateTextarea value={reportForm.diagnosis} onChange={v => setReportForm(f => ({ ...f, diagnosis: v }))} fieldType="diagnosis" rows={2} style={taStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Observation / Examination</label>
+              <TemplateTextarea value={reportForm.observation} onChange={v => setReportForm(f => ({ ...f, observation: v }))} fieldType="observation" rows={2} style={taStyle} placeholder="Clinical findings, examination notes…" />
             </div>
             <div>
               <label style={labelStyle}>Doctor Notes</label>
-              <textarea value={reportForm.notes} onChange={e => setReportForm(f => ({ ...f, notes: e.target.value }))} rows={2} style={taStyle} />
+              <TemplateTextarea value={reportForm.notes} onChange={v => setReportForm(f => ({ ...f, notes: v }))} fieldType="notes" rows={2} style={taStyle} />
             </div>
             {/* Prescription */}
             <div>
@@ -959,11 +1030,31 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
             </div>
             <div>
               <label style={labelStyle}>Additional Instructions (one per line)</label>
-              <textarea value={reportForm.additional_instructions} onChange={e => setReportForm(f => ({ ...f, additional_instructions: e.target.value }))} rows={2} placeholder={"Take medicines after food\nAvoid stress"} style={taStyle} />
+              <TemplateTextarea value={reportForm.additional_instructions} onChange={v => setReportForm(f => ({ ...f, additional_instructions: v }))} fieldType="instructions" rows={2} placeholder={"Take medicines after food\nAvoid stress"} style={taStyle} />
             </div>
             <div>
               <label style={labelStyle}>Follow-up Date</label>
               <input type="date" value={reportForm.followup_date} onChange={e => setReportForm(f => ({ ...f, followup_date: e.target.value }))} style={inStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Attach Files (optional)</label>
+              <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                onChange={e => activeReport && handleFileAttach(e, activeReport)}
+                disabled={uploading}
+                style={{ fontSize: 13, color: '#374151', width: '100%' }} />
+              {uploading && <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Uploading…</div>}
+              {attachedFiles.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                  {attachedFiles.map((f, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: '#EFF6FF', border: '1px solid #BFDBFE', fontSize: 12, color: '#1D4ED8' }}>
+                      <FileText size={11} />{f.name}
+                      <button type="button" onClick={() => setAttachedFiles(prev => prev.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 0, lineHeight: 1 }}>
+                        <X size={11} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <div style={{ padding: '16px 24px', borderTop: '1px solid #F3F4F6' }}>
@@ -971,7 +1062,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               <div style={{ fontSize: 13, color: '#DC2626', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '8px 12px', marginBottom: 12 }}>{submitError}</div>
             )}
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => { setIsEditing(false); setActiveReport(null); setSubmitError('') }} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid #E5E9F0', background: '#fff', color: '#374151', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => { setIsEditing(false); setActiveReport(null); setSubmitError(''); setAttachedFiles([]) }} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid #E5E9F0', background: '#fff', color: '#374151', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
               <button onClick={() => submitReport(activeReport)} disabled={!reportForm.diagnosis || submitting} style={{ flex: 2, padding: '10px', borderRadius: 12, border: 'none', background: !reportForm.diagnosis || submitting ? '#E5E9F0' : TEAL, color: !reportForm.diagnosis || submitting ? '#9CA3AF' : '#fff', fontSize: 14, fontWeight: 700, cursor: !reportForm.diagnosis || submitting ? 'not-allowed' : 'pointer' }}>
                 {submitting ? 'Generating PDF…' : isEditing ? 'Update & Resend PDF' : 'Submit & Send to Patient'}
               </button>

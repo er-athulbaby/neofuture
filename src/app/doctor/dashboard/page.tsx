@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react'
 import {
   Video, FileText, Plus, Trash2, Calendar, Users, Clock, Bell,
   LogOut, Settings, LayoutDashboard, X, AlertCircle,
-  Activity, TrendingUp, Link as LinkIcon, Edit
+  Activity, TrendingUp, Link as LinkIcon, Edit, User, Save
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import TemplateTextarea from '@/components/TemplateTextarea'
 
 /* ─────────── Types ─────────── */
 interface DoctorProfile {
@@ -22,14 +23,14 @@ interface Consultation {
   is_followup: boolean; lab_reports: { key: string; name: string; size: number; type: string }[]
 }
 interface ReportForm {
-  diagnosis: string; notes: string; additional_instructions: string
+  diagnosis: string; observation: string; notes: string; additional_instructions: string
   followup_weeks: number; followup_date: string
   prescription: { medicine: string; strength: string; dosage_route: string; frequency: string; duration: string; quantity: string }[]
 }
 
 const EMPTY_RX = { medicine: '', strength: '', dosage_route: '', frequency: '', duration: '', quantity: '' }
 const INIT_FORM: ReportForm = {
-  diagnosis: '', notes: '', additional_instructions: '', followup_weeks: 6, followup_date: '',
+  diagnosis: '', observation: '', notes: '', additional_instructions: '', followup_weeks: 6, followup_date: '',
   prescription: [{ ...EMPTY_RX }],
 }
 
@@ -93,6 +94,37 @@ function AppointCard({
   const [meetErr, setMeetErr] = useState('')
   const [genPdf, setGenPdf] = useState(false)
   const [pdfUrl, setPdfUrl] = useState<string | null>(c.report_pdf_url)
+  const [showPatientEdit, setShowPatientEdit] = useState(false)
+  const [patientForm, setPatientForm] = useState({ dob: '', weight_kg: '', height_cm: '', mobile: '' })
+  const [patientLoading, setPatientLoading] = useState(false)
+  const [patientSaving, setPatientSaving] = useState(false)
+
+  async function openPatientEdit() {
+    setShowPatientEdit(true)
+    setPatientLoading(true)
+    try {
+      const res = await fetch(`/api/doctor/patients/${c.patient_id}/vitals`)
+      if (res.ok) {
+        const d = await res.json()
+        setPatientForm({
+          dob: d.dob ? d.dob.split('T')[0] : '',
+          weight_kg: String(d.weight_kg ?? ''),
+          height_cm: String(d.height_cm ?? ''),
+          mobile: d.mobile ?? '',
+        })
+      }
+    } catch { /* ignore */ }
+    setPatientLoading(false)
+  }
+
+  async function savePatient() {
+    setPatientSaving(true)
+    await fetch(`/api/doctor/patients/${c.patient_id}/vitals`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patientForm),
+    })
+    setPatientSaving(false)
+    setShowPatientEdit(false)
+  }
 
   async function viewLab(key: string) {
     const res = await fetch(`/api/doctor/lab-report?key=${encodeURIComponent(key)}`)
@@ -199,6 +231,45 @@ function AppointCard({
         )}
       </div>
 
+      {/* Patient info quick-edit panel */}
+      {showPatientEdit && (
+        <div style={{ padding: '12px 20px', borderTop: '1px solid #F3F4F6', background: '#F8FAFC' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#0F1B2D', textTransform: 'uppercase', letterSpacing: 0.5 }}>Patient Info</span>
+            <button onClick={() => setShowPatientEdit(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={13} color="#9CA3AF" /></button>
+          </div>
+          {patientLoading ? (
+            <div style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', padding: '8px 0' }}>Loading…</div>
+          ) : (
+            <>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+              {[
+                { label: 'DOB', key: 'dob', type: 'date' },
+                { label: 'Mobile', key: 'mobile', type: 'tel' },
+                { label: 'Weight (kg)', key: 'weight_kg', type: 'number' },
+                { label: 'Height (cm)', key: 'height_cm', type: 'number' },
+              ].map(({ label, key, type }) => (
+                <div key={key}>
+                  <label style={{ fontSize: 10, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, display: 'block', marginBottom: 3 }}>{label}</label>
+                  <input type={type} value={(patientForm as Record<string, string>)[key]}
+                    onChange={e => setPatientForm(f => ({ ...f, [key]: e.target.value }))}
+                    style={{ width: '100%', border: '1px solid #E5E9F0', borderRadius: 7, padding: '6px 8px', fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+              ))}
+            </div>
+            <button onClick={savePatient} disabled={patientSaving} style={{
+              width: '100%', padding: '7px', borderRadius: 8, border: 'none',
+              background: '#0EA5C8', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', opacity: patientSaving ? 0.7 : 1
+            }}>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                <Save size={12} />{patientSaving ? 'Saving…' : 'Save'}
+              </span>
+            </button>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Action buttons */}
       <div style={{ padding: '12px 20px', borderTop: '1px solid #F3F4F6', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {c.meet_link && !ended ? (
@@ -220,6 +291,14 @@ function AppointCard({
             <LinkIcon size={14} /> {genMeet ? 'Creating…' : 'Gen Meet'}
           </button>
         ) : null}
+
+        <button onClick={() => showPatientEdit ? setShowPatientEdit(false) : openPatientEdit()} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+          padding: '8px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          background: showPatientEdit ? '#EFF6FF' : '#F9FAFB', color: showPatientEdit ? '#1D4ED8' : '#6B7280', border: '1px solid #E5E9F0',
+        }}>
+          <User size={13} />
+        </button>
 
         {c.status === 'confirmed' && (
           c.report_id ? (
@@ -279,6 +358,8 @@ export default function DoctorDashboard() {
   const [connected, setConnected] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [rxOptions, setRxOptions] = useState<Record<string, string[]>>({})
+  const [attachedFiles, setAttachedFiles] = useState<{ key: string; name: string }[]>([])
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
@@ -320,26 +401,47 @@ export default function DoctorDashboard() {
       const d = await res.json()
       setForm({
         diagnosis: d.diagnosis ?? '',
+        observation: d.observation ?? '',
         notes: d.notes ?? '',
         additional_instructions: d.additional_instructions ?? '',
         followup_weeks: d.followup_weeks ?? 6,
         followup_date: d.followup_date ? d.followup_date.slice(0, 10) : '',
         prescription: Array.isArray(d.prescription) && d.prescription.length ? d.prescription : [{ ...EMPTY_RX }],
       })
+      setAttachedFiles(Array.isArray(d.doctor_attachments) ? d.doctor_attachments : [])
     }
     setIsEditing(true)
     setActiveReport(c.id)
+  }
+
+  async function handleFileAttach(e: React.ChangeEvent<HTMLInputElement>, consultId: number) {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    setUploading(true)
+    for (const file of files) {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch(`/api/doctor/consultations/${consultId}/attach`, { method: 'POST', body: fd })
+      if (res.ok) {
+        const d = await res.json()
+        setAttachedFiles(prev => [...prev, { key: d.key, name: d.name }])
+      }
+    }
+    setUploading(false)
+    e.target.value = ''
   }
 
   async function submitReport(consultationId: number) {
     setSubmitting(true); setSubmitError('')
     try {
       const res = await fetch(`/api/doctor/consultations/${consultationId}/report`, {
-        method: isEditing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
+        method: isEditing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, doctor_attachments: attachedFiles }),
       })
       if (res.ok) {
         const data = await res.json()
         setForm(INIT_FORM)
+        setAttachedFiles([])
         if (data.pdf_url) setLastPdfUrl(data.pdf_url)
         else setActiveReport(null)
         const updated = await fetch('/api/doctor/consultations').then(r => r.json())
@@ -622,7 +724,7 @@ export default function DoctorDashboard() {
                   </div>
                 </div>
               </div>
-              <button onClick={() => { setIsEditing(false); setActiveReport(null); setSubmitError('') }} style={{
+              <button onClick={() => { setIsEditing(false); setActiveReport(null); setSubmitError(''); setAttachedFiles([]) }} style={{
                 width: 32, height: 32, borderRadius: 8, border: '1px solid #E5E9F0',
                 background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
@@ -633,15 +735,13 @@ export default function DoctorDashboard() {
             {/* Modal body */}
             <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <Field label="Diagnosis / Clinical Assessment *">
-                <textarea
-                  value={form.diagnosis}
-                  onChange={e => setForm(f => ({ ...f, diagnosis: e.target.value }))}
-                  rows={2}
-                  style={textareaStyle}
-                />
+                <TemplateTextarea value={form.diagnosis} onChange={v => setForm(f => ({ ...f, diagnosis: v }))} fieldType="diagnosis" rows={2} style={textareaStyle} />
+              </Field>
+              <Field label="Observation / Examination">
+                <TemplateTextarea value={form.observation} onChange={v => setForm(f => ({ ...f, observation: v }))} fieldType="observation" rows={2} style={textareaStyle} placeholder="Clinical findings, examination notes…" />
               </Field>
               <Field label="Doctor Notes">
-                <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} style={textareaStyle} />
+                <TemplateTextarea value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))} fieldType="notes" rows={2} style={textareaStyle} />
               </Field>
 
               {/* Prescription */}
@@ -686,17 +786,33 @@ export default function DoctorDashboard() {
               </div>
 
               <Field label="Additional Instructions (one per line)">
-                <textarea
-                  value={form.additional_instructions}
-                  onChange={e => setForm(f => ({ ...f, additional_instructions: e.target.value }))}
-                  rows={2}
-                  placeholder={"Take medicines after food\nAvoid stress"}
-                  style={textareaStyle}
-                />
+                <TemplateTextarea value={form.additional_instructions} onChange={v => setForm(f => ({ ...f, additional_instructions: v }))} fieldType="instructions" rows={2} placeholder={"Take medicines after food\nAvoid stress"} style={textareaStyle} />
               </Field>
 
               <Field label="Follow-up Date">
                 <input type="date" value={form.followup_date} onChange={e => setForm(f => ({ ...f, followup_date: e.target.value }))} style={inputStyle} />
+              </Field>
+
+              <Field label="Attach Files (optional)">
+                <div>
+                  <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={e => activeReport && handleFileAttach(e, activeReport)}
+                    disabled={uploading}
+                    style={{ fontSize: 13, color: '#374151', width: '100%' }} />
+                  {uploading && <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Uploading…</div>}
+                  {attachedFiles.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                      {attachedFiles.map((f, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: '#EFF6FF', border: '1px solid #BFDBFE', fontSize: 12, color: '#1D4ED8' }}>
+                          <FileText size={11} />{f.name}
+                          <button type="button" onClick={() => setAttachedFiles(prev => prev.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 0, lineHeight: 1 }}>
+                            <X size={11} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </Field>
             </div>
 
@@ -709,7 +825,7 @@ export default function DoctorDashboard() {
               )}
               <div style={{ display: 'flex', gap: 10 }}>
                 <button
-                  onClick={() => { setIsEditing(false); setActiveReport(null); setSubmitError('') }}
+                  onClick={() => { setIsEditing(false); setActiveReport(null); setSubmitError(''); setAttachedFiles([]) }}
                   style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid #E5E9F0', background: '#fff', color: '#374151', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
                 >
                   Cancel

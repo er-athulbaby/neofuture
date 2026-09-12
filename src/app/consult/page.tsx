@@ -1,6 +1,7 @@
 import { query } from '@/lib/db'
 import Link from 'next/link'
 import { Stethoscope, Calendar, FileCheck } from 'lucide-react'
+import MyConsultations from './MyConsultations'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,8 +68,11 @@ export default async function ConsultPage() {
           ))}
         </div>
 
+      </div>
+      <MyConsultations />
+      <div className="max-w-5xl mx-auto px-6">
         {/* Info */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mt-0 grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { icon: '🎥', title: 'Google Meet Video Call', desc: 'Secure, high-quality video consultation directly in your browser' },
             { icon: '📋', title: 'Digital Prescription', desc: 'Receive a signed digital prescription PDF via email after your consultation' },
