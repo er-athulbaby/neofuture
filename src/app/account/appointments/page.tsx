@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Stethoscope, Video, FileText, ChevronRight, ArrowLeft, Download, Calendar } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Stethoscope, Video, FileText, ChevronRight, ArrowLeft, Download, Calendar, Upload, Paperclip } from 'lucide-react'
 import Link from 'next/link'
 
 interface Report {
@@ -52,6 +52,10 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<number | null>(null)
+
+  function reload() {
+    fetch('/api/consult/appointments').then(r => r.json()).then(data => { if (Array.isArray(data)) setAppointments(data) })
+  }
 
   useEffect(() => {
     fetch('/api/consult/appointments')
@@ -106,7 +110,7 @@ export default function AppointmentsPage() {
               </h2>
               <div className="space-y-3">
                 {upcoming.map(a => (
-                  <AppointmentCard key={a.id} a={a} expanded={expanded === a.id} onToggle={() => setExpanded(prev => prev === a.id ? null : a.id)} />
+                  <AppointmentCard key={a.id} a={a} expanded={expanded === a.id} onToggle={() => setExpanded(prev => prev === a.id ? null : a.id)} onLabUploaded={reload} />
                 ))}
               </div>
             </section>
@@ -120,7 +124,7 @@ export default function AppointmentsPage() {
               </h2>
               <div className="space-y-3">
                 {past.map(a => (
-                  <AppointmentCard key={a.id} a={a} expanded={expanded === a.id} onToggle={() => setExpanded(prev => prev === a.id ? null : a.id)} />
+                  <AppointmentCard key={a.id} a={a} expanded={expanded === a.id} onToggle={() => setExpanded(prev => prev === a.id ? null : a.id)} onLabUploaded={reload} />
                 ))}
               </div>
             </section>
@@ -143,8 +147,20 @@ export default function AppointmentsPage() {
   )
 }
 
-function AppointmentCard({ a, expanded, onToggle }: { a: Appointment; expanded: boolean; onToggle: () => void }) {
+function AppointmentCard({ a, expanded, onToggle, onLabUploaded }: { a: Appointment; expanded: boolean; onToggle: () => void; onLabUploaded: (id: number) => void }) {
   const dt = new Date(a.slot_datetime)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadErr, setUploadErr] = useState('')
+
+  async function uploadLab(file: File) {
+    setUploading(true); setUploadErr('')
+    const fd = new FormData(); fd.append('file', file)
+    const res = await fetch(`/api/consult/appointments/${a.id}/upload-lab`, { method: 'POST', body: fd })
+    setUploading(false)
+    if (res.ok) onLabUploaded(a.id)
+    else { const d = await res.json().catch(() => ({})); setUploadErr(d.error ?? 'Upload failed') }
+  }
   const dateStr = dt.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })
   const timeStr = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
   const statusInfo = STATUS_LABELS[a.status] ?? { label: a.status, class: 'bg-gray-100 text-gray-600' }
@@ -230,6 +246,19 @@ function AppointmentCard({ a, expanded, onToggle }: { a: Appointment; expanded: 
             <p className="text-xs text-brand-gray bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
               Your doctor's report will appear here after the consultation is completed.
             </p>
+          )}
+
+          {/* Lab report upload */}
+          {(a.status === 'confirmed' || a.status === 'pending') && (
+            <div>
+              <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) uploadLab(f); e.target.value = '' }} />
+              <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg font-semibold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors disabled:opacity-60">
+                {uploading ? <><Upload size={13} className="animate-bounce" /> Uploading…</> : <><Paperclip size={13} /> Upload Lab Report</>}
+              </button>
+              {uploadErr && <p className="text-xs text-red-600 mt-1">{uploadErr}</p>}
+            </div>
           )}
         </div>
       )}

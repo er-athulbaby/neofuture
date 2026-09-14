@@ -9,6 +9,7 @@ async function ensureColumns() {
     query(`ALTER TABLE consultation_reports ADD COLUMN IF NOT EXISTS observation TEXT`, []).catch(() => {}),
     query(`ALTER TABLE consultation_reports ADD COLUMN IF NOT EXISTS doctor_attachments JSONB DEFAULT '[]'`, []).catch(() => {}),
     query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS mobile VARCHAR(20)`, []).catch(() => {}),
+    query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS gender VARCHAR(10)`, []).catch(() => {}),
   ])
 }
 

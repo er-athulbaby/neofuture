@@ -60,8 +60,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       'SELECT name, email, phone, gender FROM users WHERE id=$1',
       [consult.patient_id]
     ),
-    queryOne<{ dob: string | null }>(
-      'SELECT dob FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2::text',
+    queryOne<{ dob: string | null; gender: string | null }>(
+      'SELECT dob, gender FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2::text',
       [doctor.id, consult.patient_id]
     ).catch(() => null),
   ])
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     patientId: `P-${String(consult.patient_id).padStart(6, '0')}`,
     date: dateStr,
     time: timeStr,
-    patient: { name: patient?.name ?? '', age, gender: patient?.gender ?? 'Not specified', mobile: patient?.phone ?? '' },
+    patient: { name: patient?.name ?? '', age, gender: patientVitals?.gender || patient?.gender || 'Not specified', mobile: patient?.phone ?? '' },
     doctor: {
       name: doctor.name,
       qualification: doctor.qualification ?? '',
@@ -171,8 +171,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     queryOne<{ name: string; email: string; phone: string; gender: string | null }>(
       'SELECT name, email, phone, gender FROM users WHERE id=$1', [consult.patient_id]
     ),
-    queryOne<{ dob: string | null }>(
-      'SELECT dob FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2::text',
+    queryOne<{ dob: string | null; gender: string | null }>(
+      'SELECT dob, gender FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2::text',
       [doctor.id, consult.patient_id]
     ).catch(() => null),
   ])
@@ -193,7 +193,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     patientId: `P-${String(consult.patient_id).padStart(6, '0')}`,
     date: dateStr,
     time: timeStr,
-    patient: { name: patient?.name ?? '', age, gender: patient?.gender ?? 'Not specified', mobile: patient?.phone ?? '' },
+    patient: { name: patient?.name ?? '', age, gender: patientVitals?.gender || patient?.gender || 'Not specified', mobile: patient?.phone ?? '' },
     doctor: {
       name: doctor.name,
       qualification: doctor.qualification ?? '',

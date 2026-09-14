@@ -16,12 +16,13 @@ async function ensureTable() {
       blood_pressure VARCHAR(20),
       pulse_bpm INTEGER,
       mobile VARCHAR(20),
+      gender VARCHAR(10),
       updated_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(doctor_id, patient_id)
     )
   `, [])
-  // Add mobile column if upgrading from old schema
   await query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS mobile VARCHAR(20)`, []).catch(() => {})
+  await query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS gender VARCHAR(10)`, []).catch(() => {})
 }
 
 export async function GET(_req: NextRequest, { params }: Props) {
@@ -37,7 +38,7 @@ export async function GET(_req: NextRequest, { params }: Props) {
   await ensureTable()
 
   const vitals = await queryOne(
-    'SELECT dob, weight_kg, height_cm, blood_pressure, pulse_bpm, mobile, updated_at FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2',
+    'SELECT dob, weight_kg, height_cm, blood_pressure, pulse_bpm, mobile, gender, updated_at FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2',
     [doctor.id, patientId]
   ).catch(() => null)
 
@@ -55,13 +56,13 @@ export async function PUT(req: NextRequest, { params }: Props) {
   )
   if (!doctor) return NextResponse.json({ error: 'Doctor not found' }, { status: 404 })
 
-  const { dob, weight_kg, height_cm, blood_pressure, pulse_bpm, mobile } = await req.json()
+  const { dob, weight_kg, height_cm, blood_pressure, pulse_bpm, mobile, gender } = await req.json()
 
   await ensureTable()
 
   await query(`
-    INSERT INTO doctor_patient_vitals (doctor_id, patient_id, dob, weight_kg, height_cm, blood_pressure, pulse_bpm, mobile, updated_at)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
+    INSERT INTO doctor_patient_vitals (doctor_id, patient_id, dob, weight_kg, height_cm, blood_pressure, pulse_bpm, mobile, gender, updated_at)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())
     ON CONFLICT (doctor_id, patient_id) DO UPDATE SET
       dob = EXCLUDED.dob,
       weight_kg = EXCLUDED.weight_kg,
@@ -69,8 +70,9 @@ export async function PUT(req: NextRequest, { params }: Props) {
       blood_pressure = EXCLUDED.blood_pressure,
       pulse_bpm = EXCLUDED.pulse_bpm,
       mobile = EXCLUDED.mobile,
+      gender = EXCLUDED.gender,
       updated_at = NOW()
-  `, [doctor.id, patientId, dob || null, weight_kg || null, height_cm || null, blood_pressure || null, pulse_bpm || null, mobile || null])
+  `, [doctor.id, patientId, dob || null, weight_kg || null, height_cm || null, blood_pressure || null, pulse_bpm || null, mobile || null, gender || null])
 
   return NextResponse.json({ ok: true })
 }

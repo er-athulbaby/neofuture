@@ -95,7 +95,7 @@ function AppointCard({
   const [genPdf, setGenPdf] = useState(false)
   const [pdfUrl, setPdfUrl] = useState<string | null>(c.report_pdf_url)
   const [showPatientEdit, setShowPatientEdit] = useState(false)
-  const [patientForm, setPatientForm] = useState({ dob: '', weight_kg: '', height_cm: '', mobile: '' })
+  const [patientForm, setPatientForm] = useState({ dob: '', weight_kg: '', height_cm: '', mobile: '', gender: '' })
   const [patientLoading, setPatientLoading] = useState(false)
   const [patientSaving, setPatientSaving] = useState(false)
 
@@ -111,6 +111,7 @@ function AppointCard({
           weight_kg: String(d.weight_kg ?? ''),
           height_cm: String(d.height_cm ?? ''),
           mobile: d.mobile ?? '',
+          gender: d.gender ?? '',
         })
       }
     } catch { /* ignore */ }
@@ -243,8 +244,25 @@ function AppointCard({
           ) : (
             <>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+              <div>
+                <label style={{ fontSize: 10, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, display: 'block', marginBottom: 3 }}>
+                  DOB{patientForm.dob ? ` · Age ${Math.floor((Date.now() - new Date(patientForm.dob).getTime()) / 31557600000)}y` : ''}
+                </label>
+                <input type="date" value={patientForm.dob}
+                  onChange={e => setPatientForm(f => ({ ...f, dob: e.target.value }))}
+                  style={{ width: '100%', border: '1px solid #E5E9F0', borderRadius: 7, padding: '6px 8px', fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 10, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, display: 'block', marginBottom: 3 }}>Gender</label>
+                <select value={patientForm.gender} onChange={e => setPatientForm(f => ({ ...f, gender: e.target.value }))}
+                  style={{ width: '100%', border: '1px solid #E5E9F0', borderRadius: 7, padding: '6px 8px', fontSize: 12, outline: 'none', boxSizing: 'border-box', background: '#fff' }}>
+                  <option value="">—</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
               {[
-                { label: 'DOB', key: 'dob', type: 'date' },
                 { label: 'Mobile', key: 'mobile', type: 'tel' },
                 { label: 'Weight (kg)', key: 'weight_kg', type: 'number' },
                 { label: 'Height (cm)', key: 'height_cm', type: 'number' },
@@ -360,6 +378,10 @@ export default function DoctorDashboard() {
   const [rxOptions, setRxOptions] = useState<Record<string, string[]>>({})
   const [attachedFiles, setAttachedFiles] = useState<{ key: string; name: string }[]>([])
   const [uploading, setUploading] = useState(false)
+  const [showAddPatient, setShowAddPatient] = useState(false)
+  const [addPatientForm, setAddPatientForm] = useState({ name: '', phone: '', email: '', gender: '', dob: '' })
+  const [addPatientSaving, setAddPatientSaving] = useState(false)
+  const [addPatientError, setAddPatientError] = useState('')
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
@@ -640,6 +662,13 @@ export default function DoctorDashboard() {
                 {displayed.length} {displayed.length === 1 ? 'appointment' : 'appointments'}
               </p>
             </div>
+            <button onClick={() => { setShowAddPatient(true); setAddPatientForm({ name: '', phone: '', email: '', gender: '', dob: '' }); setAddPatientError('') }} style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+              borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+              background: '#0EA5C8', color: '#fff'
+            }}>
+              <User size={14} /> Add Patient
+            </button>
           </div>
 
           {/* Grid */}
@@ -677,6 +706,58 @@ export default function DoctorDashboard() {
           )}
         </main>
       </div>
+
+      {/* ── Add Patient Modal ── */}
+      {showAddPatient && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: 28, maxWidth: 440, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div style={{ fontWeight: 700, fontSize: 17, color: '#0F1B2D' }}>Add Walk-in Patient</div>
+              <button onClick={() => setShowAddPatient(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color="#6B7280" /></button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+              {([
+                { label: 'Full Name *', key: 'name', type: 'text', colSpan: 2 },
+                { label: 'Mobile', key: 'phone', type: 'tel', colSpan: 1 },
+                { label: 'Email (optional)', key: 'email', type: 'email', colSpan: 1 },
+                { label: 'Date of Birth', key: 'dob', type: 'date', colSpan: 1 },
+              ] as { label: string; key: string; type: string; colSpan: number }[]).map(({ label, key, type, colSpan }) => (
+                <div key={key} style={{ gridColumn: `span ${colSpan}` }}>
+                  <label style={{ fontSize: 11, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, display: 'block', marginBottom: 4 }}>{label}</label>
+                  <input type={type} value={(addPatientForm as Record<string, string>)[key]}
+                    onChange={e => setAddPatientForm(f => ({ ...f, [key]: e.target.value }))}
+                    style={{ width: '100%', border: '1px solid #E5E9F0', borderRadius: 8, padding: '8px 10px', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+              ))}
+              <div>
+                <label style={{ fontSize: 11, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, display: 'block', marginBottom: 4 }}>Gender</label>
+                <select value={addPatientForm.gender} onChange={e => setAddPatientForm(f => ({ ...f, gender: e.target.value }))}
+                  style={{ width: '100%', border: '1px solid #E5E9F0', borderRadius: 8, padding: '8px 10px', fontSize: 13, outline: 'none', boxSizing: 'border-box', background: '#fff' }}>
+                  <option value="">—</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            {addPatientError && <p style={{ color: '#DC2626', fontSize: 12, marginBottom: 12 }}>{addPatientError}</p>}
+            <button disabled={addPatientSaving} onClick={async () => {
+              if (!addPatientForm.name.trim()) { setAddPatientError('Name is required'); return }
+              setAddPatientSaving(true); setAddPatientError('')
+              const res = await fetch('/api/doctor/walk-in-patient', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(addPatientForm) })
+              const data = await res.json()
+              setAddPatientSaving(false)
+              if (res.ok) { setShowAddPatient(false); window.location.href = `/doctor/patients/${data.id}` }
+              else setAddPatientError(data.error ?? 'Failed to create patient')
+            }} style={{
+              width: '100%', padding: '10px', borderRadius: 10, border: 'none', cursor: 'pointer',
+              background: addPatientSaving ? '#9CA3AF' : '#0EA5C8', color: '#fff', fontSize: 14, fontWeight: 700
+            }}>
+              {addPatientSaving ? 'Creating…' : 'Create Patient'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Report Modal ── */}
       {lastPdfUrl && (

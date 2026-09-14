@@ -36,7 +36,7 @@ export async function POST(_req: NextRequest, { params }: Props) {
       endTime: new Date(new Date(consult.slot_datetime).getTime() + (consult.duration_minutes || 30) * 60000).toISOString(),
       patientEmail: patient?.email ?? '',
       doctorEmail: '',
-      description: `NeoFuture teleconsultation. Consultation ID: TC-${String(consult.id).padStart(6, '0')}`,
+      description: `NeoFuture teleconsultation. Consultation ID: TC-${String(consult.id).padStart(6, '0')}\nConsultation time (IST): ${new Date(consult.slot_datetime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })}`,
     })
     await query('UPDATE consultations SET meet_link=$1, google_event_id=$2 WHERE id=$3', [event.meetLink, event.eventId, consult.id])
     return NextResponse.json({ meet_link: event.meetLink })
