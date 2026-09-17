@@ -93,24 +93,23 @@ export default function PcosProgramPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #1a0533 0%, #f9f5ff 320px)' }}>
+    <div className="min-h-screen bg-gradient-to-br from-primary-light via-white to-purple-50">
       {/* Back nav */}
       <div className="px-4 pt-5">
-        <Link href="/" className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm transition-colors">
+        <Link href="/" className="inline-flex items-center gap-2 text-brand-gray hover:text-brand-dark text-sm transition-colors">
           <ArrowLeft size={15} /> Back to Home
         </Link>
       </div>
 
       {/* Hero */}
       <div className="max-w-3xl mx-auto px-4 pt-8 pb-12 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold mb-5"
-          style={{ background: 'rgba(250,69,5,0.2)', color: '#fda4af', border: '1px solid rgba(250,69,5,0.3)' }}>
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold mb-5 bg-purple-100 text-neo-purple border border-purple-200">
           <Heart size={13} /> Limited spots available
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-4">
+        <h1 className="text-4xl md:text-5xl font-bold text-brand-dark leading-tight mb-4">
           {settings?.pcos_detail_title ?? '90 Days. One Journey. You\'re Not Alone.'}
         </h1>
-        <p className="text-lg leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
+        <p className="text-lg text-brand-gray leading-relaxed">
           {settings?.pcos_detail_description}
         </p>
       </div>
@@ -178,8 +177,7 @@ export default function PcosProgramPage() {
             <button
               onClick={handleEnroll}
               disabled={loading}
-              className="w-full py-4 rounded-xl font-bold text-base text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-              style={{ background: 'linear-gradient(135deg, #7C3AED, #fa4505)' }}
+              className="w-full py-4 rounded-xl font-bold text-base bg-primary text-white hover:bg-primary-dark transition-colors disabled:opacity-60"
             >
               {loading ? 'Processing…' : `Enroll Now — ₹${price}/month`}
             </button>
