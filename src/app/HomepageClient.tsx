@@ -17,6 +17,8 @@ import InstagramFeed from '@/components/ui/InstagramFeed'
 
 interface Props { config: SiteConfig; featured: Product[]; autoOpenQuiz?: boolean }
 
+interface PcosSettings { pcos_slide_title: string; pcos_slide_subtitle: string; pcos_price: string }
+
 
 const TOOLS = [
   { href: '/tools/due-date', icon: <Calendar size={22} className="text-primary" />, title: 'Due Date Calculator', desc: 'Calculate EDD from LMP, conception date or IVF' },
@@ -30,43 +32,119 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
   const { data: session } = useSession()
 
   const [quizOpen, setQuizOpen] = useState(autoOpenQuiz)
+  const [heroSlide, setHeroSlide] = useState(0)
+  const heroTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [pcosSettings, setPcosSettings] = useState<PcosSettings>({ pcos_slide_title: '90 Days PCOS/PCOD Reset Journey', pcos_slide_subtitle: "We're here. We're listening. We're with you. Your journey to better hormonal health starts today.", pcos_price: '899' })
 
   const instagramPosts = config.instagram_posts
     ? config.instagram_posts.split(',').map((u) => u.trim()).filter(Boolean)
     : []
 
+  function goToSlide(idx: number) {
+    setHeroSlide(idx)
+    if (heroTimerRef.current) clearInterval(heroTimerRef.current)
+    heroTimerRef.current = setInterval(() => setHeroSlide(s => (s + 1) % 2), 5000)
+  }
+
+  useEffect(() => {
+    heroTimerRef.current = setInterval(() => setHeroSlide(s => (s + 1) % 2), 5000)
+    fetch('/api/pcos-program/settings').then(r => r.json()).then(d => setPcosSettings(d)).catch(() => {})
+    return () => { if (heroTimerRef.current) clearInterval(heroTimerRef.current) }
+  }, [])
+
   return (
     <>
       <QuizPopup forceOpen={quizOpen} onClose={() => setQuizOpen(false)} />
 
-      {/* HERO */}
-      <section className="relative bg-gradient-to-br from-primary-light via-white to-purple-50 py-20 px-4 overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-primary/8 rounded-full blur-3xl -translate-y-1/4 translate-x-1/4" />
-          <div className="absolute bottom-0 left-0 w-72 h-72 bg-neo-purple/8 rounded-full blur-2xl translate-y-1/4 -translate-x-1/4" />
-          <div className="absolute top-1/2 left-1/2 w-48 h-48 bg-neo-orange/5 rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2" />
-        </div>
-        <div className="max-w-5xl mx-auto text-center relative">
-          <div className="inline-flex items-center gap-2 bg-primary-light text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-6 border border-primary/20">
-            <Sparkles size={13} /> AI-Powered Healthcare
-          </div>
-          <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-brand-dark leading-tight mb-5">
-            {config.hero_title}
-          </h1>
-          <p className="text-lg text-brand-gray mb-10 max-w-2xl mx-auto leading-relaxed">
-            {config.hero_subtitle}
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-3">
-            <button onClick={() => setQuizOpen(true)}
-              className="inline-flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-semibold hover:bg-primary-dark transition-colors shadow-xl shadow-primary/25 text-base">
-              <Sparkles size={18} /> AI Wellness Check-in
-            </button>
-            <Link href="/consult"
-              className="inline-flex items-center justify-center gap-2 border-2 border-primary/30 text-primary px-8 py-4 rounded-xl font-semibold hover:border-primary hover:bg-primary-light transition-colors text-base">
-              View Doctors <ArrowRight size={16} />
-            </Link>
+      {/* HERO SLIDER */}
+      <section className="relative overflow-hidden" style={{ minHeight: 420 }}>
+        {/* Slide track */}
+        <div
+          className="flex transition-transform duration-700 ease-in-out"
+          style={{ transform: `translateX(-${heroSlide * 100}%)`, willChange: 'transform' }}
+        >
+          {/* ── Slide 1: existing hero ── */}
+          <div className="w-full flex-shrink-0 bg-gradient-to-br from-primary-light via-white to-purple-50 py-20 px-4 relative">
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-primary/8 rounded-full blur-3xl -translate-y-1/4 translate-x-1/4" />
+              <div className="absolute bottom-0 left-0 w-72 h-72 bg-neo-purple/8 rounded-full blur-2xl translate-y-1/4 -translate-x-1/4" />
+            </div>
+            <div className="max-w-5xl mx-auto text-center relative">
+              <div className="inline-flex items-center gap-2 bg-primary-light text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-6 border border-primary/20">
+                <Sparkles size={13} /> AI-Powered Healthcare
+              </div>
+              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-brand-dark leading-tight mb-5">
+                {config.hero_title}
+              </h1>
+              <p className="text-lg text-brand-gray mb-10 max-w-2xl mx-auto leading-relaxed">
+                {config.hero_subtitle}
+              </p>
+              <div className="flex flex-col sm:flex-row justify-center gap-3">
+                <button onClick={() => setQuizOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-semibold hover:bg-primary-dark transition-colors shadow-xl shadow-primary/25 text-base">
+                  <Sparkles size={18} /> AI Wellness Check-in
+                </button>
+                <Link href="/consult"
+                  className="inline-flex items-center justify-center gap-2 border-2 border-primary/30 text-primary px-8 py-4 rounded-xl font-semibold hover:border-primary hover:bg-primary-light transition-colors text-base">
+                  View Doctors <ArrowRight size={16} />
+                </Link>
+              </div>
+            </div>
           </div>
 
+          {/* ── Slide 2: 90-day PCOS program ── */}
+          <div className="w-full flex-shrink-0 relative py-20 px-4 flex items-center"
+            style={{ background: 'linear-gradient(135deg, #1a0533 0%, #2d1060 40%, #4a1090 100%)' }}>
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              <div className="absolute top-0 right-0 w-80 h-80 rounded-full blur-3xl opacity-20" style={{ background: '#fa4505' }} />
+              <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full blur-2xl opacity-15" style={{ background: '#0EA5C8' }} />
+            </div>
+            <div className="max-w-5xl mx-auto w-full relative">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold mb-5 border"
+                style={{ background: 'rgba(250,69,5,0.15)', color: '#fda4af', borderColor: 'rgba(250,69,5,0.3)' }}>
+                <Heart size={13} /> 90-Day Wellness Program
+              </div>
+              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-4" style={{ color: '#fff' }}>
+                {pcosSettings.pcos_slide_title}
+              </h1>
+              <p className="text-lg mb-8 max-w-2xl leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                {pcosSettings.pcos_slide_subtitle}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href="/pcos-program"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-semibold text-base transition-opacity hover:opacity-90 shadow-xl"
+                  style={{ background: '#fa4505', color: '#fff' }}>
+                  Enroll Now <ArrowRight size={16} />
+                </Link>
+                <Link href="/pcos-program"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-semibold text-base transition-colors"
+                  style={{ border: '2px solid rgba(255,255,255,0.25)', color: '#fff' }}>
+                  Learn More
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Prev / Next arrows */}
+        <button onClick={() => goToSlide((heroSlide + 1) % 2)}
+          className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-colors z-10"
+          style={{ background: 'rgba(0,0,0,0.25)', color: '#fff' }}>
+          <ChevronRight size={20} />
+        </button>
+        <button onClick={() => goToSlide((heroSlide + 1) % 2 === 0 ? 1 : 0)}
+          className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-colors z-10"
+          style={{ background: 'rgba(0,0,0,0.25)', color: '#fff' }}>
+          <ChevronLeft size={20} />
+        </button>
+
+        {/* Dots */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+          {[0, 1].map(i => (
+            <button key={i} onClick={() => goToSlide(i)}
+              className="rounded-full transition-all duration-300"
+              style={{ width: heroSlide === i ? 24 : 8, height: 8, background: heroSlide === i ? '#fa4505' : 'rgba(255,255,255,0.5)' }} />
+          ))}
         </div>
       </section>
 
