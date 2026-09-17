@@ -17,7 +17,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     name, slug: customSlug, category_id, price, sale_price, stock, sku,
     short_description, description, ingredients, how_to_use,
     flavor, weight, images, is_active, is_featured,
-    custom_gst_rate, pack_format, serving_size, min_order_qty,
+    custom_gst_rate, pack_format, serving_size, min_order_qty, variant_label,
   } = await req.json()
 
   const slug = customSlug || slugify(name)
@@ -35,12 +35,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       name=$1, slug=$2, category_id=$3, price=$4, sale_price=$5, stock=$6, sku=$7,
       short_description=$8, description=$9, ingredients=$10, how_to_use=$11,
       flavor=$12, weight=$13, images=$14, is_active=$15, is_featured=$16,
-      custom_gst_rate=$17, pack_format=$18, serving_size=$19, min_order_qty=$20
-     WHERE id=$21`,
+      custom_gst_rate=$17, pack_format=$18, serving_size=$19, min_order_qty=$20,
+      variant_label=$21
+     WHERE id=$22`,
     [name, slug, category_id ?? null, price, sale_price ?? null, stock ?? 0, sku ?? null,
      short_description ?? null, description ?? null, ingredients ?? null, how_to_use ?? null,
      flavor ?? null, weight ?? null, JSON.stringify(images ?? []), is_active ?? true, is_featured ?? false,
-     custom_gst_rate ?? null, pack_format ?? null, serving_size ?? null, min_order_qty ?? 1, id]
+     custom_gst_rate ?? null, pack_format ?? null, serving_size ?? null, min_order_qty ?? 1,
+     variant_label ?? null, id]
   )
 
   return NextResponse.json({ success: true })

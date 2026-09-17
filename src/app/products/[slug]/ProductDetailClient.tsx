@@ -239,7 +239,7 @@ export default function ProductDetailClient({ product, reviews, related, variant
           {variants.length > 0 && (
             <div className="mb-5">
               <p className="text-sm font-semibold text-brand-dark mb-2">
-                Select Variant: <span className="font-normal text-brand-gray">{selectedVariant?.label}</span>
+                Select {product.variant_label ?? 'Variant'}: <span className="font-normal text-brand-gray">{selectedVariant?.label}</span>
               </p>
               <div className="flex flex-wrap gap-2">
                 {variants.map((v) => (

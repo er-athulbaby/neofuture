@@ -32,7 +32,7 @@ const EMPTY_FORM = {
   name: '', slug: '', category_id: '', price: '', sale_price: '', stock: '', sku: '',
   short_description: '', description: '', ingredients: '', how_to_use: '',
   flavor: '', weight: '', images: '', is_active: true, is_featured: false,
-  custom_gst_rate: '', pack_format: '', serving_size: '', min_order_qty: '1',
+  custom_gst_rate: '', pack_format: '', serving_size: '', min_order_qty: '1', variant_label: '',
 }
 
 type FormKey = keyof typeof EMPTY_FORM
@@ -182,6 +182,7 @@ export default function AdminProductsClient({ products: initial, categories }: P
       pack_format: p.pack_format ?? '',
       serving_size: p.serving_size ?? '',
       min_order_qty: p.min_order_qty != null ? String(p.min_order_qty) : '1',
+      variant_label: p.variant_label ?? '',
     })
     setShowForm(true)
   }
@@ -236,6 +237,7 @@ export default function AdminProductsClient({ products: initial, categories }: P
       pack_format: form.pack_format || null,
       serving_size: form.serving_size || null,
       min_order_qty: Number(form.min_order_qty) || 1,
+      variant_label: form.variant_label || null,
     }
 
     const url = editId ? `/api/admin/products/${editId}` : '/api/admin/products'
@@ -480,6 +482,12 @@ export default function AdminProductsClient({ products: initial, categories }: P
                 <div>
                   <FLabel label="Min. Order Qty" />
                   <input name="min_order_qty" type="number" min="1" step="1" value={form.min_order_qty} onChange={fc} className={fClass} placeholder="1" />
+                </div>
+
+                <div>
+                  <FLabel label="Variant Label" />
+                  <input name="variant_label" value={form.variant_label} onChange={fc} className={fClass} placeholder="e.g. Cup Size, Size, Color" />
+                  <p className="text-xs text-brand-gray mt-1">Shown on product page as &quot;Select Cup Size&quot;. Leave blank for default &quot;Variant&quot;.</p>
                 </div>
 
                 <div className="sm:col-span-2">

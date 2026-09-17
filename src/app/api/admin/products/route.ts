@@ -14,6 +14,7 @@ async function ensureProductColumns() {
   await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS pack_format VARCHAR(100)`, []).catch(() => {})
   await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS serving_size VARCHAR(100)`, []).catch(() => {})
   await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS min_order_qty INTEGER NOT NULL DEFAULT 1`, []).catch(() => {})
+  await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS variant_label VARCHAR(100)`, []).catch(() => {})
 }
 
 export async function GET() {
@@ -38,10 +39,10 @@ export async function POST(req: NextRequest) {
   if (existing) return NextResponse.json({ error: `URL "${slug}" is already used by another product` }, { status: 409 })
 
   const product = await queryOne(
-    `INSERT INTO products (name, slug, description, short_description, price, sale_price, images, category_id, stock, is_featured, is_active, ingredients, how_to_use, flavor, weight, sku, tags, custom_gst_rate, pack_format, serving_size, min_order_qty)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+    `INSERT INTO products (name, slug, description, short_description, price, sale_price, images, category_id, stock, is_featured, is_active, ingredients, how_to_use, flavor, weight, sku, tags, custom_gst_rate, pack_format, serving_size, min_order_qty, variant_label)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
      RETURNING *`,
-    [body.name, slug, body.description, body.short_description, body.price, body.sale_price ?? null, JSON.stringify(body.images ?? []), body.category_id, body.stock ?? 0, body.is_featured ?? false, body.is_active ?? true, body.ingredients, body.how_to_use, body.flavor, body.weight, body.sku ?? null, JSON.stringify(body.tags ?? []), body.custom_gst_rate ?? null, body.pack_format ?? null, body.serving_size ?? null, body.min_order_qty ?? 1]
+    [body.name, slug, body.description, body.short_description, body.price, body.sale_price ?? null, JSON.stringify(body.images ?? []), body.category_id, body.stock ?? 0, body.is_featured ?? false, body.is_active ?? true, body.ingredients, body.how_to_use, body.flavor, body.weight, body.sku ?? null, JSON.stringify(body.tags ?? []), body.custom_gst_rate ?? null, body.pack_format ?? null, body.serving_size ?? null, body.min_order_qty ?? 1, body.variant_label ?? null]
   )
   return NextResponse.json({ product })
 }
@@ -50,7 +51,7 @@ const UPDATABLE_PRODUCT_COLUMNS = new Set([
   'name', 'slug', 'description', 'short_description', 'price', 'sale_price',
   'images', 'category_id', 'stock', 'is_featured', 'is_active', 'ingredients',
   'how_to_use', 'flavor', 'weight', 'sku', 'tags', 'custom_gst_rate',
-  'pack_format', 'serving_size', 'min_order_qty',
+  'pack_format', 'serving_size', 'min_order_qty', 'variant_label',
 ])
 
 export async function PUT(req: NextRequest) {

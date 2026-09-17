@@ -10,6 +10,7 @@ export interface ProductRow {
   sku: string | null; short_description: string | null; description: string | null
   ingredients: string | null; how_to_use: string | null; flavor: string | null; weight: string | null
   custom_gst_rate: number | null; pack_format: string | null; serving_size: string | null; min_order_qty: number
+  variant_label: string | null
 }
 
 async function ensureProductColumns() {
@@ -17,6 +18,7 @@ async function ensureProductColumns() {
   await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS pack_format VARCHAR(100)`, []).catch(() => {})
   await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS serving_size VARCHAR(100)`, []).catch(() => {})
   await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS min_order_qty INTEGER NOT NULL DEFAULT 1`, []).catch(() => {})
+  await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS variant_label VARCHAR(100)`, []).catch(() => {})
 }
 
 export default async function AdminProductsPage() {
@@ -33,7 +35,8 @@ export default async function AdminProductsPage() {
        p.flavor, p.weight,
        p.custom_gst_rate,
        p.pack_format, p.serving_size,
-       COALESCE(p.min_order_qty, 1) as min_order_qty
+       COALESCE(p.min_order_qty, 1) as min_order_qty,
+       p.variant_label
      FROM products p
      LEFT JOIN categories c ON c.id = p.category_id
      ORDER BY p.created_at DESC`,

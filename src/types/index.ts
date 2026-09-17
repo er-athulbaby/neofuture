@@ -44,6 +44,7 @@ export interface Product {
   pack_format?: string | null
   serving_size?: string | null
   min_order_qty?: number
+  variant_label?: string | null
   created_at: string
 }
 
