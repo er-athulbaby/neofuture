@@ -93,33 +93,29 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
           </div>
 
           {/* ── Slide 2: 90-day PCOS program ── */}
-          <div className="w-full flex-shrink-0 relative py-20 px-4 flex items-center"
-            style={{ background: 'linear-gradient(135deg, #1a0533 0%, #2d1060 40%, #4a1090 100%)' }}>
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              <div className="absolute top-0 right-0 w-80 h-80 rounded-full blur-3xl opacity-20" style={{ background: '#fa4505' }} />
-              <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full blur-2xl opacity-15" style={{ background: '#0EA5C8' }} />
+          <div className="w-full flex-shrink-0 bg-gradient-to-br from-primary-light via-white to-purple-50 py-20 px-4 relative">
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-neo-purple/8 rounded-full blur-3xl -translate-y-1/4 translate-x-1/4" />
+              <div className="absolute bottom-0 left-0 w-72 h-72 bg-primary/8 rounded-full blur-2xl translate-y-1/4 -translate-x-1/4" />
             </div>
-            <div className="max-w-5xl mx-auto w-full relative">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold mb-5 border"
-                style={{ background: 'rgba(250,69,5,0.15)', color: '#fda4af', borderColor: 'rgba(250,69,5,0.3)' }}>
+            <div className="max-w-5xl mx-auto text-center relative">
+              <div className="inline-flex items-center gap-2 bg-purple-100 text-neo-purple px-4 py-1.5 rounded-full text-sm font-medium mb-6 border border-neo-purple/20">
                 <Heart size={13} /> 90-Day Wellness Program
               </div>
-              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-4" style={{ color: '#fff' }}>
+              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-brand-dark leading-tight mb-5">
                 {pcosSettings.pcos_slide_title}
               </h1>
-              <p className="text-lg mb-8 max-w-2xl leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>
+              <p className="text-lg text-brand-gray mb-10 max-w-2xl mx-auto leading-relaxed">
                 {pcosSettings.pcos_slide_subtitle}
               </p>
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row justify-center gap-3">
                 <Link href="/pcos-program"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-semibold text-base transition-opacity hover:opacity-90 shadow-xl"
-                  style={{ background: '#fa4505', color: '#fff' }}>
-                  Enroll Now <ArrowRight size={16} />
+                  className="inline-flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-semibold hover:bg-primary-dark transition-colors shadow-xl shadow-primary/25 text-base">
+                  <Sparkles size={18} /> Enroll Now
                 </Link>
                 <Link href="/pcos-program"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-semibold text-base transition-colors"
-                  style={{ border: '2px solid rgba(255,255,255,0.25)', color: '#fff' }}>
-                  Learn More
+                  className="inline-flex items-center justify-center gap-2 border-2 border-primary/30 text-primary px-8 py-4 rounded-xl font-semibold hover:border-primary hover:bg-primary-light transition-colors text-base">
+                  Learn More <ArrowRight size={16} />
                 </Link>
               </div>
             </div>
