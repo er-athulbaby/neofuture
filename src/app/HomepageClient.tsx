@@ -71,7 +71,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
             </div>
             <div className="max-w-5xl mx-auto text-center relative">
               <div className="inline-flex items-center gap-2 bg-primary-light text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-6 border border-primary/20">
-                <Sparkles size={13} /> AI-Powered Healthcare
+                <Sparkles size={13} /> Wellness Ecosystem
               </div>
               <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-brand-dark leading-tight mb-5">
                 {config.hero_title}
@@ -82,7 +82,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
               <div className="flex flex-col sm:flex-row justify-center gap-3">
                 <button onClick={() => setQuizOpen(true)}
                   className="inline-flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-semibold hover:bg-primary-dark transition-colors shadow-xl shadow-primary/25 text-base">
-                  <Sparkles size={18} /> AI Wellness Check-in
+                  <Sparkles size={18} /> Wellness Check-in
                 </button>
                 <Link href="/consult"
                   className="inline-flex items-center justify-center gap-2 border-2 border-primary/30 text-primary px-8 py-4 rounded-xl font-semibold hover:border-primary hover:bg-primary-light transition-colors text-base">
@@ -148,7 +148,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
       <div className="bg-primary-light border-y border-primary/15 py-3">
         <div className="max-w-6xl mx-auto px-4 flex flex-wrap justify-center gap-6 md:gap-10 text-sm">
           {[
-            { icon: <Sparkles size={14} className="text-primary" />, text: 'AI Wellness Ecosystem' },
+            { icon: <Sparkles size={14} className="text-primary" />, text: 'Wellness Ecosystem' },
             { icon: <Stethoscope size={14} className="text-primary" />, text: 'Medical Expert Verified' },
             { icon: <Activity size={14} className="text-primary" />, text: 'Personalized Health Journey' },
             { icon: <ShieldCheck size={14} className="text-primary" />, text: 'Private & Secure' },
@@ -162,7 +162,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
       <section id="dashboard" className="py-20 px-4 bg-white">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-primary mb-3 block">AI Wellness Dashboard</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-primary mb-3 block">Wellness Dashboard</span>
             <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-4">{config.dashboard_title}</h2>
             <p className="text-brand-gray leading-relaxed mb-6">{config.dashboard_subtitle}</p>
             <Link href={session ? '/account' : '/signup'}
@@ -180,7 +180,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
                   <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm">A</div>
                   <div>
                     <p className="text-white text-xs font-semibold">Hello, Ananya!</p>
-                    <p className="text-white/70 text-xs">AI Wellness Dashboard</p>
+                    <p className="text-white/70 text-xs">Wellness Dashboard</p>
                   </div>
                 </div>
                 <Sparkles size={18} className="text-white/80" />
@@ -250,7 +250,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
 
             {/* Floating badge */}
             <div className="absolute -top-3 -right-3 bg-primary text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
-              AI-Powered ✦
+              Personalized ✦
             </div>
           </div>
         </div>
@@ -260,9 +260,9 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
       <section className="py-20 px-4 bg-brand-light">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-neo-purple mb-3 block">AI Wellness Twin</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-neo-purple mb-3 block">Wellness Twin</span>
             <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-4 leading-tight">
-              Meet Neo Twin —<br />Your AI Body Twin
+              Meet Neo Twin —<br />Your Body Twin
             </h2>
             <p className="text-brand-gray leading-relaxed mb-6">
               Complete your daily check-ins to unlock Neo Twin in 30 days. Neo Twin learns your body&apos;s unique patterns through your sleep, energy, stress, mood, and cycle data — transforming them into personalised insights, predict your wellness trends, and even calculate your wellness age.
@@ -410,7 +410,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
               Talk to a Doctor —<br />From the Comfort of Home
             </h2>
             <p className="text-brand-gray text-lg leading-relaxed max-w-2xl mx-auto">
-              Book a secure video consultation with qualified specialists. Get a diagnosis, prescription, and personalised care plan — all linked to your NeoFuture account.
+              Understand your body. Track your progress. Get the personalized guidance for PCOS/PCOD with doctor-backed care and AI-powered insights. We&apos;re with you — every step of the way.
             </p>
           </div>
 
@@ -418,6 +418,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
             {/* Feature list */}
             <div className="space-y-4">
               {[
+                { icon: '🩺', title: 'Initial NeoFuture Doctor Consultation', desc: 'Start your journey with a dedicated NeoCare doctor consultation — personalized to your PCOS/PCOD needs.' },
                 { icon: '📹', title: 'HD Video Consultation', desc: 'Secure Google Meet session — no app download needed, works on any device.' },
                 { icon: '💊', title: 'Digital Prescription', desc: 'Receive a signed PDF prescription after every consultation, downloadable anytime.' },
                 { icon: '🔄', title: 'Free 7-Day Follow-up', desc: 'Book a free follow-up within 7 days of your consultation for any concerns.' },
