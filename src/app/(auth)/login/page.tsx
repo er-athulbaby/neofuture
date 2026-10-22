@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, getSession } from 'next-auth/react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, Sparkles, ShieldCheck } from 'lucide-react'
@@ -58,7 +58,8 @@ export default function LoginPage() {
     if (res?.error) {
       setError(totpRequired ? 'Invalid 2FA code or wrong password' : 'Invalid email or password')
     } else {
-      router.push(callbackUrl)
+      const session = await getSession()
+      router.push(session?.user?.is_admin ? '/admin' : callbackUrl)
     }
   }
 
