@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { query, queryOne } from '@/lib/db'
-import { authenticator } from 'otplib/preset-default'
+import { generateSecret, keyuri, verify as verifyTotp } from '@/lib/totp'
 import QRCode from 'qrcode'
 
 async function ensureTotpColumns() {
@@ -24,8 +24,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ alreadyEnabled: !!user?.totp_enabled })
   }
 
-  const secret = authenticator.generateSecret()
-  const otpauth = authenticator.keyuri(session.user.email ?? 'admin', 'NeoFuture Admin', secret)
+  const secret = generateSecret()
+  const otpauth = keyuri(session.user.email ?? 'admin', 'NeoFuture Admin', secret)
   const qrDataUrl = await QRCode.toDataURL(otpauth)
 
   // Store secret temporarily (not enabled yet — enabled only after user verifies)
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   )
   if (!user?.totp_secret) return NextResponse.json({ error: 'Setup not started' }, { status: 400 })
 
-  const valid = authenticator.verify({ token: code, secret: user.totp_secret })
+  const valid = verifyTotp(code, user.totp_secret)
   if (!valid) return NextResponse.json({ error: 'Invalid code — try again' }, { status: 400 })
 
   await query('UPDATE users SET totp_enabled = true WHERE id = $1', [session.user.id])

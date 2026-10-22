@@ -5,7 +5,7 @@ import PostgresAdapter from '@auth/pg-adapter'
 import pool from './db'
 import bcrypt from 'bcryptjs'
 import { queryOne } from './db'
-import { authenticator } from 'otplib/preset-default'
+import { verify as verifyTotp } from './totp'
 
 const providers = [
   Credentials({
@@ -40,7 +40,7 @@ const providers = [
       if (user.is_admin && user.totp_enabled && user.totp_secret) {
         const code = credentials.totp_code as string
         if (!code) return null
-        const totpValid = authenticator.verify({ token: code, secret: user.totp_secret })
+        const totpValid = verifyTotp(code, user.totp_secret)
         if (!totpValid) return null
       }
 
