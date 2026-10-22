@@ -82,24 +82,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       // Always refresh from DB — JWT cache would hide revoked admin access
       if (token.id) {
-        const dbUser = await queryOne<{
-          is_admin: boolean; is_doctor: boolean
-          totp_enabled: boolean; totp_verified_at: string | null
-        }>(
-          `SELECT is_admin, is_doctor,
-            COALESCE(totp_enabled, false) as totp_enabled,
-            totp_verified_at
-           FROM users WHERE id = $1`,
+        const dbUser = await queryOne<{ is_admin: boolean; is_doctor: boolean }>(
+          'SELECT is_admin, is_doctor FROM users WHERE id = $1',
           [token.id]
         )
         token.is_admin = dbUser?.is_admin ?? false
         token.is_doctor = dbUser?.is_doctor ?? false
 
-        // TOTP pending: admin with 2FA enabled but not verified in the last 24h
-        if (dbUser?.is_admin && dbUser?.totp_enabled) {
-          const verifiedAt = dbUser.totp_verified_at ? new Date(dbUser.totp_verified_at).getTime() : 0
-          const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000
-          token.totp_pending = verifiedAt < oneDayAgo
+        // TOTP check — wrapped separately so missing columns don't break auth
+        if (dbUser?.is_admin) {
+          try {
+            const totpRow = await queryOne<{ totp_enabled: boolean; totp_verified_at: string | null }>(
+              `SELECT COALESCE(totp_enabled, false) as totp_enabled, totp_verified_at
+               FROM users WHERE id = $1`,
+              [token.id]
+            )
+            if (totpRow?.totp_enabled) {
+              const verifiedAt = totpRow.totp_verified_at ? new Date(totpRow.totp_verified_at).getTime() : 0
+              token.totp_pending = verifiedAt < Date.now() - 24 * 60 * 60 * 1000
+            } else {
+              token.totp_pending = false
+            }
+          } catch {
+            token.totp_pending = false
+          }
         } else {
           token.totp_pending = false
         }
