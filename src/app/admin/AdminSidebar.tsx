@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Tag, Settings,
-  ChevronLeft, ChevronRight, MessageSquare, ExternalLink, HelpCircle, FolderOpen, RotateCcw, Zap, Heart, Star, Stethoscope, Video, BarChart2, Activity
+  ChevronLeft, ChevronRight, MessageSquare, ExternalLink, HelpCircle, FolderOpen, RotateCcw, Zap, Heart, Star, Stethoscope, Video, BarChart2, Activity, ShieldCheck
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -26,6 +26,7 @@ const NAV = [
   { href: '/admin/consultations', label: 'Consultations', icon: Video },
   { href: '/admin/pcos-program', label: 'PCOS Program', icon: Activity },
   { href: '/admin/ga', label: 'GA Analytics', icon: BarChart2 },
+  { href: '/admin/security', label: 'Security (2FA)', icon: ShieldCheck },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ]
 

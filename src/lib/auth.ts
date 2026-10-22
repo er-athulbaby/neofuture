@@ -5,6 +5,7 @@ import PostgresAdapter from '@auth/pg-adapter'
 import pool from './db'
 import bcrypt from 'bcryptjs'
 import { queryOne } from './db'
+import { authenticator } from 'otplib'
 
 const providers = [
   Credentials({
@@ -12,6 +13,7 @@ const providers = [
     credentials: {
       email: { label: 'Email', type: 'email' },
       password: { label: 'Password', type: 'password' },
+      totp_code: { label: '2FA Code', type: 'text' },
     },
     async authorize(credentials) {
       if (!credentials?.email || !credentials?.password) return null
@@ -23,7 +25,9 @@ const providers = [
         password_hash: string
         is_admin: boolean
         image: string
-      }>('SELECT id, name, email, password_hash, is_admin, image FROM users WHERE email = $1', [
+        totp_enabled: boolean
+        totp_secret: string | null
+      }>('SELECT id, name, email, password_hash, is_admin, image, totp_enabled, totp_secret FROM users WHERE email = $1', [
         credentials.email,
       ])
 
@@ -31,6 +35,14 @@ const providers = [
 
       const valid = await bcrypt.compare(credentials.password as string, user.password_hash)
       if (!valid) return null
+
+      // If admin has TOTP enabled, require and verify the code
+      if (user.is_admin && user.totp_enabled && user.totp_secret) {
+        const code = credentials.totp_code as string
+        if (!code) return null
+        const totpValid = authenticator.verify({ token: code, secret: user.totp_secret })
+        if (!totpValid) return null
+      }
 
       return {
         id: user.id,

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Eye, EyeOff, Sparkles } from 'lucide-react'
+import { Eye, EyeOff, Sparkles, ShieldCheck } from 'lucide-react'
 
 function GoogleIcon() {
   return (
@@ -22,23 +22,41 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') ?? '/'
 
-  const [form, setForm] = useState({ email: '', password: '' })
+  const [form, setForm] = useState({ email: '', password: '', totp_code: '' })
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [totpRequired, setTotpRequired] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
+
+    // Check if this email needs TOTP before attempting full login
+    if (!totpRequired) {
+      const check = await fetch('/api/auth/totp-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email }),
+      }).then(r => r.json()).catch(() => ({ totp_required: false }))
+
+      if (check.totp_required && !form.totp_code) {
+        setTotpRequired(true)
+        setLoading(false)
+        return
+      }
+    }
+
     const res = await signIn('credentials', {
       email: form.email,
       password: form.password,
+      totp_code: form.totp_code,
       redirect: false,
     })
     setLoading(false)
     if (res?.error) {
-      setError('Invalid email or password')
+      setError(totpRequired ? 'Invalid 2FA code or wrong password' : 'Invalid email or password')
     } else {
       router.push(callbackUrl)
     }
@@ -115,12 +133,33 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {totpRequired && (
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldCheck size={16} className="text-neo-purple" />
+                <span className="text-sm font-medium text-neo-purple">Two-factor authentication</span>
+              </div>
+              <p className="text-xs text-brand-gray mb-3">Open Google Authenticator and enter the 6-digit code for NeoFuture Admin.</p>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                required
+                autoFocus
+                value={form.totp_code}
+                onChange={(e) => setForm((f) => ({ ...f, totp_code: e.target.value.replace(/\D/g, '') }))}
+                placeholder="000000"
+                className="w-full border border-purple-300 rounded-xl px-4 py-3 text-sm text-center tracking-[0.5em] font-mono focus:outline-none focus:border-neo-purple transition-colors"
+              />
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
             className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark disabled:opacity-60 transition-colors"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Signing in...' : totpRequired ? 'Verify & Sign In' : 'Sign In'}
           </button>
         </form>
 
