@@ -89,21 +89,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.is_admin = dbUser?.is_admin ?? false
         token.is_doctor = dbUser?.is_doctor ?? false
 
-        // TOTP check — wrapped separately so missing columns don't break auth
+        // TOTP check (admin only)
         if (dbUser?.is_admin) {
-          try {
-            const totpRow = await queryOne<{ totp_enabled: boolean; totp_verified_at: string | null }>(
-              `SELECT COALESCE(totp_enabled, false) as totp_enabled, totp_verified_at
-               FROM users WHERE id = $1`,
-              [token.id]
-            )
-            if (totpRow?.totp_enabled) {
-              const verifiedAt = totpRow.totp_verified_at ? new Date(totpRow.totp_verified_at).getTime() : 0
-              token.totp_pending = verifiedAt < Date.now() - 24 * 60 * 60 * 1000
-            } else {
-              token.totp_pending = false
-            }
-          } catch {
+          // Ensure columns exist — no-op once created
+          await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT false`, []).catch(() => {})
+          await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_verified_at TIMESTAMPTZ`, []).catch(() => {})
+
+          const totpRow = await queryOne<{ totp_enabled: boolean; totp_verified_at: string | null }>(
+            `SELECT totp_enabled, totp_verified_at FROM users WHERE id = $1`,
+            [token.id]
+          ).catch(() => null)
+
+          if (totpRow?.totp_enabled) {
+            const verifiedAt = totpRow.totp_verified_at ? new Date(totpRow.totp_verified_at).getTime() : 0
+            token.totp_pending = verifiedAt < Date.now() - 24 * 60 * 60 * 1000
+          } else {
             token.totp_pending = false
           }
         } else {
