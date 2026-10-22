@@ -3,9 +3,18 @@ import { query, queryOne } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { isRateLimited, rateLimitResponse } from '@/lib/rate-limit'
 
+// Domains blocked for signup — disposable/test addresses
+const BLOCKED_DOMAINS = new Set([
+  'example.com', 'example.net', 'example.org', 'test.com',
+  'mailinator.com', 'guerrillamail.com', 'tempmail.com', 'throwaway.email',
+  'yopmail.com', 'sharklasers.com', 'guerrillamailblock.com',
+  'dispostable.com', 'fakeinbox.com', 'trashmail.com', 'spamgourmet.com',
+])
+
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  if (isRateLimited(`signup:${ip}`, 5, 60_000)) return rateLimitResponse()
+  // Tighter limit: 3 signups per IP per hour
+  if (isRateLimited(`signup:${ip}`, 3, 3_600_000)) return rateLimitResponse()
 
   try {
     const { name, email, password, phone, health_data_consent } = await req.json()
@@ -14,6 +23,11 @@ export async function POST(req: NextRequest) {
     }
     if (password.length < 8) {
       return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
+    }
+
+    const emailDomain = email.split('@')[1]?.toLowerCase()
+    if (!emailDomain || BLOCKED_DOMAINS.has(emailDomain)) {
+      return NextResponse.json({ error: 'Please use a valid email address' }, { status: 400 })
     }
 
     const existing = await queryOne('SELECT id FROM users WHERE email = $1', [email])
