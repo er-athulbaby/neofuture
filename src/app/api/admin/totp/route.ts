@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { query, queryOne } from '@/lib/db'
-import { authenticator } from 'otplib'
+import { authenticator } from 'otplib/preset-default'
 import QRCode from 'qrcode'
 
 async function ensureTotpColumns() {

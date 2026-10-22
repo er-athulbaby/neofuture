@@ -5,7 +5,7 @@ import PostgresAdapter from '@auth/pg-adapter'
 import pool from './db'
 import bcrypt from 'bcryptjs'
 import { queryOne } from './db'
-import { authenticator } from 'otplib'
+import { authenticator } from 'otplib/preset-default'
 
 const providers = [
   Credentials({
