@@ -7,6 +7,7 @@ import QRCode from 'qrcode'
 async function ensureTotpColumns() {
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret VARCHAR(64)`, []).catch(() => {})
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT false`, []).catch(() => {})
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_verified_at TIMESTAMPTZ`, []).catch(() => {})
 }
 
 // GET — returns current TOTP status, or generates a new secret + QR for setup

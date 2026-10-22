@@ -13,6 +13,7 @@ declare module 'next-auth' {
       image?: string
       is_admin: boolean
       is_doctor?: boolean
+      totp_pending?: boolean
     }
   }
 }
@@ -22,5 +23,6 @@ declare module 'next-auth/jwt' {
     id?: string
     is_admin?: boolean
     is_doctor?: boolean
+    totp_pending?: boolean
   }
 }

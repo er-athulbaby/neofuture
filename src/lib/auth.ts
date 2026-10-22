@@ -80,14 +80,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id
         token.is_admin = (user as { is_admin?: boolean }).is_admin ?? false
       }
-      // Always refresh is_admin from DB — JWT cache would hide revoked admin access
+      // Always refresh from DB — JWT cache would hide revoked admin access
       if (token.id) {
-        const dbUser = await queryOne<{ is_admin: boolean; is_doctor: boolean }>(
-          'SELECT is_admin, is_doctor FROM users WHERE id = $1',
+        const dbUser = await queryOne<{
+          is_admin: boolean; is_doctor: boolean
+          totp_enabled: boolean; totp_verified_at: string | null
+        }>(
+          `SELECT is_admin, is_doctor,
+            COALESCE(totp_enabled, false) as totp_enabled,
+            totp_verified_at
+           FROM users WHERE id = $1`,
           [token.id]
         )
         token.is_admin = dbUser?.is_admin ?? false
         token.is_doctor = dbUser?.is_doctor ?? false
+
+        // TOTP pending: admin with 2FA enabled but not verified in the last 24h
+        if (dbUser?.is_admin && dbUser?.totp_enabled) {
+          const verifiedAt = dbUser.totp_verified_at ? new Date(dbUser.totp_verified_at).getTime() : 0
+          const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000
+          token.totp_pending = verifiedAt < oneDayAgo
+        } else {
+          token.totp_pending = false
+        }
       }
       return token
     },
@@ -96,6 +111,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.id as string
         session.user.is_admin = token.is_admin as boolean
         session.user.is_doctor = token.is_doctor as boolean
+        session.user.totp_pending = token.totp_pending as boolean
       }
       return session
     },
