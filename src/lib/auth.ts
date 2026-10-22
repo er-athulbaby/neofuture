@@ -4,7 +4,7 @@ import Credentials from 'next-auth/providers/credentials'
 import PostgresAdapter from '@auth/pg-adapter'
 import pool from './db'
 import bcrypt from 'bcryptjs'
-import { queryOne } from './db'
+import { query, queryOne } from './db'
 import { verify as verifyTotp } from './totp'
 
 const providers = [
