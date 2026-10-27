@@ -29,8 +29,13 @@ export default function ProductDetailClient({ product, reviews, related, variant
   const [activeImage, setActiveImage] = useState(0)
   const minQty = product.min_order_qty ?? 1
   const [qty, setQty] = useState(minQty)
+  // Size/color variant state
+  const hasSizes = variants.some((v) => v.options?.size)
+  const sizes = hasSizes ? [...new Set(variants.map((v) => v.options?.size).filter(Boolean))] as string[] : []
+  const [selectedSize, setSelectedSize] = useState<string | null>(sizes[0] ?? null)
+  const variantsForSize = selectedSize ? variants.filter((v) => v.options?.size === selectedSize) : variants
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
-    variants.length > 0 ? variants[0] : null
+    variants.length > 0 ? (variantsForSize.find((v) => v.stock > 0) ?? variantsForSize[0] ?? variants[0]) : null
   )
 
   // Subscription state — plans are always the primary buying option when available
@@ -252,55 +257,121 @@ export default function ProductDetailClient({ product, reviews, related, variant
 
           {/* Variant selector */}
           {variants.length > 0 && (
-            <div className="mb-5">
-              <p className="text-sm font-semibold text-brand-dark mb-2">
-                Select {product.variant_label ?? 'Variant'}: <span className="font-normal text-brand-gray">{selectedVariant?.label}</span>
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {variants.map((v) => {
-                  const hex = v.options?.color
-                  if (hex) {
-                    return (
-                      <button
-                        key={v.id}
-                        onClick={() => { setSelectedVariant(v); setQty(1) }}
-                        disabled={v.stock <= 0}
-                        title={v.label + (v.stock <= 0 ? ' (sold out)' : '')}
-                        className={cn(
-                          'w-9 h-9 rounded-full border-2 transition-all relative',
-                          selectedVariant?.id === v.id ? 'border-primary scale-110 shadow-md' : 'border-gray-200 hover:border-primary',
-                          v.stock <= 0 && 'opacity-40 cursor-not-allowed'
-                        )}
-                        style={{ background: hex }}
-                      >
-                        {v.stock <= 0 && (
-                          <span className="absolute inset-0 flex items-center justify-center">
-                            <span className="block w-full h-0.5 bg-gray-400 rotate-45" />
-                          </span>
-                        )}
-                      </button>
-                    )
-                  }
+            <div className="mb-5 space-y-4">
+              {/* Size selector */}
+              {hasSizes && (
+                <div>
+                  <p className="text-sm font-semibold text-brand-dark mb-2">
+                    Select {product.variant_label ?? 'Size'}:&nbsp;
+                    <span className="font-normal text-brand-gray">{selectedSize}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {sizes.map((size) => {
+                      const hasStock = variants.some((v) => v.options?.size === size && v.stock > 0)
+                      return (
+                        <button
+                          key={size}
+                          onClick={() => {
+                            setSelectedSize(size)
+                            const next = variants.filter((v) => v.options?.size === size)
+                            const inStock = next.find((v) => v.stock > 0) ?? next[0]
+                            if (inStock) { setSelectedVariant(inStock); setQty(1) }
+                          }}
+                          className={cn(
+                            'px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all',
+                            selectedSize === size
+                              ? 'border-primary bg-primary text-white'
+                              : !hasStock
+                                ? 'border-gray-200 text-gray-300 cursor-not-allowed opacity-50'
+                                : 'border-gray-200 text-brand-dark hover:border-primary hover:text-primary'
+                          )}
+                        >
+                          {size}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Color / variant selector for selected size */}
+              {(() => {
+                const pool = hasSizes ? variantsForSize : variants
+                const hasColors = pool.some((v) => v.options?.color)
+                if (hasColors) {
                   return (
-                    <button
-                      key={v.id}
-                      onClick={() => { setSelectedVariant(v); setQty(1) }}
-                      disabled={v.stock <= 0}
-                      className={cn(
-                        'px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all',
-                        selectedVariant?.id === v.id
-                          ? 'border-primary bg-primary text-white'
-                          : v.stock <= 0
-                            ? 'border-gray-200 text-gray-300 line-through cursor-not-allowed'
-                            : 'border-gray-200 text-brand-dark hover:border-primary hover:text-primary'
+                    <div>
+                      {!hasSizes && (
+                        <p className="text-sm font-semibold text-brand-dark mb-2">
+                          Select {product.variant_label ?? 'Colour'}:&nbsp;
+                          <span className="font-normal text-brand-gray">{selectedVariant?.label}</span>
+                        </p>
                       )}
-                    >
-                      {v.label}
-                      {v.stock <= 0 && ' (sold out)'}
-                    </button>
+                      <div className="flex flex-wrap gap-3">
+                        {pool.map((v) => {
+                          const hex = v.options?.color!
+                          const outOfStock = v.stock <= 0
+                          return (
+                            <div key={v.id} className="relative group">
+                              <button
+                                onClick={() => { if (!outOfStock) { setSelectedVariant(v); setQty(1) } }}
+                                title={v.label}
+                                className={cn(
+                                  'w-9 h-9 rounded-full border-2 transition-all',
+                                  selectedVariant?.id === v.id ? 'border-primary scale-110 shadow-md' : 'border-gray-200 hover:border-primary',
+                                  outOfStock && 'opacity-40 cursor-not-allowed'
+                                )}
+                                style={{ background: hex }}
+                              >
+                                {outOfStock && (
+                                  <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <span className="block w-full h-0.5 bg-gray-500 rotate-45" />
+                                  </span>
+                                )}
+                              </button>
+                              {outOfStock && (
+                                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap text-xs bg-gray-800 text-white px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                  Out of stock
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
                   )
-                })}
-              </div>
+                }
+                // Plain text variant buttons (no color)
+                return (
+                  <div>
+                    {!hasSizes && (
+                      <p className="text-sm font-semibold text-brand-dark mb-2">
+                        Select {product.variant_label ?? 'Variant'}:&nbsp;
+                        <span className="font-normal text-brand-gray">{selectedVariant?.label}</span>
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {pool.map((v) => (
+                        <button
+                          key={v.id}
+                          onClick={() => { if (v.stock > 0) { setSelectedVariant(v); setQty(1) } }}
+                          className={cn(
+                            'px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all',
+                            selectedVariant?.id === v.id
+                              ? 'border-primary bg-primary text-white'
+                              : v.stock <= 0
+                                ? 'border-gray-200 text-gray-300 line-through opacity-50 cursor-not-allowed'
+                                : 'border-gray-200 text-brand-dark hover:border-primary hover:text-primary'
+                          )}
+                        >
+                          {v.label}
+                          {v.stock <= 0 && ' (sold out)'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           )}
 

@@ -12,7 +12,7 @@ import type { ProductRow } from './page'
 interface Category { id: number; name: string }
 interface Props { products: ProductRow[]; categories: Category[] }
 interface Variant { id: number; label: string; options: Record<string, string>; price: number | null; sale_price: number | null; stock: number; sku: string | null }
-const EMPTY_VARIANT = { label: '', price: '', sale_price: '', stock: '0', sku: '', color: '' }
+const EMPTY_VARIANT = { label: '', price: '', sale_price: '', stock: '0', sku: '', color: '', size: '' }
 
 interface SubPlan { id: number; duration_months: number; label: string; price: number; mrp_price?: number | null; is_active: boolean }
 const PLAN_DURATIONS = [
@@ -92,7 +92,7 @@ export default function AdminProductsClient({ products: initial, categories }: P
         sale_price: variantForm.sale_price || null,
         stock: variantForm.stock,
         sku: variantForm.sku || null,
-        options: variantForm.color ? { color: variantForm.color } : {},
+        options: { ...(variantForm.size ? { size: variantForm.size } : {}), ...(variantForm.color ? { color: variantForm.color } : {}) },
       }),
     })
     setAddingVariant(false)
@@ -108,7 +108,7 @@ export default function AdminProductsClient({ products: initial, categories }: P
 
   function startEditVariant(v: Variant) {
     setEditingVariant(v.id)
-    setEditVariantForm({ label: v.label, price: v.price ? String(v.price) : '', sale_price: v.sale_price ? String(v.sale_price) : '', stock: String(v.stock), sku: v.sku ?? '', color: v.options?.color ?? '' })
+    setEditVariantForm({ label: v.label, price: v.price ? String(v.price) : '', sale_price: v.sale_price ? String(v.sale_price) : '', stock: String(v.stock), sku: v.sku ?? '', color: v.options?.color ?? '', size: v.options?.size ?? '' })
   }
 
   async function saveEditVariant(variantId: number) {
@@ -123,10 +123,10 @@ export default function AdminProductsClient({ products: initial, categories }: P
         sale_price: editVariantForm.sale_price || null,
         stock: editVariantForm.stock,
         sku: editVariantForm.sku || null,
-        options: editVariantForm.color ? { color: editVariantForm.color } : {},
+        options: { ...(editVariantForm.size ? { size: editVariantForm.size } : {}), ...(editVariantForm.color ? { color: editVariantForm.color } : {}) },
       }),
     })
-    setVariants((vs) => vs.map((v) => v.id === variantId ? { ...v, label: editVariantForm.label, price: editVariantForm.price ? Number(editVariantForm.price) : null, sale_price: editVariantForm.sale_price ? Number(editVariantForm.sale_price) : null, stock: Number(editVariantForm.stock), sku: editVariantForm.sku || null, options: editVariantForm.color ? { color: editVariantForm.color } : {} } : v))
+    setVariants((vs) => vs.map((v) => v.id === variantId ? { ...v, label: editVariantForm.label, price: editVariantForm.price ? Number(editVariantForm.price) : null, sale_price: editVariantForm.sale_price ? Number(editVariantForm.sale_price) : null, stock: Number(editVariantForm.stock), sku: editVariantForm.sku || null, options: { ...(editVariantForm.size ? { size: editVariantForm.size } : {}), ...(editVariantForm.color ? { color: editVariantForm.color } : {}) } } : v))
     setEditingVariant(null)
     toast('Variant updated!')
   }
@@ -633,7 +633,7 @@ export default function AdminProductsClient({ products: initial, categories }: P
                                 {editingVariant === v.id ? (
                                   <>
                                     <td className="py-1.5" colSpan={3}>
-                                      <div className="grid grid-cols-5 gap-1 items-center">
+                                      <div className="grid grid-cols-6 gap-1 items-center">
                                         <input value={editVariantForm.label} onChange={(e) => setEditVariantForm((f) => ({ ...f, label: e.target.value }))}
                                           placeholder="Label" className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-primary" />
                                         <input value={editVariantForm.price} onChange={(e) => setEditVariantForm((f) => ({ ...f, price: e.target.value }))}
@@ -642,6 +642,8 @@ export default function AdminProductsClient({ products: initial, categories }: P
                                           placeholder="Sale" type="number" className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-primary" />
                                         <input value={editVariantForm.stock} onChange={(e) => setEditVariantForm((f) => ({ ...f, stock: e.target.value }))}
                                           placeholder="Stock" type="number" className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-primary" />
+                                        <input value={editVariantForm.size} onChange={(e) => setEditVariantForm((f) => ({ ...f, size: e.target.value }))}
+                                          placeholder="Size" className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-primary" />
                                         <div className="flex items-center gap-1">
                                           <input type="color" value={editVariantForm.color || '#cccccc'} onChange={(e) => setEditVariantForm((f) => ({ ...f, color: e.target.value }))}
                                             className="w-6 h-6 rounded cursor-pointer border border-gray-200" title="Color" />
@@ -716,6 +718,12 @@ export default function AdminProductsClient({ products: initial, categories }: P
                           value={variantForm.sku}
                           onChange={(e) => setVariantForm((f) => ({ ...f, sku: e.target.value }))}
                           placeholder="SKU (optional)"
+                          className={fClass}
+                        />
+                        <input
+                          value={variantForm.size}
+                          onChange={(e) => setVariantForm((f) => ({ ...f, size: e.target.value }))}
+                          placeholder="Size (e.g. S, M, L, XL)"
                           className={fClass}
                         />
                         <div className="flex items-center gap-2">
