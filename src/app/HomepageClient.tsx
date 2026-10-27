@@ -355,7 +355,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
             {/* Feature list */}
             <div className="space-y-4">
               {[
-                { icon: '🩺', title: 'Initial NeoFuture Doctor Consultation', desc: 'Neocare-Quality medical consultation for you and your family, anytime, anywhere.' },
+                { icon: '🩺', title: 'NeoCare', desc: 'Neocare-Quality medical consultation for you and your family, anytime, anywhere.' },
                 { icon: '📹', title: 'HD Video Consultation', desc: 'Secure Google Meet session — no app download needed, works on any device.' },
                 { icon: '💊', title: 'Digital Prescription', desc: 'Receive a signed PDF prescription after every consultation, downloadable anytime.' },
                 { icon: '🔄', title: 'Free 7-Day Follow-up', desc: 'Book a free follow-up within 7 days of your consultation for any concerns.' },
