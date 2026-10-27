@@ -11,6 +11,7 @@ import { formatPrice } from '@/lib/utils'
 
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
+  { href: '/#founders', label: 'About Us', scrollId: 'founders' },
   { href: '/neo-twin', label: 'Neo Twin ✦', auth: true },
   { href: '/account', label: 'AI Wellness Dashboard', auth: true },
   { href: '/account/period-calendar', label: 'Period Tracker', auth: true },
@@ -27,7 +28,6 @@ const NAV_LINKS = [
   { href: '/consult', label: 'NeoCare' },
   { href: '/#products', label: 'Nutraceuticals', scrollId: 'products' },
   { href: '/shop', label: 'Shop' },
-  { href: '/#founders', label: 'About Us', scrollId: 'founders' },
 ]
 
 export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoUrl?: string; siteName?: string }) {
