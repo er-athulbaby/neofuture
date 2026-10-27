@@ -70,7 +70,7 @@ export async function DELETE(req: NextRequest) {
   if (victim) {
     await query(
       `INSERT INTO deleted_users_log (user_id, name, email, deleted_by) VALUES ($1, $2, $3, $4)`,
-      [id, victim.name, victim.email, session.user.email]
+      [id, victim.name, victim.email, session?.user?.email ?? 'admin']
     ).catch(() => {})
   }
 
