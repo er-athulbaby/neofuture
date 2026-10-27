@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/ToastProvider'
-import { Users, ShieldCheck, ShieldOff, Trash2, Search, RefreshCw, Heart, ChevronDown, ChevronUp, CheckCircle, XCircle, Stethoscope } from 'lucide-react'
+import { Users, ShieldCheck, ShieldOff, Trash2, Search, RefreshCw, Heart, ChevronDown, ChevronUp, CheckCircle, XCircle, Stethoscope, Archive } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
 interface User {
@@ -31,7 +31,9 @@ export default function AdminUsersClient({ currentUserId }: { currentUserId: str
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [tab, setTab] = useState<'all' | 'admin' | 'doctor' | 'users' | 'health'>('all')
+  const [tab, setTab] = useState<'all' | 'admin' | 'doctor' | 'users' | 'health' | 'deleted'>('all')
+  const [deletedUsers, setDeletedUsers] = useState<{ id: number; name: string; email: string; deleted_by: string; deleted_at: string }[]>([])
+  const [deletedLoading, setDeletedLoading] = useState(false)
 
   // Health tab state
   const [healthUsers, setHealthUsers] = useState<HealthUser[]>([])
@@ -60,6 +62,13 @@ export default function AdminUsersClient({ currentUserId }: { currentUserId: str
 
   useEffect(() => {
     if (tab === 'health' && healthUsers.length === 0) loadHealth()
+    if (tab === 'deleted' && deletedUsers.length === 0) {
+      setDeletedLoading(true)
+      fetch('/api/admin/users?deleted=1').then(r => r.json()).then(d => {
+        setDeletedUsers(d.deleted ?? [])
+        setDeletedLoading(false)
+      })
+    }
   }, [tab])
 
   async function expandUser(userId: string) {
@@ -174,14 +183,15 @@ export default function AdminUsersClient({ currentUserId }: { currentUserId: str
       {/* Tabs + Search */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit flex-wrap">
-          {(['all', 'admin', 'doctor', 'users', 'health'] as const).map((t) => (
+          {(['all', 'admin', 'doctor', 'users', 'health', 'deleted'] as const).map((t) => (
             <button key={t} onClick={() => setTab(t as typeof tab)}
               className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all capitalize ${tab === t ? 'bg-white text-brand-dark shadow-sm' : 'text-brand-gray hover:text-brand-dark'}`}>
               {t === 'all' ? `All (${users.length})`
                 : t === 'admin' ? `Admins (${adminCount})`
                 : t === 'doctor' ? `Doctors (${doctorCount})`
                 : t === 'users' ? `Users (${userCount})`
-                : <span className="flex items-center gap-1"><Heart size={12} /> Health Data</span>}
+                : t === 'health' ? <span className="flex items-center gap-1"><Heart size={12} /> Health Data</span>
+                : <span className="flex items-center gap-1"><Archive size={12} /> Deleted</span>}
             </button>
           ))}
         </div>
@@ -193,7 +203,39 @@ export default function AdminUsersClient({ currentUserId }: { currentUserId: str
         </div>
       </div>
 
-      {tab === 'health' ? (
+      {tab === 'deleted' ? (
+        /* ── Deleted Users audit log ── */
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          {deletedLoading ? (
+            <div className="text-center py-12 text-brand-gray">Loading...</div>
+          ) : deletedUsers.length === 0 ? (
+            <div className="text-center py-12 text-brand-gray">No deleted users on record</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-brand-gray uppercase">User</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-brand-gray uppercase">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-brand-gray uppercase">Deleted By</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-brand-gray uppercase">Deleted At</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {deletedUsers.map((u) => (
+                    <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-brand-dark">{u.name ?? '—'}</td>
+                      <td className="px-4 py-3 text-brand-gray text-xs">{u.email}</td>
+                      <td className="px-4 py-3 text-brand-gray text-xs">{u.deleted_by}</td>
+                      <td className="px-4 py-3 text-brand-gray text-xs">{formatDate(u.deleted_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : tab === 'health' ? (
         /* ── Health & Wellness tab ── */
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           {healthLoading ? (

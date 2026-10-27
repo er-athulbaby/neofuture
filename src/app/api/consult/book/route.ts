@@ -41,9 +41,9 @@ export async function POST(req: NextRequest) {
   )
   if (!doctor) return NextResponse.json({ error: 'Doctor not found' }, { status: 404 })
 
-  // Check slot is not already taken
+  // Check slot is not already taken or blocked
   const clash = await queryOne(
-    `SELECT id FROM consultations WHERE doctor_id=$1 AND slot_datetime=$2 AND status IN ('pending','confirmed')`,
+    `SELECT id FROM consultations WHERE doctor_id=$1 AND slot_datetime=$2 AND status IN ('pending','confirmed','blocked')`,
     [doctor_id, slot_datetime]
   )
   if (clash) return NextResponse.json({ error: 'Slot already booked' }, { status: 409 })

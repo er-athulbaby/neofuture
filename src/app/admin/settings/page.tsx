@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useToast } from '@/components/ui/ToastProvider'
-import { Settings, Save, Upload, Image as ImageIcon, Palette, Type, Share2, Mail } from 'lucide-react'
+import { Settings, Save, Upload, Image as ImageIcon, Palette, Type, Share2, Mail, Clock } from 'lucide-react'
 
 type Cfg = {
+  coming_soon: string
   site_name: string; tagline: string; logo_url: string; favicon_url: string
   hero_title: string; hero_subtitle: string
   dashboard_title: string; dashboard_subtitle: string
@@ -29,6 +30,7 @@ type Cfg = {
 }
 
 const D: Cfg = {
+  coming_soon: 'false',
   site_name: 'NeoFuture', tagline: 'From trusted hands to quality lives',
   logo_url: '', favicon_url: '',
   hero_title: 'Welcome to the Next Generation of Healthcare',
@@ -134,6 +136,23 @@ export default function AdminSettingsPage() {
       </h1>
 
       <form onSubmit={save} className="space-y-5">
+
+        {/* Coming Soon */}
+        <Sec icon={<Clock size={16} />} title="Site Availability">
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+            <div>
+              <p className="text-sm font-semibold text-brand-dark">Coming Soon Mode</p>
+              <p className="text-xs text-brand-gray mt-0.5">When enabled, all visitors (except admins) see a Coming Soon page</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setS((x) => ({ ...x, coming_soon: x.coming_soon === 'true' ? 'false' : 'true' }))}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${s.coming_soon === 'true' ? 'bg-primary' : 'bg-gray-300'}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${s.coming_soon === 'true' ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+          </div>
+        </Sec>
 
         {/* Branding */}
         <Sec icon={<ImageIcon size={16} />} title="Branding & Logo">

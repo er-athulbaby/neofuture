@@ -2,25 +2,30 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { query } from '@/lib/db'
 import { Video } from 'lucide-react'
+import BlockSlotForm from './BlockSlotForm'
 
 const STATUS_COLOR: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
   confirmed: 'bg-blue-100 text-blue-700',
   completed: 'bg-green-100 text-green-700',
   cancelled: 'bg-red-100 text-red-700',
+  blocked: 'bg-gray-200 text-gray-600',
 }
 
 export default async function AdminConsultationsPage() {
   const session = await auth()
   if (!session?.user?.is_admin) redirect('/')
 
-  const rows = await query(`
-    SELECT c.*, u.name AS patient_name, d.name AS doctor_name, d.specialisation
-    FROM consultations c
-    JOIN users u ON u.id = c.patient_id
-    JOIN doctors d ON d.id = c.doctor_id
-    ORDER BY c.slot_datetime DESC LIMIT 100
-  `)
+  const [rows, doctors] = await Promise.all([
+    query(`
+      SELECT c.*, u.name AS patient_name, d.name AS doctor_name, d.specialisation
+      FROM consultations c
+      JOIN users u ON u.id = c.patient_id
+      JOIN doctors d ON d.id = c.doctor_id
+      ORDER BY c.slot_datetime DESC LIMIT 100
+    `),
+    query<{ id: number; name: string; specialisation: string }>(`SELECT id, name, specialisation FROM doctors WHERE is_active = true ORDER BY name`),
+  ])
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -73,6 +78,8 @@ export default async function AdminConsultationsPage() {
           </tbody>
         </table>
       </div>
+
+      <BlockSlotForm doctors={doctors} />
     </div>
   )
 }

@@ -355,7 +355,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
             {/* Feature list */}
             <div className="space-y-4">
               {[
-                { icon: '🩺', title: 'Initial NeoFuture Doctor Consultation', desc: 'Start your journey with a dedicated NeoCare doctor consultation — personalized to your PCOS/PCOD needs.' },
+                { icon: '🩺', title: 'Initial NeoFuture Doctor Consultation', desc: 'Neocare-Quality medical consultation for you and your family, anytime, anywhere.' },
                 { icon: '📹', title: 'HD Video Consultation', desc: 'Secure Google Meet session — no app download needed, works on any device.' },
                 { icon: '💊', title: 'Digital Prescription', desc: 'Receive a signed PDF prescription after every consultation, downloadable anytime.' },
                 { icon: '🔄', title: 'Free 7-Day Follow-up', desc: 'Book a free follow-up within 7 days of your consultation for any concerns.' },
@@ -583,7 +583,7 @@ export default function HomepageClient({ config, featured, autoOpenQuiz = false 
 
       {/* FOUNDERS */}
       {(config.founder1_name || config.founder2_name) && (
-        <section className="py-20 px-4 bg-white">
+        <section id="founders" className="py-20 px-4 bg-white">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
               <span className="text-xs font-bold uppercase tracking-widest text-primary mb-3 block">Leadership</span>

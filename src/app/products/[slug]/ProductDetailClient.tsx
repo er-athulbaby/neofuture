@@ -60,6 +60,8 @@ export default function ProductDetailClient({ product, reviews, related, variant
   }, [product.id])
   const [activeTab, setActiveTab] = useState<'description' | 'ingredients' | 'how_to_use' | 'reviews'>('description')
   const [reviewForm, setReviewForm] = useState({ rating: 0, comment: '' })
+  const [reviewImages, setReviewImages] = useState<string[]>([])
+  const [uploadingReviewImg, setUploadingReviewImg] = useState(false)
   const [submittingReview, setSubmittingReview] = useState(false)
   const [wishlisted, setWishlisted] = useState(false)
 
@@ -114,6 +116,18 @@ export default function ProductDetailClient({ product, reviews, related, variant
     }
   }
 
+  async function uploadReviewImage(file: File) {
+    if (reviewImages.length >= 3) { toast('Maximum 3 images per review', 'error'); return }
+    setUploadingReviewImg(true)
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetch('/api/upload/review', { method: 'POST', body: form })
+    const data = await res.json()
+    setUploadingReviewImg(false)
+    if (data.url) setReviewImages((prev) => [...prev, data.url])
+    else toast(data.error ?? 'Upload failed', 'error')
+  }
+
   async function submitReview(e: React.FormEvent) {
     e.preventDefault()
     if (!session?.user?.id) { toast('Sign in to leave a review', 'info'); return }
@@ -122,12 +136,13 @@ export default function ProductDetailClient({ product, reviews, related, variant
     const res = await fetch('/api/reviews', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ product_id: product.id, rating: reviewForm.rating, comment: reviewForm.comment }),
+      body: JSON.stringify({ product_id: product.id, rating: reviewForm.rating, comment: reviewForm.comment, images: reviewImages }),
     })
     setSubmittingReview(false)
     if (res.ok) {
       toast('Review submitted!')
       setReviewForm({ rating: 0, comment: '' })
+      setReviewImages([])
     } else {
       toast('Failed to submit review', 'error')
     }
@@ -242,24 +257,49 @@ export default function ProductDetailClient({ product, reviews, related, variant
                 Select {product.variant_label ?? 'Variant'}: <span className="font-normal text-brand-gray">{selectedVariant?.label}</span>
               </p>
               <div className="flex flex-wrap gap-2">
-                {variants.map((v) => (
-                  <button
-                    key={v.id}
-                    onClick={() => { setSelectedVariant(v); setQty(1) }}
-                    disabled={v.stock <= 0}
-                    className={cn(
-                      'px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all',
-                      selectedVariant?.id === v.id
-                        ? 'border-primary bg-primary text-white'
-                        : v.stock <= 0
-                          ? 'border-gray-200 text-gray-300 line-through cursor-not-allowed'
-                          : 'border-gray-200 text-brand-dark hover:border-primary hover:text-primary'
-                    )}
-                  >
-                    {v.label}
-                    {v.stock <= 0 && ' (sold out)'}
-                  </button>
-                ))}
+                {variants.map((v) => {
+                  const hex = v.options?.color
+                  if (hex) {
+                    return (
+                      <button
+                        key={v.id}
+                        onClick={() => { setSelectedVariant(v); setQty(1) }}
+                        disabled={v.stock <= 0}
+                        title={v.label + (v.stock <= 0 ? ' (sold out)' : '')}
+                        className={cn(
+                          'w-9 h-9 rounded-full border-2 transition-all relative',
+                          selectedVariant?.id === v.id ? 'border-primary scale-110 shadow-md' : 'border-gray-200 hover:border-primary',
+                          v.stock <= 0 && 'opacity-40 cursor-not-allowed'
+                        )}
+                        style={{ background: hex }}
+                      >
+                        {v.stock <= 0 && (
+                          <span className="absolute inset-0 flex items-center justify-center">
+                            <span className="block w-full h-0.5 bg-gray-400 rotate-45" />
+                          </span>
+                        )}
+                      </button>
+                    )
+                  }
+                  return (
+                    <button
+                      key={v.id}
+                      onClick={() => { setSelectedVariant(v); setQty(1) }}
+                      disabled={v.stock <= 0}
+                      className={cn(
+                        'px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all',
+                        selectedVariant?.id === v.id
+                          ? 'border-primary bg-primary text-white'
+                          : v.stock <= 0
+                            ? 'border-gray-200 text-gray-300 line-through cursor-not-allowed'
+                            : 'border-gray-200 text-brand-dark hover:border-primary hover:text-primary'
+                      )}
+                    >
+                      {v.label}
+                      {v.stock <= 0 && ' (sold out)'}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -471,6 +511,26 @@ export default function ProductDetailClient({ product, reviews, related, variant
                     rows={3}
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary resize-none"
                   />
+                  {/* Review image upload */}
+                  <div>
+                    <p className="text-xs text-brand-gray mb-1.5">Add photos (max 3, JPEG/PNG/WebP)</p>
+                    <div className="flex flex-wrap gap-2">
+                      {reviewImages.map((url, i) => (
+                        <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200">
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <button type="button" onClick={() => setReviewImages((p) => p.filter((_, j) => j !== i))}
+                            className="absolute top-0 right-0 bg-black/50 text-white text-xs w-4 h-4 flex items-center justify-center rounded-bl">×</button>
+                        </div>
+                      ))}
+                      {reviewImages.length < 3 && (
+                        <label className="w-16 h-16 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-300 hover:border-primary hover:text-primary cursor-pointer transition-colors text-xl">
+                          {uploadingReviewImg ? '...' : '+'}
+                          <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                            onChange={(e) => e.target.files?.[0] && uploadReviewImage(e.target.files[0])} />
+                        </label>
+                      )}
+                    </div>
+                  </div>
                   <button type="submit" disabled={submittingReview || !reviewForm.rating}
                     className="bg-primary text-white px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-primary-dark disabled:opacity-50 transition-colors">
                     {submittingReview ? 'Submitting...' : 'Submit Review'}
@@ -503,6 +563,15 @@ export default function ProductDetailClient({ product, reviews, related, variant
                       <span className="text-xs text-brand-gray">{formatDate(review.created_at)}</span>
                     </div>
                     {review.comment && <p className="text-sm text-brand-dark mt-2 leading-relaxed">{review.comment}</p>}
+                    {review.images && review.images.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {review.images.map((url, i) => (
+                          <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                            <img src={url} alt="" className="w-16 h-16 object-cover rounded-lg border border-gray-100 hover:opacity-80 transition-opacity" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

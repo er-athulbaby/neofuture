@@ -7,6 +7,8 @@ export async function GET(req: NextRequest) {
   const productId = new URL(req.url).searchParams.get('product_id')
   if (!productId) return NextResponse.json({ reviews: [] })
 
+  await query(`ALTER TABLE product_reviews ADD COLUMN IF NOT EXISTS images JSONB NOT NULL DEFAULT '[]'`, []).catch(() => {})
+
   const reviews = await query(
     `SELECT r.*, u.name as user_name FROM product_reviews r
      JOIN users u ON u.id = r.user_id
@@ -22,7 +24,7 @@ export async function POST(req: NextRequest) {
 
   if (isRateLimited(`review:${session.user.id}`, 5, 60_000)) return rateLimitResponse()
 
-  const { product_id, rating, comment } = await req.json()
+  const { product_id, rating, comment, images } = await req.json()
   if (!product_id || !rating) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   if (typeof rating !== 'number' || rating < 1 || rating > 5) {
     return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 })
@@ -30,6 +32,9 @@ export async function POST(req: NextRequest) {
   if (comment && comment.length > 1000) {
     return NextResponse.json({ error: 'Comment too long (max 1000 characters)' }, { status: 400 })
   }
+  const safeImages = Array.isArray(images) ? images.slice(0, 3).filter((u: unknown) => typeof u === 'string' && u.startsWith('https://')) : []
+
+  await query(`ALTER TABLE product_reviews ADD COLUMN IF NOT EXISTS images JSONB NOT NULL DEFAULT '[]'`, []).catch(() => {})
 
   // Check if verified purchase
   const purchase = await queryOne(
@@ -41,10 +46,10 @@ export async function POST(req: NextRequest) {
   )
 
   await query(
-    `INSERT INTO product_reviews (product_id, user_id, rating, comment, is_verified_purchase)
-     VALUES ($1, $2, $3, $4, $5)
-     ON CONFLICT (product_id, user_id) DO UPDATE SET rating = $3, comment = $4`,
-    [product_id, session.user.id, rating, comment ?? null, !!purchase]
+    `INSERT INTO product_reviews (product_id, user_id, rating, comment, is_verified_purchase, images)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT (product_id, user_id) DO UPDATE SET rating = $3, comment = $4, images = $6`,
+    [product_id, session.user.id, rating, comment ?? null, !!purchase, JSON.stringify(safeImages)]
   )
 
   return NextResponse.json({ success: true })

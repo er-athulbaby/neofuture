@@ -27,6 +27,7 @@ const NAV_LINKS = [
   { href: '/consult', label: 'NeoCare' },
   { href: '/#products', label: 'Nutraceuticals', scrollId: 'products' },
   { href: '/shop', label: 'Shop' },
+  { href: '/#founders', label: 'About Us', scrollId: 'founders' },
 ]
 
 export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoUrl?: string; siteName?: string }) {

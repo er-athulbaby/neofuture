@@ -27,8 +27,8 @@ export default async function AccountPage() {
       'SELECT neopulse_balance, referral_code, phone FROM users WHERE id = $1',
       [userId]
     ).catch(() => null),
-    queryOne<{ wellness_score: string; sleep_score: number; energy_score: number; stress_level: number }>(
-      'SELECT wellness_score, sleep_score, energy_score, stress_level FROM wellness_checkins WHERE user_id = $1 AND check_in_date = CURRENT_DATE',
+    queryOne<{ wellness_score: string; sleep_score: number; energy_score: number; stress_level: number; mood_score: number | null; hydration_score: number | null }>(
+      'SELECT wellness_score, sleep_score, energy_score, stress_level, mood_score, hydration_score FROM wellness_checkins WHERE user_id = $1 AND check_in_date = CURRENT_DATE',
       [String(userId)]
     ).catch(() => null),
     queryOne<{ cnt: string }>(
@@ -152,6 +152,12 @@ export default async function AccountPage() {
                         )}
                         {todayCheckin.sleep_score > 0 && (
                           <ScoreCard label="Sleep Score" score={todayCheckin.sleep_score * 10} bgClass="bg-blue-50 border-blue-100" />
+                        )}
+                        {(todayCheckin.mood_score ?? 0) > 0 && (
+                          <ScoreCard label="Mood" score={todayCheckin.mood_score! * 10} bgClass="bg-purple-50 border-purple-100" />
+                        )}
+                        {(todayCheckin.hydration_score ?? 0) > 0 && (
+                          <ScoreCard label="Hydration" score={todayCheckin.hydration_score! * 10} bgClass="bg-cyan-50 border-cyan-100" />
                         )}
                       </>
                     ) : latestScore ? (

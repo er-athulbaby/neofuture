@@ -2,6 +2,7 @@ import { cache } from 'react'
 import { query } from './db'
 
 export interface SiteConfig {
+  coming_soon: string
   site_name: string
   tagline: string
   logo_url: string
@@ -50,6 +51,7 @@ export interface SiteConfig {
 }
 
 export const CONFIG_DEFAULTS: SiteConfig = {
+  coming_soon: 'false',
   site_name: 'NeoFuture',
   tagline: 'From trusted hands to quality lives',
   logo_url: '',

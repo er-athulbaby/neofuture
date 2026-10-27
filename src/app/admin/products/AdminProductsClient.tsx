@@ -11,8 +11,8 @@ import type { ProductRow } from './page'
 
 interface Category { id: number; name: string }
 interface Props { products: ProductRow[]; categories: Category[] }
-interface Variant { id: number; label: string; price: number | null; sale_price: number | null; stock: number; sku: string | null }
-const EMPTY_VARIANT = { label: '', price: '', sale_price: '', stock: '0', sku: '' }
+interface Variant { id: number; label: string; options: Record<string, string>; price: number | null; sale_price: number | null; stock: number; sku: string | null }
+const EMPTY_VARIANT = { label: '', price: '', sale_price: '', stock: '0', sku: '', color: '' }
 
 interface SubPlan { id: number; duration_months: number; label: string; price: number; mrp_price?: number | null; is_active: boolean }
 const PLAN_DURATIONS = [
@@ -90,6 +90,7 @@ export default function AdminProductsClient({ products: initial, categories }: P
         sale_price: variantForm.sale_price || null,
         stock: variantForm.stock,
         sku: variantForm.sku || null,
+        options: variantForm.color ? { color: variantForm.color } : {},
       }),
     })
     setAddingVariant(false)
@@ -602,7 +603,12 @@ export default function AdminProductsClient({ products: initial, categories }: P
                           <tbody>
                             {variants.map((v) => (
                               <tr key={v.id} className="border-b border-gray-50">
-                                <td className="py-1.5 font-medium text-brand-dark">{v.label}</td>
+                                <td className="py-1.5 font-medium text-brand-dark flex items-center gap-1.5">
+                                  {v.options?.color && (
+                                    <span className="inline-block w-4 h-4 rounded-full border border-gray-200 flex-shrink-0" style={{ background: v.options.color }} title={v.options.color} />
+                                  )}
+                                  {v.label}
+                                </td>
                                 <td className="py-1.5 text-right text-brand-gray">
                                   {v.price ? `₹${v.price}` : '(base)'}
                                   {v.sale_price ? ` / ₹${v.sale_price} sale` : ''}
@@ -657,6 +663,18 @@ export default function AdminProductsClient({ products: initial, categories }: P
                           placeholder="SKU (optional)"
                           className={fClass}
                         />
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-brand-gray">Color swatch</label>
+                          <input
+                            type="color"
+                            value={variantForm.color || '#cccccc'}
+                            onChange={(e) => setVariantForm((f) => ({ ...f, color: e.target.value }))}
+                            className="w-8 h-8 rounded cursor-pointer border border-gray-200"
+                          />
+                          {variantForm.color && (
+                            <button type="button" onClick={() => setVariantForm((f) => ({ ...f, color: '' }))} className="text-xs text-brand-gray hover:text-danger">clear</button>
+                          )}
+                        </div>
                       </div>
                       <button
                         type="button"
