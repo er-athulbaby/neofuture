@@ -43,8 +43,7 @@ function safeCssColor(value: string, fallback: string): string {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const [session, config, hdrs] = await Promise.all([auth(), getSiteConfig(), headers()])
   if (config.coming_soon === 'true') {
-    const rawUrl = hdrs.get('next-url') ?? '/'
-    const pathname = rawUrl.startsWith('http') ? new URL(rawUrl).pathname : rawUrl
+    const pathname = hdrs.get('x-pathname') ?? '/'
     const isAdmin = session?.user?.is_admin
     const isExempt = pathname.startsWith('/admin') || pathname.startsWith('/coming-soon') || pathname.startsWith('/login') || pathname.startsWith('/api')
     if (!isAdmin && !isExempt) redirect('/coming-soon')
