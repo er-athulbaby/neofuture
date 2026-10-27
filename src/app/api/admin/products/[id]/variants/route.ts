@@ -65,14 +65,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
   await ensureTable()
   const body = await req.json()
-  const { variant_id, label, price, sale_price, stock, sku } = body
+  const { variant_id, label, price, sale_price, stock, sku, options } = body
   const { id } = await params
 
   await query(
-    `UPDATE product_variants SET label=$1, price=$2, sale_price=$3, stock=$4, sku=$5
-     WHERE id=$6 AND product_id=$7`,
+    `UPDATE product_variants SET label=$1, price=$2, sale_price=$3, stock=$4, sku=$5, options=$6
+     WHERE id=$7 AND product_id=$8`,
     [label, price ? Number(price) : null, sale_price ? Number(sale_price) : null,
-     Number(stock) || 0, sku || null, Number(variant_id), Number(id)]
+     Number(stock) || 0, sku || null, options ? JSON.stringify(options) : '{}', Number(variant_id), Number(id)]
   )
   return NextResponse.json({ ok: true })
 }

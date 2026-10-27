@@ -24,6 +24,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   return NextResponse.json(row)
 }
 
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth()
+  if (!session?.user?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  await params
+  const { availability_id, day_of_week, start_time, end_time, slot_duration } = await req.json()
+  await query(
+    `UPDATE doctor_availability SET day_of_week=$1, start_time=$2, end_time=$3, slot_duration=$4 WHERE id=$5`,
+    [day_of_week, start_time, end_time, slot_duration, availability_id]
+  )
+  return NextResponse.json({ success: true })
+}
+
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

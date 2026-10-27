@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/ToastProvider'
 import { formatPrice } from '@/lib/utils'
-import { Plus, Edit2, Trash2, Eye, Star, Search, X, Package, Upload, ImagePlus, Layers, RotateCcw } from 'lucide-react'
+import { Plus, Edit2, Trash2, Eye, Star, Search, X, Package, Upload, ImagePlus, Layers, RotateCcw, Pencil, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import type { ProductRow } from './page'
@@ -52,6 +52,8 @@ export default function AdminProductsClient({ products: initial, categories }: P
   const [variantForm, setVariantForm] = useState(EMPTY_VARIANT)
   const [addingVariant, setAddingVariant] = useState(false)
   const [showVariants, setShowVariants] = useState(false)
+  const [editingVariant, setEditingVariant] = useState<number | null>(null)
+  const [editVariantForm, setEditVariantForm] = useState(EMPTY_VARIANT)
 
   const [subPlans, setSubPlans] = useState<SubPlan[]>([])
   const [subPlanForm, setSubPlanForm] = useState(EMPTY_PLAN)
@@ -102,6 +104,31 @@ export default function AdminProductsClient({ products: initial, categories }: P
     } else {
       toast('Failed to add variant', 'error')
     }
+  }
+
+  function startEditVariant(v: Variant) {
+    setEditingVariant(v.id)
+    setEditVariantForm({ label: v.label, price: v.price ? String(v.price) : '', sale_price: v.sale_price ? String(v.sale_price) : '', stock: String(v.stock), sku: v.sku ?? '', color: v.options?.color ?? '' })
+  }
+
+  async function saveEditVariant(variantId: number) {
+    if (!editId) return
+    await fetch(`/api/admin/products/${editId}/variants`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        variant_id: variantId,
+        label: editVariantForm.label,
+        price: editVariantForm.price || null,
+        sale_price: editVariantForm.sale_price || null,
+        stock: editVariantForm.stock,
+        sku: editVariantForm.sku || null,
+        options: editVariantForm.color ? { color: editVariantForm.color } : {},
+      }),
+    })
+    setVariants((vs) => vs.map((v) => v.id === variantId ? { ...v, label: editVariantForm.label, price: editVariantForm.price ? Number(editVariantForm.price) : null, sale_price: editVariantForm.sale_price ? Number(editVariantForm.sale_price) : null, stock: Number(editVariantForm.stock), sku: editVariantForm.sku || null, options: editVariantForm.color ? { color: editVariantForm.color } : {} } : v))
+    setEditingVariant(null)
+    toast('Variant updated!')
   }
 
   async function deleteVariant(variantId: number) {
@@ -603,23 +630,51 @@ export default function AdminProductsClient({ products: initial, categories }: P
                           <tbody>
                             {variants.map((v) => (
                               <tr key={v.id} className="border-b border-gray-50">
-                                <td className="py-1.5 font-medium text-brand-dark flex items-center gap-1.5">
-                                  {v.options?.color && (
-                                    <span className="inline-block w-4 h-4 rounded-full border border-gray-200 flex-shrink-0" style={{ background: v.options.color }} title={v.options.color} />
-                                  )}
-                                  {v.label}
-                                </td>
-                                <td className="py-1.5 text-right text-brand-gray">
-                                  {v.price ? `₹${v.price}` : '(base)'}
-                                  {v.sale_price ? ` / ₹${v.sale_price} sale` : ''}
-                                </td>
-                                <td className="py-1.5 text-right text-brand-gray">{v.stock}</td>
-                                <td className="py-1.5 text-right">
-                                  <button type="button" onClick={() => deleteVariant(v.id)}
-                                    className="p-1 text-gray-400 hover:text-danger transition-colors">
-                                    <Trash2 size={12} />
-                                  </button>
-                                </td>
+                                {editingVariant === v.id ? (
+                                  <>
+                                    <td className="py-1.5" colSpan={3}>
+                                      <div className="grid grid-cols-5 gap-1 items-center">
+                                        <input value={editVariantForm.label} onChange={(e) => setEditVariantForm((f) => ({ ...f, label: e.target.value }))}
+                                          placeholder="Label" className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-primary" />
+                                        <input value={editVariantForm.price} onChange={(e) => setEditVariantForm((f) => ({ ...f, price: e.target.value }))}
+                                          placeholder="Price" type="number" className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-primary" />
+                                        <input value={editVariantForm.sale_price} onChange={(e) => setEditVariantForm((f) => ({ ...f, sale_price: e.target.value }))}
+                                          placeholder="Sale" type="number" className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-primary" />
+                                        <input value={editVariantForm.stock} onChange={(e) => setEditVariantForm((f) => ({ ...f, stock: e.target.value }))}
+                                          placeholder="Stock" type="number" className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-primary" />
+                                        <div className="flex items-center gap-1">
+                                          <input type="color" value={editVariantForm.color || '#cccccc'} onChange={(e) => setEditVariantForm((f) => ({ ...f, color: e.target.value }))}
+                                            className="w-6 h-6 rounded cursor-pointer border border-gray-200" title="Color" />
+                                          {editVariantForm.color && <button type="button" onClick={() => setEditVariantForm((f) => ({ ...f, color: '' }))} className="text-xs text-gray-400">×</button>}
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="py-1.5 text-right">
+                                      <button type="button" onClick={() => saveEditVariant(v.id)} className="p-1 text-green-600 hover:text-green-700"><Check size={13} /></button>
+                                      <button type="button" onClick={() => setEditingVariant(null)} className="p-1 text-gray-400 hover:text-gray-600"><X size={13} /></button>
+                                    </td>
+                                  </>
+                                ) : (
+                                  <>
+                                    <td className="py-1.5 font-medium text-brand-dark">
+                                      <div className="flex items-center gap-1.5">
+                                        {v.options?.color && (
+                                          <span className="inline-block w-4 h-4 rounded-full border border-gray-200 flex-shrink-0" style={{ background: v.options.color }} title={v.options.color} />
+                                        )}
+                                        {v.label}
+                                      </div>
+                                    </td>
+                                    <td className="py-1.5 text-right text-brand-gray">
+                                      {v.price ? `₹${v.price}` : '(base)'}
+                                      {v.sale_price ? ` / ₹${v.sale_price} sale` : ''}
+                                    </td>
+                                    <td className="py-1.5 text-right text-brand-gray">{v.stock}</td>
+                                    <td className="py-1.5 text-right">
+                                      <button type="button" onClick={() => startEditVariant(v)} className="p-1 text-gray-400 hover:text-primary transition-colors"><Pencil size={12} /></button>
+                                      <button type="button" onClick={() => deleteVariant(v.id)} className="p-1 text-gray-400 hover:text-danger transition-colors"><Trash2 size={12} /></button>
+                                    </td>
+                                  </>
+                                )}
                               </tr>
                             ))}
                           </tbody>

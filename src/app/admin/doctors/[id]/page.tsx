@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Save, Plus, Trash2, ArrowLeft, Upload } from 'lucide-react'
+import { Save, Plus, Trash2, ArrowLeft, Upload, Pencil, Check, X } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -20,6 +20,8 @@ export default function AdminDoctorEditPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [newSlot, setNewSlot] = useState({ day_of_week: 1, start_time: '09:00', end_time: '13:00', slot_duration: 30 })
+  const [editingSlot, setEditingSlot] = useState<number | null>(null)
+  const [editSlotForm, setEditSlotForm] = useState({ day_of_week: 1, start_time: '09:00', end_time: '13:00', slot_duration: 30 })
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [credEmail, setCredEmail] = useState('')
@@ -92,6 +94,17 @@ export default function AdminDoctorEditPage() {
 
   async function removeSlot(availId: number) {
     await fetch(`/api/admin/doctors/${id}/availability`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ availability_id: availId }) })
+    load()
+  }
+
+  function startEditSlot(a: Availability) {
+    setEditingSlot(a.id)
+    setEditSlotForm({ day_of_week: a.day_of_week, start_time: a.start_time, end_time: a.end_time, slot_duration: a.slot_duration })
+  }
+
+  async function saveEditSlot(availId: number) {
+    await fetch(`/api/admin/doctors/${id}/availability`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ availability_id: availId, ...editSlotForm }) })
+    setEditingSlot(null)
     load()
   }
 
@@ -225,10 +238,34 @@ export default function AdminDoctorEditPage() {
           <h2 className="font-bold text-brand-dark mb-4">Availability Slots</h2>
           <div className="space-y-2 mb-4">
             {doc.availability.map(a => (
-              <div key={a.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2 text-sm">
-                <span className="font-medium">{DAYS[a.day_of_week]}</span>
-                <span className="text-brand-gray">{a.start_time} – {a.end_time} ({a.slot_duration} min slots)</span>
-                <button onClick={() => removeSlot(a.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+              <div key={a.id} className="bg-gray-50 rounded-xl px-4 py-2 text-sm">
+                {editingSlot === a.id ? (
+                  <div className="grid grid-cols-4 gap-2 items-center">
+                    <select value={editSlotForm.day_of_week} onChange={e => setEditSlotForm(p => ({ ...p, day_of_week: Number(e.target.value) }))}
+                      className="border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none">
+                      {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
+                    </select>
+                    <input type="time" value={editSlotForm.start_time} onChange={e => setEditSlotForm(p => ({ ...p, start_time: e.target.value }))}
+                      className="border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none" />
+                    <input type="time" value={editSlotForm.end_time} onChange={e => setEditSlotForm(p => ({ ...p, end_time: e.target.value }))}
+                      className="border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none" />
+                    <div className="flex items-center gap-1">
+                      <input type="number" value={editSlotForm.slot_duration} onChange={e => setEditSlotForm(p => ({ ...p, slot_duration: Number(e.target.value) }))}
+                        placeholder="Min" className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none" />
+                      <button onClick={() => saveEditSlot(a.id)} className="p-1 text-green-600 hover:text-green-700"><Check size={14} /></button>
+                      <button onClick={() => setEditingSlot(null)} className="p-1 text-gray-400 hover:text-gray-600"><X size={14} /></button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{DAYS[a.day_of_week]}</span>
+                    <span className="text-brand-gray">{a.start_time} – {a.end_time} ({a.slot_duration} min slots)</span>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => startEditSlot(a)} className="p-1 text-brand-gray hover:text-primary"><Pencil size={13} /></button>
+                      <button onClick={() => removeSlot(a.id)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={13} /></button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
             {doc.availability.length === 0 && <p className="text-xs text-brand-gray">No slots configured yet.</p>}
