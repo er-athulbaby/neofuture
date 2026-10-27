@@ -54,9 +54,11 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  return NextResponse.next()
+  const res = NextResponse.next()
+  res.headers.set('x-pathname', pathname)
+  return res
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/account/:path*', '/tools/:path*', '/checkout', '/doctor/:path*', '/consult/room/:path*'],
+  matcher: ['/((?!_next/static|_next/image|favicon\\.ico).*)'],
 }
