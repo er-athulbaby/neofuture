@@ -42,12 +42,13 @@ function safeCssColor(value: string, fallback: string): string {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const [session, config, hdrs] = await Promise.all([auth(), getSiteConfig(), headers()])
+  const pathname = hdrs.get('x-pathname') ?? '/'
   if (config.coming_soon === 'true') {
-    const pathname = hdrs.get('x-pathname') ?? '/'
     const isAdmin = session?.user?.is_admin
     const isExempt = pathname.startsWith('/admin') || pathname.startsWith('/coming-soon') || pathname.startsWith('/login') || pathname.startsWith('/api')
     if (!isAdmin && !isExempt) redirect('/coming-soon')
   }
+  const isComingSoon = pathname.startsWith('/coming-soon')
 
   const themeVars = `
     :root {
@@ -80,19 +81,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <SessionProvider session={session}>
           <CartProvider>
             <ToastProvider>
-              <Navbar logoUrl={config.logo_url} siteName={config.site_name} />
+              {!isComingSoon && <Navbar logoUrl={config.logo_url} siteName={config.site_name} />}
               <main className="flex-1">{children}</main>
-              <Footer
-                logoUrl={config.logo_url}
-                siteName={config.site_name}
-                tagline={config.tagline}
-                instagramUrl={config.instagram_url}
-                facebookUrl={config.facebook_url}
-                contactEmail={config.contact_email}
-                contactPhone={config.contact_phone}
-                whatsappNumber={config.whatsapp_number}
-              />
-              <WhatsAppButton number={config.whatsapp_number} />
+              {!isComingSoon && (
+                <Footer
+                  logoUrl={config.logo_url}
+                  siteName={config.site_name}
+                  tagline={config.tagline}
+                  instagramUrl={config.instagram_url}
+                  facebookUrl={config.facebook_url}
+                  contactEmail={config.contact_email}
+                  contactPhone={config.contact_phone}
+                  whatsappNumber={config.whatsapp_number}
+                />
+              )}
+              {!isComingSoon && <WhatsAppButton number={config.whatsapp_number} />}
               <CookieConsent />
             </ToastProvider>
           </CartProvider>
