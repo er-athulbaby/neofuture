@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useCart } from '@/components/cart/CartProvider'
@@ -23,6 +24,7 @@ interface Props {
 
 export default function ProductDetailClient({ product, reviews, related, variants, packSiblings = [] }: Props) {
   const { data: session } = useSession()
+  const router = useRouter()
   const { addItem } = useCart()
   const { toast } = useToast()
 
@@ -509,10 +511,12 @@ export default function ProductDetailClient({ product, reviews, related, variant
             </div>
           )}
 
-          <Link href="/cart"
-            className="w-full flex items-center justify-center gap-2 border-2 border-primary text-primary py-3 rounded-xl font-semibold hover:bg-primary-light transition-colors mb-5">
+          <button
+            onClick={() => { handleAddToCart(); router.push('/checkout') }}
+            disabled={effectiveStock <= 0}
+            className="w-full flex items-center justify-center gap-2 border-2 border-primary text-primary py-3 rounded-xl font-semibold hover:bg-primary-light transition-colors mb-5 disabled:opacity-50 disabled:cursor-not-allowed">
             Buy Now
-          </Link>
+          </button>
 
           {/* Trust badges */}
           <div className="grid grid-cols-2 gap-3 border-t border-gray-100 pt-5">
