@@ -8,6 +8,21 @@ async function guard() {
   return session
 }
 
+export async function GET(req: NextRequest) {
+  const session = await guard()
+  if (!session) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const doctor_id = req.nextUrl.searchParams.get('doctor_id')
+  const date = req.nextUrl.searchParams.get('date')
+  if (!doctor_id || !date) return NextResponse.json({ rows: [] })
+  const rows = await query(
+    `SELECT id, slot_datetime, block_note FROM consultations
+     WHERE doctor_id=$1 AND DATE(slot_datetime AT TIME ZONE 'Asia/Kolkata')=$2 AND status='blocked'
+     ORDER BY slot_datetime`,
+    [doctor_id, date]
+  )
+  return NextResponse.json({ rows })
+}
+
 export async function POST(req: NextRequest) {
   const session = await guard()
   if (!session) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

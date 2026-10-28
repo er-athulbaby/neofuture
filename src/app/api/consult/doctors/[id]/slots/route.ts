@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   // Get already booked slots for this date (compare in IST)
   const booked = await query<{ slot_datetime: string }>(
     `SELECT slot_datetime FROM consultations
-     WHERE doctor_id = $1 AND DATE(slot_datetime AT TIME ZONE 'Asia/Kolkata') = $2 AND status IN ('pending','confirmed')`,
+     WHERE doctor_id = $1 AND DATE(slot_datetime AT TIME ZONE 'Asia/Kolkata') = $2 AND status IN ('pending','confirmed','blocked')`,
     [id, date]
   )
   const bookedTimes = new Set(booked.map(b => new Date(b.slot_datetime).toISOString()))
