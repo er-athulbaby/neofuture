@@ -305,8 +305,17 @@ export default function AdminProductsClient({ products: initial, categories }: P
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return
     const res = await fetch(`/api/admin/products/${id}`, { method: 'DELETE' })
     if (res.ok) {
-      setProducts((pp) => pp.filter((p) => p.id !== id))
-      toast('Product deleted')
+      const data = await res.json()
+      if (data.deactivated) {
+        setProducts((pp) => pp.map((p) => p.id === id ? { ...p, is_active: false } : p))
+        toast('Product has orders — it has been deactivated instead of deleted')
+      } else {
+        setProducts((pp) => pp.filter((p) => p.id !== id))
+        toast('Product deleted')
+      }
+    } else {
+      const data = await res.json().catch(() => ({}))
+      toast(data.error ?? 'Failed to delete product', 'error')
     }
   }
 

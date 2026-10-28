@@ -52,6 +52,16 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!await adminGuard()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { id } = await params
+
+  // order_items.product_id is NOT NULL — if orders exist, deactivate instead of delete
+  const ordered = await query(`SELECT 1 FROM order_items WHERE product_id = $1 LIMIT 1`, [id])
+  if (ordered.length > 0) {
+    await query(`UPDATE products SET is_active = false WHERE id = $1`, [id])
+    return NextResponse.json({ success: true, deactivated: true })
+  }
+
+  // Delete subscription_plans first (no cascade in schema)
+  await query(`DELETE FROM subscription_plans WHERE product_id = $1`, [id])
   await query(`DELETE FROM products WHERE id = $1`, [id])
   return NextResponse.json({ success: true })
 }

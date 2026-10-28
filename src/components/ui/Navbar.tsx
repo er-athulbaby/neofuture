@@ -335,6 +335,12 @@ export default function Navbar({ logoUrl = '', siteName = 'NeoFuture' }: { logoU
                         className="text-sm font-medium text-brand-dark hover:text-primary line-clamp-2 leading-snug">
                         {item.name}
                       </Link>
+                      {item.variant_label && (
+                        <p className="text-xs text-brand-gray mt-0.5">{item.variant_label}</p>
+                      )}
+                      {item.subscription_label && (
+                        <p className="text-xs text-primary mt-0.5">{item.subscription_label}</p>
+                      )}
                       <div className="flex items-center justify-between mt-1.5">
                         <span className="text-sm font-semibold text-brand-dark">
                           {formatPrice((item.sale_price ?? item.price) * item.quantity)}
