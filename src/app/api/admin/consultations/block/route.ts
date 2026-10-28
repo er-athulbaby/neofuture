@@ -24,11 +24,16 @@ export async function POST(req: NextRequest) {
 
   await query(`ALTER TABLE consultations ADD COLUMN IF NOT EXISTS block_note TEXT`, []).catch(() => {})
 
-  await query(
-    `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, status, teleconsult_consent, block_note)
-     VALUES ($1, $2, $3, 'blocked', false, $4)`,
-    [session.user.id, doctor_id, slot_datetime, note ?? 'Blocked by admin']
-  )
+  try {
+    await query(
+      `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, status, teleconsult_consent, consultation_fee, block_note)
+       VALUES ($1, $2, $3, 'blocked', false, 0, $4)`,
+      [session.user.id, doctor_id, slot_datetime, note ?? 'Blocked by admin']
+    )
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 
   return NextResponse.json({ ok: true })
 }

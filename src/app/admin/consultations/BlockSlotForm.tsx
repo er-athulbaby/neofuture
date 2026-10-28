@@ -39,13 +39,14 @@ export default function BlockSlotForm({ doctors }: { doctors: Doctor[] }) {
     if (!doctorId || selected.size === 0) return
     setSaving(true); setMsg('')
     let failed = 0
+    let lastError = ''
     for (const dt of selected) {
       const res = await fetch('/api/admin/consultations/block', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ doctor_id: Number(doctorId), slot_datetime: dt, note }),
       })
-      if (!res.ok) failed++
+      if (!res.ok) { failed++; const d = await res.json(); lastError = d.error ?? 'Failed' }
     }
     setSaving(false)
     if (failed === 0) {
@@ -54,7 +55,7 @@ export default function BlockSlotForm({ doctors }: { doctors: Doctor[] }) {
       setSelected(new Set())
       setNote('')
     } else {
-      setMsg(`${failed} slot(s) failed`)
+      setMsg(`${failed} slot(s) failed: ${lastError}`)
     }
   }
 
