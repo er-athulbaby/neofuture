@@ -1,31 +1,55 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Lock } from 'lucide-react'
 
 interface Doctor { id: number; name: string; specialisation: string }
+interface Slot { datetime: string; available: boolean }
 
 export default function BlockSlotForm({ doctors }: { doctors: Doctor[] }) {
   const [doctorId, setDoctorId] = useState('')
-  const [datetime, setDatetime] = useState('')
+  const [date, setDate] = useState('')
+  const [slots, setSlots] = useState<Slot[]>([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [selected, setSelected] = useState('')
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!doctorId || !datetime) return
-    setSaving(true)
-    setMsg('')
+  useEffect(() => {
+    if (!doctorId || !date) { setSlots([]); setSelected(''); return }
+    setLoadingSlots(true)
+    setSelected('')
+    fetch(`/api/consult/doctors/${doctorId}/slots?date=${date}`)
+      .then((r) => r.json())
+      .then((d) => setSlots(Array.isArray(d) ? d : []))
+      .catch(() => setSlots([]))
+      .finally(() => setLoadingSlots(false))
+  }, [doctorId, date])
+
+  async function block() {
+    if (!doctorId || !selected) return
+    setSaving(true); setMsg('')
     const res = await fetch('/api/admin/consultations/block', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ doctor_id: Number(doctorId), slot_datetime: new Date(datetime).toISOString(), note }),
+      body: JSON.stringify({ doctor_id: Number(doctorId), slot_datetime: selected, note }),
     })
     setSaving(false)
     const data = await res.json()
-    if (res.ok) { setMsg('Slot blocked successfully'); setDatetime(''); setNote('') }
-    else setMsg(data.error ?? 'Failed')
+    if (res.ok) {
+      setMsg('Slot blocked')
+      setSelected('')
+      setNote('')
+      // mark that slot as unavailable in local state
+      setSlots((s) => s.map((sl) => sl.datetime === selected ? { ...sl, available: false } : sl))
+    } else {
+      setMsg(data.error ?? 'Failed')
+    }
+  }
+
+  function fmt(iso: string) {
+    return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })
   }
 
   return (
@@ -33,10 +57,11 @@ export default function BlockSlotForm({ doctors }: { doctors: Doctor[] }) {
       <h2 className="font-semibold text-brand-dark flex items-center gap-2 mb-4">
         <Lock size={16} className="text-primary" /> Block a Slot
       </h2>
-      <form onSubmit={submit} className="flex flex-wrap gap-3 items-end">
+
+      <div className="flex flex-wrap gap-3 mb-4">
         <div>
           <label className="block text-xs text-brand-gray mb-1">Doctor</label>
-          <select value={doctorId} onChange={(e) => setDoctorId(e.target.value)} required
+          <select value={doctorId} onChange={(e) => setDoctorId(e.target.value)}
             className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary">
             <option value="">— Select doctor —</option>
             {doctors.map((d) => (
@@ -45,21 +70,59 @@ export default function BlockSlotForm({ doctors }: { doctors: Doctor[] }) {
           </select>
         </div>
         <div>
-          <label className="block text-xs text-brand-gray mb-1">Date & Time</label>
-          <input type="datetime-local" value={datetime} onChange={(e) => setDatetime(e.target.value)} required
+          <label className="block text-xs text-brand-gray mb-1">Date</label>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
             className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary" />
         </div>
-        <div className="flex-1 min-w-40">
-          <label className="block text-xs text-brand-gray mb-1">Note (optional)</label>
-          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Doctor unavailable"
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary" />
-        </div>
-        <button type="submit" disabled={saving || !doctorId || !datetime}
-          className="bg-primary text-white px-5 py-2 rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-primary-dark transition-colors">
-          {saving ? 'Blocking...' : 'Block Slot'}
-        </button>
-      </form>
-      {msg && <p className={`text-sm mt-3 ${msg.includes('success') ? 'text-green-600' : 'text-red-500'}`}>{msg}</p>}
+      </div>
+
+      {loadingSlots && <p className="text-sm text-brand-gray">Loading slots…</p>}
+
+      {!loadingSlots && doctorId && date && slots.length === 0 && (
+        <p className="text-sm text-brand-gray">No availability for this doctor on this date.</p>
+      )}
+
+      {slots.length > 0 && (
+        <>
+          <p className="text-xs text-brand-gray mb-2">Select a slot to block:</p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {slots.map((sl) => (
+              <button
+                key={sl.datetime}
+                type="button"
+                disabled={!sl.available}
+                onClick={() => setSelected(sl.datetime)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                  !sl.available
+                    ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed line-through'
+                    : selected === sl.datetime
+                      ? 'bg-primary text-white border-primary'
+                      : 'bg-white text-brand-dark border-gray-200 hover:border-primary hover:text-primary'
+                }`}
+              >
+                {fmt(sl.datetime)}
+              </button>
+            ))}
+          </div>
+
+          {selected && (
+            <div className="flex flex-wrap gap-3 items-end">
+              <div className="flex-1 min-w-40">
+                <label className="block text-xs text-brand-gray mb-1">Note (optional)</label>
+                <input value={note} onChange={(e) => setNote(e.target.value)}
+                  placeholder="e.g. Doctor unavailable"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+              </div>
+              <button onClick={block} disabled={saving}
+                className="bg-primary text-white px-5 py-2 rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-primary-dark transition-colors">
+                {saving ? 'Blocking…' : `Block ${fmt(selected)}`}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {msg && <p className={`text-sm mt-3 ${msg === 'Slot blocked' ? 'text-green-600' : 'text-red-500'}`}>{msg}</p>}
     </div>
   )
 }
