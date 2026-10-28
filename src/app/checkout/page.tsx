@@ -29,6 +29,8 @@ function CheckoutForm() {
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay')
   const [codEnabled, setCodEnabled] = useState(false)
   const [gstRate, setGstRate] = useState(0)
+  const [shippingFreeAbove, setShippingFreeAbove] = useState(999)
+  const [shippingCharge, setShippingCharge] = useState(50)
   const [pincodeLoading, setPincodeLoading] = useState(false)
 
   const [address, setAddress] = useState<ShippingAddress>({
@@ -54,7 +56,7 @@ function CheckoutForm() {
     gst_rate: number; gst_type: string
   } | null>(null)
 
-  const shipping = subtotal >= 999 ? 0 : 50
+  const shipping = subtotal >= shippingFreeAbove ? 0 : shippingCharge
 
   // Compute effective GST per item — use product's custom_gst_rate if set, else global rate
   let _effTax = 0
@@ -94,6 +96,8 @@ function CheckoutForm() {
         if (d.cod_enabled) { setCodEnabled(true); setPaymentMethod('cod') }
         if (d.gst_rate > 0) setGstRate(d.gst_rate)
         if (d.gst_type) setGstType(d.gst_type)
+        if (d.shipping_free_above) setShippingFreeAbove(d.shipping_free_above)
+        if (d.shipping_charge) setShippingCharge(d.shipping_charge)
       })
       .catch(() => {})
   }, [])
@@ -499,7 +503,7 @@ function CheckoutForm() {
               </div>
               {shipping > 0 && subtotal > 0 && (
                 <p className="text-xs text-brand-gray bg-brand-light rounded-lg px-3 py-2">
-                  Add {formatPrice(999 - subtotal)} more for free shipping
+                  Add {formatPrice(shippingFreeAbove - subtotal)} more for free shipping
                 </p>
               )}
               {npDiscount > 0 && (

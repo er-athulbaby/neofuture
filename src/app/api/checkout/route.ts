@@ -7,6 +7,7 @@ import { generateOrderNumber } from '@/lib/utils'
 import { sendOrderConfirmation } from '@/lib/email'
 import type { CartItem, ShippingAddress, Coupon } from '@/types'
 import { awardPoints, hasEverDone, ensureNeopulseTables } from '@/lib/neopulse'
+import { getSiteConfig } from '@/lib/settings'
 
 function getRazorpay() {
   return new Razorpay({
@@ -106,7 +107,10 @@ async function calcOrder(items: CartItem[], couponCode: string | undefined, gst?
     }
   }
 
-  const shipping = subtotal >= 999 ? 0 : 50
+  const cfg = await getSiteConfig()
+  const freeAbove = Number(cfg.shipping_free_above) || 999
+  const shippingCharge = Number(cfg.shipping_charge) || 50
+  const shipping = subtotal >= freeAbove ? 0 : shippingCharge
   const total = subtotal - discount + shipping + tax
   return { subtotal, discount, shipping, tax, total, couponId, validatedItems }
 }

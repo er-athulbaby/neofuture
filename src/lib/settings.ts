@@ -55,6 +55,8 @@ export interface SiteConfig {
   popup_coupon: string
   popup_cta: string
   popup_cta_url: string
+  shipping_free_above: string
+  shipping_charge: string
   wheel_enabled: string
   wheel_delay: string
   wheel_title: string
@@ -118,6 +120,8 @@ export const CONFIG_DEFAULTS: SiteConfig = {
   popup_coupon: '',
   popup_cta: 'Shop Now',
   popup_cta_url: '/shop',
+  shipping_free_above: '999',
+  shipping_charge: '50',
   wheel_enabled: 'false',
   wheel_delay: '20',
   wheel_title: 'Spin & Win!',

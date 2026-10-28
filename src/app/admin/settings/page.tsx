@@ -27,6 +27,8 @@ type Cfg = {
   smtp_user: string
   smtp_pass: string
   smtp_from: string
+  shipping_free_above: string
+  shipping_charge: string
   popup_enabled: string
   popup_delay: string
   popup_title: string
@@ -80,6 +82,8 @@ const D: Cfg = {
   smtp_user: '',
   smtp_pass: '',
   smtp_from: '',
+  shipping_free_above: '999',
+  shipping_charge: '50',
   popup_enabled: 'false',
   popup_delay: '30',
   popup_title: 'Special Offer Just for You!',
@@ -443,6 +447,23 @@ export default function AdminSettingsPage() {
               ⚠️ COD is currently <strong>enabled</strong>. Customers can place orders without online payment. Disable this before going live if you want to enforce online payment.
             </p>
           )}
+        </Sec>
+
+        {/* Shipping */}
+        <Sec icon={<Settings size={16} />} title="Shipping">
+          <p className="text-xs text-brand-gray -mt-1">Set the flat shipping fee and the order value above which shipping becomes free.</p>
+          <Row>
+            <div>
+              <label className={lbl}>Free Shipping Above (₹)</label>
+              <input name="shipping_free_above" type="number" min="0" value={s.shipping_free_above} onChange={fc} className={inp} placeholder="999" />
+              <p className="text-xs text-brand-gray mt-1">Set to 0 to always charge shipping</p>
+            </div>
+            <div>
+              <label className={lbl}>Shipping Charge (₹)</label>
+              <input name="shipping_charge" type="number" min="0" value={s.shipping_charge} onChange={fc} className={inp} placeholder="50" />
+              <p className="text-xs text-brand-gray mt-1">Charged when order is below the free threshold</p>
+            </div>
+          </Row>
         </Sec>
 
         {/* Offer Popup */}
