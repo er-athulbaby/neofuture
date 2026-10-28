@@ -26,8 +26,8 @@ export async function POST(req: NextRequest) {
 
   try {
     await query(
-      `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, status, teleconsult_consent, consultation_fee, block_note)
-       VALUES ($1, $2, $3, 'blocked', false, 0, $4)`,
+      `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, status, is_followup, lab_reports, teleconsult_consent, block_note)
+       VALUES ($1, $2, $3, 'blocked', false, '[]', false, $4)`,
       [session.user.id, doctor_id, slot_datetime, note ?? 'Blocked by admin']
     )
   } catch (err: unknown) {
