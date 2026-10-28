@@ -96,12 +96,15 @@ const D: Cfg = {
   wheel_cta_url: '/shop',
 }
 
+type Coupon = { id: number; code: string; type: string; value: number }
+
 export default function AdminSettingsPage() {
   const { toast } = useToast()
   const [s, setS] = useState<Cfg>(D)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState<string | null>(null)
+  const [coupons, setCoupons] = useState<Coupon[]>([])
   const logoRef = useRef<HTMLInputElement>(null)
   const aboutRef = useRef<HTMLInputElement>(null)
   const faviconRef = useRef<HTMLInputElement>(null)
@@ -109,10 +112,13 @@ export default function AdminSettingsPage() {
   const founder2Ref = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    fetch('/api/admin/settings')
-      .then((r) => r.json())
-      .then((d) => { if (d.settings) setS({ ...D, ...d.settings }) })
-      .finally(() => setLoading(false))
+    Promise.all([
+      fetch('/api/admin/settings').then((r) => r.json()),
+      fetch('/api/admin/coupons').then((r) => r.json()),
+    ]).then(([sd, cd]) => {
+      if (sd.settings) setS({ ...D, ...sd.settings })
+      if (cd.coupons) setCoupons(cd.coupons.filter((c: Coupon & { is_active: boolean }) => c.is_active))
+    }).finally(() => setLoading(false))
   }, [])
 
   const fc = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
@@ -462,7 +468,7 @@ export default function AdminSettingsPage() {
             <textarea name="popup_body" value={s.popup_body} onChange={fc} rows={2}
               className={inp + ' resize-none'} placeholder="You've been exploring — here's a little gift..." />
           </div>
-          <F label="Coupon Code (optional — leave blank to hide)" name="popup_coupon" value={s.popup_coupon} onChange={fc} placeholder="WELCOME10" />
+          <CouponSelect label="Coupon Code (optional — leave blank to hide)" name="popup_coupon" value={s.popup_coupon} coupons={coupons} onChange={(v) => setS((x) => ({ ...x, popup_coupon: v }))} />
           <Row>
             <F label="CTA Button Label" name="popup_cta" value={s.popup_cta} onChange={fc} placeholder="Shop Now" />
             <F label="CTA Button URL" name="popup_cta_url" value={s.popup_cta_url} onChange={fc} placeholder="/shop" />
@@ -489,7 +495,7 @@ export default function AdminSettingsPage() {
           </div>
           <F label="Popup Title" name="wheel_title" value={s.wheel_title} onChange={fc} placeholder="Spin & Win!" />
           <F label="Prize Label (what the wheel always lands on)" name="wheel_prize" value={s.wheel_prize} onChange={fc} placeholder="10% OFF" />
-          <F label="Coupon Code (optional — revealed after spin)" name="wheel_coupon" value={s.wheel_coupon} onChange={fc} placeholder="SPIN10" />
+          <CouponSelect label="Coupon Code (optional — revealed after spin)" name="wheel_coupon" value={s.wheel_coupon} coupons={coupons} onChange={(v) => setS((x) => ({ ...x, wheel_coupon: v }))} />
           <Row>
             <F label="CTA Button Label" name="wheel_cta" value={s.wheel_cta} onChange={fc} placeholder="Shop Now" />
             <F label="CTA Button URL" name="wheel_cta_url" value={s.wheel_cta_url} onChange={fc} placeholder="/shop" />
@@ -549,6 +555,30 @@ function TextA({ label, name, value, onChange, rows = 2, placeholder }: {
     <div>
       {label && <label className={lbl}>{label}</label>}
       <textarea name={name} value={value} onChange={onChange} rows={rows} placeholder={placeholder} className={inp + ' resize-none'} />
+    </div>
+  )
+}
+
+function CouponSelect({ label, name, value, coupons, onChange }: {
+  label: string; name: string; value: string
+  coupons: Coupon[]
+  onChange: (v: string) => void
+}) {
+  function couponLabel(c: Coupon) {
+    return c.type === 'percent' ? `${c.code} — ${c.value}% off` : `${c.code} — ₹${c.value} off`
+  }
+  return (
+    <div>
+      <label className={lbl}>{label}</label>
+      <select name={name} value={value} onChange={(e) => onChange(e.target.value)} className={inp}>
+        <option value="">— None —</option>
+        {coupons.map((c) => (
+          <option key={c.id} value={c.code}>{couponLabel(c)}</option>
+        ))}
+      </select>
+      {coupons.length === 0 && (
+        <p className="text-xs text-brand-gray mt-1">No active coupons found. Create one in <a href="/admin/coupons" className="text-primary underline">Coupons</a> first.</p>
+      )}
     </div>
   )
 }
