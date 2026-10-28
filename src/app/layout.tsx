@@ -11,6 +11,7 @@ import ToastProvider from '@/components/ui/ToastProvider'
 import WhatsAppButton from '@/components/ui/WhatsAppButton'
 import CookieConsent from '@/components/ui/CookieConsent'
 import OfferPopup from '@/components/ui/OfferPopup'
+import SpinWheel from '@/components/ui/SpinWheel'
 import { getSiteConfig } from '@/lib/settings'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -97,7 +98,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 />
               )}
               {!isComingSoon && <WhatsAppButton number={config.whatsapp_number} />}
-              {!isComingSoon && config.popup_enabled === 'true' && (
+              {!isComingSoon && config.wheel_enabled === 'true' && (
+                <SpinWheel
+                  delaySeconds={parseInt(config.wheel_delay) || 20}
+                  title={config.wheel_title}
+                  prize={config.wheel_prize}
+                  coupon={config.wheel_coupon}
+                  cta={config.wheel_cta}
+                  ctaUrl={config.wheel_cta_url}
+                />
+              )}
+              {!isComingSoon && config.wheel_enabled !== 'true' && config.popup_enabled === 'true' && (
                 <OfferPopup
                   delaySeconds={parseInt(config.popup_delay) || 30}
                   title={config.popup_title}

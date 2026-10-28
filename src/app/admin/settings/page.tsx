@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useToast } from '@/components/ui/ToastProvider'
-import { Settings, Save, Upload, Image as ImageIcon, Palette, Type, Share2, Mail, Clock, Tag } from 'lucide-react'
+import { Settings, Save, Upload, Image as ImageIcon, Palette, Type, Share2, Mail, Clock, Tag, Zap } from 'lucide-react'
 
 type Cfg = {
   coming_soon: string
@@ -34,6 +34,13 @@ type Cfg = {
   popup_coupon: string
   popup_cta: string
   popup_cta_url: string
+  wheel_enabled: string
+  wheel_delay: string
+  wheel_title: string
+  wheel_prize: string
+  wheel_coupon: string
+  wheel_cta: string
+  wheel_cta_url: string
 }
 
 const D: Cfg = {
@@ -80,6 +87,13 @@ const D: Cfg = {
   popup_coupon: '',
   popup_cta: 'Shop Now',
   popup_cta_url: '/shop',
+  wheel_enabled: 'false',
+  wheel_delay: '20',
+  wheel_title: 'Spin & Win!',
+  wheel_prize: '10% OFF',
+  wheel_coupon: '',
+  wheel_cta: 'Shop Now',
+  wheel_cta_url: '/shop',
 }
 
 export default function AdminSettingsPage() {
@@ -452,6 +466,33 @@ export default function AdminSettingsPage() {
           <Row>
             <F label="CTA Button Label" name="popup_cta" value={s.popup_cta} onChange={fc} placeholder="Shop Now" />
             <F label="CTA Button URL" name="popup_cta_url" value={s.popup_cta_url} onChange={fc} placeholder="/shop" />
+          </Row>
+        </Sec>
+
+        {/* Spin the Wheel */}
+        <Sec icon={<Zap size={16} />} title="Spin the Wheel">
+          <p className="text-xs text-brand-gray -mt-1">An animated spin wheel that always lands on your configured prize. Shown once per session. When enabled, this replaces the Offer Popup.</p>
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+            <div>
+              <p className="text-sm font-semibold text-brand-dark">Enable Spin Wheel</p>
+              <p className="text-xs text-brand-gray mt-0.5">Show a spin-the-wheel popup to browsing visitors (once per session)</p>
+            </div>
+            <button type="button"
+              onClick={() => setS((x) => ({ ...x, wheel_enabled: x.wheel_enabled === 'true' ? 'false' : 'true' }))}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${s.wheel_enabled === 'true' ? 'bg-primary' : 'bg-gray-200'}`}>
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${s.wheel_enabled === 'true' ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+          <div>
+            <label className={lbl}>Delay (seconds before wheel appears)</label>
+            <input name="wheel_delay" type="number" min="5" max="300" value={s.wheel_delay} onChange={fc} className={inp} placeholder="20" />
+          </div>
+          <F label="Popup Title" name="wheel_title" value={s.wheel_title} onChange={fc} placeholder="Spin & Win!" />
+          <F label="Prize Label (what the wheel always lands on)" name="wheel_prize" value={s.wheel_prize} onChange={fc} placeholder="10% OFF" />
+          <F label="Coupon Code (optional — revealed after spin)" name="wheel_coupon" value={s.wheel_coupon} onChange={fc} placeholder="SPIN10" />
+          <Row>
+            <F label="CTA Button Label" name="wheel_cta" value={s.wheel_cta} onChange={fc} placeholder="Shop Now" />
+            <F label="CTA Button URL" name="wheel_cta_url" value={s.wheel_cta_url} onChange={fc} placeholder="/shop" />
           </Row>
         </Sec>
 

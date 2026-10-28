@@ -55,6 +55,13 @@ export interface SiteConfig {
   popup_coupon: string
   popup_cta: string
   popup_cta_url: string
+  wheel_enabled: string
+  wheel_delay: string
+  wheel_title: string
+  wheel_prize: string
+  wheel_coupon: string
+  wheel_cta: string
+  wheel_cta_url: string
 }
 
 export const CONFIG_DEFAULTS: SiteConfig = {
@@ -111,6 +118,13 @@ export const CONFIG_DEFAULTS: SiteConfig = {
   popup_coupon: '',
   popup_cta: 'Shop Now',
   popup_cta_url: '/shop',
+  wheel_enabled: 'false',
+  wheel_delay: '20',
+  wheel_title: 'Spin & Win!',
+  wheel_prize: '10% OFF',
+  wheel_coupon: '',
+  wheel_cta: 'Shop Now',
+  wheel_cta_url: '/shop',
 }
 
 export const getSiteConfig = cache(async function getSiteConfigFn(): Promise<SiteConfig> {
