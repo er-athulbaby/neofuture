@@ -48,7 +48,8 @@ export default function SpinWheel({ delaySeconds, title, prize, coupon, cta, cta
     const arc = (2 * Math.PI) / SEGMENTS
 
     labels.forEach((label, i) => {
-      const start = i * arc - Math.PI / 2
+      // Offset by -arc/2 so segment 0 is centred at top (12 o'clock)
+      const start = i * arc - Math.PI / 2 - arc / 2
       const end = start + arc
       // Slice
       ctx.beginPath()
@@ -66,7 +67,7 @@ export default function SpinWheel({ delaySeconds, title, prize, coupon, cta, cta
       ctx.rotate(start + arc / 2)
       ctx.textAlign = 'right'
       ctx.fillStyle = TEXT_COLORS[i]
-      ctx.font = `bold ${size / 22}px sans-serif`
+      ctx.font = `bold ${size / 20}px sans-serif`
       ctx.fillText(label.length > 10 ? label.slice(0, 10) : label, r - 8, 5)
       ctx.restore()
     })
@@ -88,10 +89,10 @@ export default function SpinWheel({ delaySeconds, title, prize, coupon, cta, cta
   function spin() {
     if (spinning || won) return
     setSpinning(true)
-    // Always land on prize (segment 0 at top = 0°). Add 5-7 full rotations +
-    // small random offset within the prize segment's 45° arc (±15° from center).
+    // Segment 0 is centred at top (0°) in the drawing, so we just spin
+    // 5-7 full rotations and land within ±12° of centre to look natural.
     const fullRotations = (5 + Math.floor(Math.random() * 3)) * 360
-    const prizeJitter = (Math.random() - 0.5) * 22 // ±11° inside the 45° slice
+    const prizeJitter = (Math.random() - 0.5) * 24 // ±12° inside the 45° slice
     setRotation((r) => r + fullRotations + prizeJitter)
     setTimeout(() => {
       setSpinning(false)
@@ -116,7 +117,7 @@ export default function SpinWheel({ delaySeconds, title, prize, coupon, cta, cta
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         {/* Header */}
         <div className="relative bg-gradient-to-br from-primary to-primary-dark px-5 py-4 text-white flex items-center justify-between">
           <h2 className="font-bold text-lg">{title}</h2>
@@ -137,8 +138,8 @@ export default function SpinWheel({ delaySeconds, title, prize, coupon, cta, cta
               />
               <canvas
                 ref={canvasRef}
-                width={240}
-                height={240}
+                width={300}
+                height={300}
                 style={{
                   transform: `rotate(${rotation}deg)`,
                   transition: spinning ? 'transform 4.2s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
