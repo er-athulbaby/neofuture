@@ -1,8 +1,11 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { query } from '@/lib/db'
-import { Video } from 'lucide-react'
+import { Video, ChevronLeft, ChevronRight } from 'lucide-react'
+import Link from 'next/link'
 import BlockSlotForm from './BlockSlotForm'
+
+const PAGE_SIZE = 25
 
 const STATUS_COLOR: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
@@ -12,17 +15,22 @@ const STATUS_COLOR: Record<string, string> = {
   blocked: 'bg-gray-200 text-gray-600',
 }
 
-export default async function AdminConsultationsPage() {
+export default async function AdminConsultationsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const session = await auth()
   if (!session?.user?.is_admin) redirect('/')
 
-  const [rows, doctors] = await Promise.all([
+  const { page: pageParam } = await searchParams
+  const page = Math.max(0, parseInt(pageParam ?? '0', 10) || 0)
+  const offset = page * PAGE_SIZE
+
+  const [[{ total }], rows, doctors] = await Promise.all([
+    query<{ total: string }>('SELECT COUNT(*)::int as total FROM consultations'),
     query(`
       SELECT c.*, u.name AS patient_name, d.name AS doctor_name, d.specialisation
       FROM consultations c
       JOIN users u ON u.id = c.patient_id
       JOIN doctors d ON d.id = c.doctor_id
-      ORDER BY c.slot_datetime DESC LIMIT 100
+      ORDER BY c.slot_datetime DESC LIMIT ${PAGE_SIZE} OFFSET ${offset}
     `),
     query<{ id: number; name: string; specialisation: string }>(`SELECT id, name, specialisation FROM doctors WHERE is_active = true ORDER BY name`),
   ])
@@ -77,6 +85,24 @@ export default async function AdminConsultationsPage() {
             )}
           </tbody>
         </table>
+        {Number(total) > PAGE_SIZE && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm text-brand-gray">
+            <span>{offset + 1}–{Math.min(offset + PAGE_SIZE, Number(total))} of {total}</span>
+            <div className="flex items-center gap-1">
+              {page > 0 ? (
+                <Link href={`?page=${page - 1}`} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><ChevronLeft size={16} /></Link>
+              ) : (
+                <span className="p-1.5 opacity-30"><ChevronLeft size={16} /></span>
+              )}
+              <span className="px-2 text-xs">{page + 1} / {Math.ceil(Number(total) / PAGE_SIZE)}</span>
+              {offset + PAGE_SIZE < Number(total) ? (
+                <Link href={`?page=${page + 1}`} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><ChevronRight size={16} /></Link>
+              ) : (
+                <span className="p-1.5 opacity-30"><ChevronRight size={16} /></span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <BlockSlotForm doctors={doctors} />

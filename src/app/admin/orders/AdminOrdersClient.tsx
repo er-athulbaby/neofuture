@@ -7,6 +7,9 @@ import { formatPrice, formatDate } from '@/lib/utils'
 import { ShoppingBag, ChevronDown, X, Truck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import Paginator from '@/components/ui/Paginator'
+
+const PAGE_SIZE = 20
 
 interface Order {
   id: number; order_number: string; status: string; payment_status: string
@@ -32,6 +35,7 @@ export default function AdminOrdersClient({ orders: initial }: { orders: Order[]
   const [trackingNumber, setTrackingNumber] = useState('')
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
+  const [page, setPage] = useState(0)
 
   const filtered = orders.filter((o) => {
     const matchStatus = filter === 'all' || o.status === filter
@@ -40,6 +44,7 @@ export default function AdminOrdersClient({ orders: initial }: { orders: Order[]
       o.user_email?.toLowerCase().includes(search.toLowerCase())
     return matchStatus && matchSearch
   })
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
   function openEdit(order: Order) {
     setEditOrder(order)
@@ -80,7 +85,7 @@ export default function AdminOrdersClient({ orders: initial }: { orders: Order[]
             <ShoppingBag size={20} className="text-primary" /> Orders
           </h1>
         </div>
-        <input value={search} onChange={(e) => setSearch(e.target.value)}
+        <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }}
           placeholder="Search order #, name, email..." className="border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-primary w-full sm:w-72" />
       </div>
 
@@ -89,7 +94,7 @@ export default function AdminOrdersClient({ orders: initial }: { orders: Order[]
         {['all', ...STATUSES].map((s) => {
           const count = s === 'all' ? orders.length : orders.filter((o) => o.status === s).length
           return (
-            <button key={s} onClick={() => setFilter(s)}
+            <button key={s} onClick={() => { setFilter(s); setPage(0) }}
               className={cn('px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors',
                 filter === s ? 'bg-primary text-white' : 'bg-gray-100 text-brand-gray hover:bg-gray-200')}>
               {s.charAt(0).toUpperCase() + s.slice(1)} ({count})
@@ -115,7 +120,7 @@ export default function AdminOrdersClient({ orders: initial }: { orders: Order[]
             <tbody>
               {filtered.length === 0 ? (
                 <tr><td colSpan={7} className="py-12 text-center text-brand-gray">No orders found</td></tr>
-              ) : filtered.map((o) => (
+              ) : paged.map((o) => (
                 <tr key={o.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                   <td className="py-3 px-4">
                     <p className="font-semibold text-brand-dark">#{o.order_number}</p>
@@ -146,6 +151,7 @@ export default function AdminOrdersClient({ orders: initial }: { orders: Order[]
             </tbody>
           </table>
         </div>
+        <Paginator page={page} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
       </div>
 
       {/* Edit modal */}

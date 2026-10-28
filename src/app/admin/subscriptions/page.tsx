@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react'
 import { formatPrice, formatDate } from '@/lib/utils'
 import { RotateCcw, Loader2, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Paginator from '@/components/ui/Paginator'
+
+const PAGE_SIZE = 20
 
 interface SubOrder {
   id: number
@@ -32,6 +35,7 @@ export default function SubscriptionsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [page, setPage] = useState(0)
 
   async function load(status = 'all') {
     setLoading(true)
@@ -43,7 +47,7 @@ export default function SubscriptionsPage() {
     setLoading(false)
   }
 
-  useEffect(() => { load(statusFilter) }, [statusFilter])
+  useEffect(() => { load(statusFilter); setPage(0) }, [statusFilter])
 
   const filtered = subs.filter((s) => {
     const q = search.toLowerCase()
@@ -52,6 +56,7 @@ export default function SubscriptionsPage() {
       || s.customer_email?.toLowerCase().includes(q)
       || s.product_name?.toLowerCase().includes(q)
   })
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
   const stats = {
     total: subs.length,
@@ -86,7 +91,7 @@ export default function SubscriptionsPage() {
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-gray" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(0) }}
             placeholder="Search by customer, product, order…"
             className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary"
           />
@@ -132,7 +137,7 @@ export default function SubscriptionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((s) => (
+                {paged.map((s) => (
                   <tr key={s.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
                     <td className="px-5 py-3 font-mono text-xs text-brand-gray">#{s.order_number}</td>
                     <td className="px-5 py-3">
@@ -158,6 +163,7 @@ export default function SubscriptionsPage() {
             </table>
           </div>
         )}
+        <Paginator page={page} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
       </div>
     </div>
   )
