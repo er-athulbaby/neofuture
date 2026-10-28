@@ -22,14 +22,31 @@ export async function POST(req: NextRequest) {
   )
   if (clash) return NextResponse.json({ error: 'Slot already taken' }, { status: 409 })
 
+  // Ensure block_note column exists; safe to ignore if already present or unsupported
   await query(`ALTER TABLE consultations ADD COLUMN IF NOT EXISTS block_note TEXT`, []).catch(() => {})
 
+  // Check again whether column exists after migration attempt
+  const hasBlockNote = await queryOne<{ exists: boolean }>(
+    `SELECT EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_name='consultations' AND column_name='block_note'
+     ) AS exists`
+  )
+
   try {
-    await query(
-      `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, status, is_followup, lab_reports, teleconsult_consent, block_note)
-       VALUES ($1, $2, $3, 'blocked', false, '[]', false, $4)`,
-      [session.user.id, doctor_id, slot_datetime, note ?? 'Blocked by admin']
-    )
+    if (hasBlockNote?.exists) {
+      await query(
+        `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, status, is_followup, lab_reports, teleconsult_consent, block_note)
+         VALUES ($1, $2, $3, 'blocked', false, '[]', false, $4)`,
+        [session.user.id, doctor_id, slot_datetime, note ?? 'Blocked by admin']
+      )
+    } else {
+      await query(
+        `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, status, is_followup, lab_reports, teleconsult_consent)
+         VALUES ($1, $2, $3, 'blocked', false, '[]', false)`,
+        [session.user.id, doctor_id, slot_datetime]
+      )
+    }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     return NextResponse.json({ error: msg }, { status: 500 })
