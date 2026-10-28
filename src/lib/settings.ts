@@ -48,6 +48,13 @@ export interface SiteConfig {
   smtp_user: string
   smtp_pass: string
   smtp_from: string
+  popup_enabled: string
+  popup_delay: string
+  popup_title: string
+  popup_body: string
+  popup_coupon: string
+  popup_cta: string
+  popup_cta_url: string
 }
 
 export const CONFIG_DEFAULTS: SiteConfig = {
@@ -97,6 +104,13 @@ export const CONFIG_DEFAULTS: SiteConfig = {
   smtp_user: '',
   smtp_pass: '',
   smtp_from: '',
+  popup_enabled: 'false',
+  popup_delay: '30',
+  popup_title: 'Special Offer Just for You!',
+  popup_body: "You've been exploring — here's a little gift to help you decide.",
+  popup_coupon: '',
+  popup_cta: 'Shop Now',
+  popup_cta_url: '/shop',
 }
 
 export const getSiteConfig = cache(async function getSiteConfigFn(): Promise<SiteConfig> {

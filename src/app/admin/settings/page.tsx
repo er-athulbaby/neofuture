@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useToast } from '@/components/ui/ToastProvider'
-import { Settings, Save, Upload, Image as ImageIcon, Palette, Type, Share2, Mail, Clock } from 'lucide-react'
+import { Settings, Save, Upload, Image as ImageIcon, Palette, Type, Share2, Mail, Clock, Tag } from 'lucide-react'
 
 type Cfg = {
   coming_soon: string
@@ -27,6 +27,13 @@ type Cfg = {
   smtp_user: string
   smtp_pass: string
   smtp_from: string
+  popup_enabled: string
+  popup_delay: string
+  popup_title: string
+  popup_body: string
+  popup_coupon: string
+  popup_cta: string
+  popup_cta_url: string
 }
 
 const D: Cfg = {
@@ -66,6 +73,13 @@ const D: Cfg = {
   smtp_user: '',
   smtp_pass: '',
   smtp_from: '',
+  popup_enabled: 'false',
+  popup_delay: '30',
+  popup_title: 'Special Offer Just for You!',
+  popup_body: "You've been exploring — here's a little gift to help you decide.",
+  popup_coupon: '',
+  popup_cta: 'Shop Now',
+  popup_cta_url: '/shop',
 }
 
 export default function AdminSettingsPage() {
@@ -409,6 +423,36 @@ export default function AdminSettingsPage() {
               ⚠️ COD is currently <strong>enabled</strong>. Customers can place orders without online payment. Disable this before going live if you want to enforce online payment.
             </p>
           )}
+        </Sec>
+
+        {/* Offer Popup */}
+        <Sec icon={<Tag size={16} />} title="Offer Popup">
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+            <div>
+              <p className="text-sm font-semibold text-brand-dark">Enable Popup</p>
+              <p className="text-xs text-brand-gray mt-0.5">Show a timed offer popup to browsing visitors (once per session)</p>
+            </div>
+            <button type="button"
+              onClick={() => setS((x) => ({ ...x, popup_enabled: x.popup_enabled === 'true' ? 'false' : 'true' }))}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${s.popup_enabled === 'true' ? 'bg-primary' : 'bg-gray-200'}`}>
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${s.popup_enabled === 'true' ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+          <div>
+            <label className={lbl}>Delay (seconds before popup appears)</label>
+            <input name="popup_delay" type="number" min="5" max="300" value={s.popup_delay} onChange={fc} className={inp} placeholder="30" />
+          </div>
+          <F label="Popup Title" name="popup_title" value={s.popup_title} onChange={fc} placeholder="Special Offer Just for You!" />
+          <div>
+            <label className={lbl}>Popup Body Text</label>
+            <textarea name="popup_body" value={s.popup_body} onChange={fc} rows={2}
+              className={inp + ' resize-none'} placeholder="You've been exploring — here's a little gift..." />
+          </div>
+          <F label="Coupon Code (optional — leave blank to hide)" name="popup_coupon" value={s.popup_coupon} onChange={fc} placeholder="WELCOME10" />
+          <Row>
+            <F label="CTA Button Label" name="popup_cta" value={s.popup_cta} onChange={fc} placeholder="Shop Now" />
+            <F label="CTA Button URL" name="popup_cta_url" value={s.popup_cta_url} onChange={fc} placeholder="/shop" />
+          </Row>
         </Sec>
 
         <div className="flex justify-end">

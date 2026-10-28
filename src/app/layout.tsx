@@ -10,6 +10,7 @@ import CartProvider from '@/components/cart/CartProvider'
 import ToastProvider from '@/components/ui/ToastProvider'
 import WhatsAppButton from '@/components/ui/WhatsAppButton'
 import CookieConsent from '@/components/ui/CookieConsent'
+import OfferPopup from '@/components/ui/OfferPopup'
 import { getSiteConfig } from '@/lib/settings'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -96,6 +97,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 />
               )}
               {!isComingSoon && <WhatsAppButton number={config.whatsapp_number} />}
+              {!isComingSoon && config.popup_enabled === 'true' && (
+                <OfferPopup
+                  delaySeconds={parseInt(config.popup_delay) || 30}
+                  title={config.popup_title}
+                  body={config.popup_body}
+                  coupon={config.popup_coupon}
+                  cta={config.popup_cta}
+                  ctaUrl={config.popup_cta_url}
+                />
+              )}
               <CookieConsent />
             </ToastProvider>
           </CartProvider>
