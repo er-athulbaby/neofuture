@@ -29,14 +29,19 @@ export async function POST(_req: NextRequest, { params }: Props) {
     'SELECT name, email FROM users WHERE id=$1', [consult.patient_id]
   )
 
+  const start = new Date(consult.slot_datetime)
+  const end = new Date(start.getTime() + (consult.duration_minutes || 30) * 60000)
+  const toISTLocal = (d: Date) => d.toLocaleString('sv-SE', { timeZone: 'Asia/Kolkata' }).replace(' ', 'T')
+  const istLabel = start.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })
+
   try {
     const event = await createMeetingEvent(doctor.google_refresh_token, {
       title: `NeoFuture Consultation — ${patient?.name} with ${doctor.name}`,
-      startTime: new Date(consult.slot_datetime).toISOString(),
-      endTime: new Date(new Date(consult.slot_datetime).getTime() + (consult.duration_minutes || 30) * 60000).toISOString(),
+      startTime: toISTLocal(start),
+      endTime: toISTLocal(end),
       patientEmail: patient?.email ?? '',
       doctorEmail: '',
-      description: `NeoFuture teleconsultation. Consultation ID: TC-${String(consult.id).padStart(6, '0')}\nConsultation time (IST): ${new Date(consult.slot_datetime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })}`,
+      description: `NeoFuture teleconsultation. Consultation ID: TC-${String(consult.id).padStart(6, '0')}\nConsultation time (IST): ${istLabel}`,
     })
     await query('UPDATE consultations SET meet_link=$1, google_event_id=$2 WHERE id=$3', [event.meetLink, event.eventId, consult.id])
     return NextResponse.json({ meet_link: event.meetLink })

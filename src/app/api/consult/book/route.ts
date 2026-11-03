@@ -4,6 +4,11 @@ import { query, queryOne } from '@/lib/db'
 import Razorpay from 'razorpay'
 import { createMeetingEvent } from '@/lib/google-calendar'
 
+// Returns local IST time string (no offset) for Google Calendar API
+function toISTLocal(d: Date): string {
+  return d.toLocaleString('sv-SE', { timeZone: 'Asia/Kolkata' }).replace(' ', 'T')
+}
+
 async function buildMeetLink(doctorId: number, consultId: number, slotDatetime: string, patientId: string): Promise<string> {
   try {
     const [doc, patient] = await Promise.all([
@@ -11,13 +16,16 @@ async function buildMeetLink(doctorId: number, consultId: number, slotDatetime: 
       queryOne<{ name: string; email: string }>('SELECT name, email FROM users WHERE id=$1', [patientId]),
     ])
     if (!doc?.google_refresh_token) return ''
+    const start = new Date(slotDatetime)
+    const end = new Date(start.getTime() + 30 * 60000)
+    const istLabel = start.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })
     const event = await createMeetingEvent(doc.google_refresh_token, {
       title: `NeoFuture Consultation — ${patient?.name} with ${doc.name}`,
-      startTime: new Date(slotDatetime).toISOString(),
-      endTime: new Date(new Date(slotDatetime).getTime() + 30 * 60000).toISOString(),
+      startTime: toISTLocal(start),
+      endTime: toISTLocal(end),
       patientEmail: patient?.email ?? '',
       doctorEmail: '',
-      description: `NeoFuture teleconsultation. Consultation ID: TC-${String(consultId).padStart(6, '0')}`,
+      description: `NeoFuture teleconsultation. Consultation ID: TC-${String(consultId).padStart(6, '0')}\nConsultation time (IST): ${istLabel}`,
     })
     return event.meetLink
   } catch { return '' }
