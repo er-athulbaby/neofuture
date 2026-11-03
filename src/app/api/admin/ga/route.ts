@@ -149,7 +149,7 @@ export async function GET() {
       })),
     })
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'GA API error'
-    return NextResponse.json({ configured: true, error: msg }, { status: 500 })
+    console.error('[GA]', err)
+    return NextResponse.json({ configured: true, error: 'GA API error' }, { status: 500 })
   }
 }

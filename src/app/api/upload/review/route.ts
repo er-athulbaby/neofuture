@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
       ContentType: file.type,
     }))
   } catch (err) {
-    return NextResponse.json({ error: `Upload failed: ${err instanceof Error ? err.message : String(err)}` }, { status: 500 })
+    console.error('[upload/review] S3 error:', err)
+    return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
   }
 
   const bucket = process.env.AWS_S3_BUCKET ?? 'neofuture-files'

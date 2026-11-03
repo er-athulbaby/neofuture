@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('[upload] S3 upload failed:', err)
     return NextResponse.json(
-      { error: `Failed to upload file: ${err instanceof Error ? err.message : String(err)}` },
+      { error: 'Failed to upload file' },
       { status: 500 }
     )
   }

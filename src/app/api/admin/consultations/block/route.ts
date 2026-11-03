@@ -63,8 +63,8 @@ export async function POST(req: NextRequest) {
       )
     }
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    console.error('[block slot]', err)
+    return NextResponse.json({ error: 'Failed to block slot' }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true })

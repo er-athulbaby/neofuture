@@ -266,9 +266,8 @@ export async function POST(req: NextRequest) {
       neopulse_discount: npDisc,
     })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Failed to create order'
     console.error('Checkout create error:', err)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
   }
 }
 
