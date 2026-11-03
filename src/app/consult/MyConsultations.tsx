@@ -77,7 +77,7 @@ export default function MyConsultations() {
               return (
                 <div key={c.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-4">
                   {c.doctor_photo
-                    ? <img src={c.doctor_photo} className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm flex-shrink-0" alt="" />
+                    ? <img src={c.doctor_photo} className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm flex-shrink-0" alt={c.doctor_name} />
                     : <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold flex-shrink-0">{c.doctor_name.charAt(0)}</div>
                   }
                   <div className="flex-1 min-w-0">
@@ -115,7 +115,7 @@ export default function MyConsultations() {
               return (
                 <div key={c.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-4">
                   {c.doctor_photo
-                    ? <img src={c.doctor_photo} className="w-10 h-10 rounded-full object-cover border border-gray-100 flex-shrink-0" alt="" />
+                    ? <img src={c.doctor_photo} className="w-10 h-10 rounded-full object-cover border border-gray-100 flex-shrink-0" alt={c.doctor_name} />
                     : <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">{c.doctor_name.charAt(0)}</div>
                   }
                   <div className="flex-1 min-w-0">

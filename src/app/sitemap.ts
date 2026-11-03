@@ -1,24 +1,32 @@
 import type { MetadataRoute } from 'next'
+import { query } from '@/lib/db'
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const base = 'https://neofuture.in'
-  const now = new Date()
+const BASE = 'https://neofuture.in'
 
-  return [
-    { url: base, lastModified: now, changeFrequency: 'weekly', priority: 1 },
-    { url: `${base}/shop`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
-    { url: `${base}/consult`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${base}/neopulse`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${base}/tools`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${base}/tools/due-date`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${base}/tools/baby-food`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${base}/tools/growth-chart`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${base}/tools/vaccination`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${base}/tools/weight-gain`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${base}/neo-twin`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${base}/faq`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${base}/privacy-policy`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
-    { url: `${base}/terms`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
-    { url: `${base}/refund-policy`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const staticRoutes: MetadataRoute.Sitemap = [
+    { url: BASE, changeFrequency: 'weekly', priority: 1.0 },
+    { url: `${BASE}/shop`, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${BASE}/consult`, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${BASE}/tools`, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE}/neopulse`, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE}/faq`, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE}/privacy-policy`, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${BASE}/terms`, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${BASE}/refund-policy`, changeFrequency: 'yearly', priority: 0.3 },
   ]
+
+  const products = await query<{ slug: string; updated_at: string }>(
+    `SELECT slug, updated_at FROM products WHERE is_active = true ORDER BY updated_at DESC`,
+    []
+  ).catch(() => [])
+
+  const productRoutes: MetadataRoute.Sitemap = products.map((p) => ({
+    url: `${BASE}/products/${p.slug}`,
+    lastModified: new Date(p.updated_at),
+    changeFrequency: 'weekly',
+    priority: 0.8,
+  }))
+
+  return [...staticRoutes, ...productRoutes]
 }

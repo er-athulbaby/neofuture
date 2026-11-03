@@ -10,12 +10,24 @@ interface Props { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const product = await queryOne<{ name: string; short_description: string }>(
-    'SELECT name, short_description FROM products WHERE slug = $1 AND is_active = true',
+  const product = await queryOne<{ name: string; short_description: string; images: string[] }>(
+    'SELECT name, short_description, images FROM products WHERE slug = $1 AND is_active = true',
     [slug]
   ).catch(() => null)
   if (!product) return { title: 'Product Not Found' }
-  return { title: product.name, description: product.short_description ?? undefined }
+  const image = product.images?.[0]
+  const url = `https://neofuture.in/products/${slug}`
+  return {
+    title: product.name,
+    description: product.short_description ?? undefined,
+    alternates: { canonical: url },
+    openGraph: {
+      url,
+      title: product.name,
+      description: product.short_description ?? undefined,
+      images: image ? [{ url: image, width: 800, height: 800 }] : [],
+    },
+  }
 }
 
 export default async function ProductPage({ params }: Props) {
@@ -69,5 +81,40 @@ export default async function ProductPage({ params }: Props) {
 
   if (!product) notFound()
 
-  return <ProductDetailClient product={product} reviews={reviews} related={related} variants={variants} packSiblings={packSiblings.length > 1 ? packSiblings : []} />
+  const price = Number(product.sale_price ?? product.price)
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.short_description ?? product.description ?? undefined,
+    image: product.images ?? [],
+    url: `https://neofuture.in/products/${product.slug}`,
+    sku: product.sku ?? undefined,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'INR',
+      price: price.toFixed(2),
+      availability: (product.stock ?? 0) > 0
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/OutOfStock',
+      url: `https://neofuture.in/products/${product.slug}`,
+    },
+    ...(Number(product.review_count) > 0 && {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: Number(product.avg_rating).toFixed(1),
+        reviewCount: product.review_count,
+      },
+    }),
+  }
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <ProductDetailClient product={product} reviews={reviews} related={related} variants={variants} packSiblings={packSiblings.length > 1 ? packSiblings : []} />
+    </>
+  )
 }

@@ -1,7 +1,12 @@
+import type { Metadata } from 'next'
 import { getSiteConfig } from '@/lib/settings'
 import { query } from '@/lib/db'
 import type { Product } from '@/types'
 import HomepageClient from './HomepageClient'
+
+export const metadata: Metadata = {
+  alternates: { canonical: 'https://neofuture.in' },
+}
 
 export default async function HomePage({
   searchParams,

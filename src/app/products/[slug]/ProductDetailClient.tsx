@@ -193,7 +193,7 @@ export default function ProductDetailClient({ product, reviews, related, variant
                 <button key={i} onClick={() => setActiveImage(i)}
                   className={cn('flex-shrink-0 w-16 h-16 rounded-xl border-2 overflow-hidden bg-brand-light transition-all',
                     activeImage === i ? 'border-primary' : 'border-gray-200')}>
-                  <img src={img} alt="" className="object-contain p-1 w-full h-full" />
+                  <img src={img} alt={`${product.name} – image ${i + 1}`} className="object-contain p-1 w-full h-full" />
                 </button>
               ))}
             </div>
@@ -592,7 +592,7 @@ export default function ProductDetailClient({ product, reviews, related, variant
                     <div className="flex flex-wrap gap-2">
                       {reviewImages.map((url, i) => (
                         <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200">
-                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <img src={url} alt={`Review photo ${i + 1}`} className="w-full h-full object-cover" />
                           <button type="button" onClick={() => setReviewImages((p) => p.filter((_, j) => j !== i))}
                             className="absolute top-0 right-0 bg-black/50 text-white text-xs w-4 h-4 flex items-center justify-center rounded-bl">×</button>
                         </div>
@@ -642,7 +642,7 @@ export default function ProductDetailClient({ product, reviews, related, variant
                       <div className="flex flex-wrap gap-2 mt-3">
                         {review.images.map((url, i) => (
                           <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                            <img src={url} alt="" className="w-16 h-16 object-cover rounded-lg border border-gray-100 hover:opacity-80 transition-opacity" />
+                            <img src={url} alt={`Review image ${i + 1}`} className="w-16 h-16 object-cover rounded-lg border border-gray-100 hover:opacity-80 transition-opacity" />
                           </a>
                         ))}
                       </div>

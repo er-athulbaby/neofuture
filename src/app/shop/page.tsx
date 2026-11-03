@@ -3,7 +3,7 @@ import { query } from '@/lib/db'
 import type { Product, Category } from '@/types'
 import ShopClient from './ShopClient'
 
-export const metadata = { title: 'Shop' }
+export const metadata = { title: 'Shop', alternates: { canonical: 'https://neofuture.in/shop' } }
 
 export default async function ShopPage() {
   const [products, categories] = await Promise.all([
