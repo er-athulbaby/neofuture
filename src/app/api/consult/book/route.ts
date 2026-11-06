@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     const clash = await queryOne(
       `SELECT id FROM consultations
        WHERE (doctor_id=$1 AND slot_datetime=$2 AND status IN ('pending','confirmed','blocked'))
-          OR (patient_id=$3::text AND doctor_id=$1 AND slot_datetime=$2 AND status IN ('pending','confirmed'))
+          OR (patient_id=$3::uuid AND doctor_id=$1 AND slot_datetime=$2 AND status IN ('pending','confirmed'))
        LIMIT 1`,
       [doctor_id, slot_datetime, session.user.id]
     )
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     // Check active free followup
     const freeFollowup = await queryOne<{ id: number; followup_expires_at: string }>(
       `SELECT id, followup_expires_at FROM consultations
-       WHERE patient_id=$1 AND doctor_id=$2 AND followup_expires_at > NOW() AND status='completed'
+       WHERE patient_id=$1::uuid AND doctor_id=$2 AND followup_expires_at > NOW() AND status='completed'
        ORDER BY followup_expires_at DESC LIMIT 1`,
       [session.user.id, doctor_id]
     )
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     if (freeFollowup) {
       const consult = await queryOne<{ id: number }>(
         `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, status, is_followup, parent_consultation_id, lab_reports, teleconsult_consent)
-         VALUES ($1,$2,$3,'confirmed',true,$4,$5,$6) RETURNING id`,
+         VALUES ($1::uuid,$2,$3,'confirmed',true,$4,$5,$6) RETURNING id`,
         [session.user.id, doctor_id, slot_datetime, freeFollowup.id, JSON.stringify(lab_reports ?? []), true]
       )
       const meetLink = await buildMeetLink(doctor_id, consult!.id, slot_datetime, session.user.id)
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
     if (fee === 0) {
       const consult = await queryOne<{ id: number }>(
         `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, neopulse_redeemed, neopulse_points_used, status, lab_reports, teleconsult_consent)
-         VALUES ($1,$2,$3,$4,$5,'confirmed',$6,$7) RETURNING id`,
+         VALUES ($1::uuid,$2,$3,$4,$5,'confirmed',$6,$7) RETURNING id`,
         [session.user.id, doctor_id, slot_datetime, neopulseRedeemed, neopulsePointsUsed, JSON.stringify(lab_reports ?? []), true]
       )
       if (neopulsePointsUsed > 0) {
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
 
     const consult = await queryOne<{ id: number }>(
       `INSERT INTO consultations (patient_id, doctor_id, slot_datetime, neopulse_redeemed, neopulse_points_used, status, lab_reports, teleconsult_consent)
-       VALUES ($1,$2,$3,$4,$5,'pending',$6,$7) RETURNING id`,
+       VALUES ($1::uuid,$2,$3,$4,$5,'pending',$6,$7) RETURNING id`,
       [session.user.id, doctor_id, slot_datetime, neopulseRedeemed, neopulsePointsUsed, JSON.stringify(lab_reports ?? []), true]
     )
 
