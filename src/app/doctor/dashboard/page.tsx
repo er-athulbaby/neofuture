@@ -96,6 +96,7 @@ function AppointCard({
   const [pdfUrl, setPdfUrl] = useState<string | null>(c.report_pdf_url)
   const [showPatientEdit, setShowPatientEdit] = useState(false)
   const [patientForm, setPatientForm] = useState({ patient_name: '', age: '', weight_kg: '', height_cm: '', mobile: '', gender: '' })
+  const [displayName, setDisplayName] = useState(c.patient_name)
   const [patientLoading, setPatientLoading] = useState(false)
   const [patientSaving, setPatientSaving] = useState(false)
 
@@ -126,6 +127,7 @@ function AppointCard({
     })
     setPatientSaving(false)
     setShowPatientEdit(false)
+    if (patientForm.patient_name) setDisplayName(patientForm.patient_name)
   }
 
   async function viewLab(key: string) {
@@ -176,10 +178,10 @@ function AppointCard({
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 14, fontWeight: 700, color: '#0369A1', flexShrink: 0
             }}>
-              {initials(c.patient_name)}
+              {initials(displayName)}
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: '#0F1B2D', textDecoration: c.patient_id ? 'underline' : 'none', textDecorationColor: '#CBD5E0' }}>{c.patient_name}</div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#0F1B2D', textDecoration: c.patient_id ? 'underline' : 'none', textDecorationColor: '#CBD5E0' }}>{displayName}</div>
               <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{c.patient_email}</div>
             </div>
           </div>
