@@ -72,7 +72,8 @@ const NAV: { id: Tab; label: string; icon: React.ElementType }[] = [
 ]
 
 /* ─── Vitals Editor ─── */
-function VitalsPanel({ vitals, patientId, onSaved, editing, setEditing }: { vitals: Vitals | null; patientId: string; onSaved: (v: Vitals) => void; editing: boolean; setEditing: (v: boolean) => void }) {
+function VitalsPanel({ vitals, patientId, onSaved }: { vitals: Vitals | null; patientId: string; onSaved: (v: Vitals) => void }) {
+  const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     age: vitals?.age ?? '',
@@ -80,17 +81,17 @@ function VitalsPanel({ vitals, patientId, onSaved, editing, setEditing }: { vita
     height_cm: vitals?.height_cm ?? '',
     blood_pressure: vitals?.blood_pressure ?? '',
     pulse_bpm: vitals?.pulse_bpm ?? '',
-    mobile: vitals?.mobile ?? '',
   })
 
   async function save() {
     setSaving(true)
     const res = await fetch(`/api/doctor/patients/${patientId}/vitals`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, mobile: vitals?.mobile ?? null, patient_name: vitals?.patient_name ?? null }),
     })
     setSaving(false)
     if (res.ok) {
-      onSaved({ ...form, dob: null, age: Number(form.age) || null, patient_name: null, weight_kg: Number(form.weight_kg) || null, height_cm: Number(form.height_cm) || null, blood_pressure: form.blood_pressure || null, pulse_bpm: Number(form.pulse_bpm) || null, mobile: form.mobile || null, updated_at: new Date().toISOString() })
+      onSaved({ ...vitals, ...form, dob: null, age: Number(form.age) || null, weight_kg: Number(form.weight_kg) || null, height_cm: Number(form.height_cm) || null, blood_pressure: form.blood_pressure || null, pulse_bpm: Number(form.pulse_bpm) || null, updated_at: new Date().toISOString() } as Vitals)
       setEditing(false)
     }
   }
@@ -105,11 +106,10 @@ function VitalsPanel({ vitals, patientId, onSaved, editing, setEditing }: { vita
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
             { label: 'Age (years)', key: 'age', type: 'number', placeholder: '28' },
-            { label: 'Mobile Number', key: 'mobile', type: 'tel', placeholder: '+91 98765 43210' },
-            { label: 'Weight (kg)', key: 'weight_kg', type: 'number' },
-            { label: 'Height (cm)', key: 'height_cm', type: 'number' },
+            { label: 'Weight (kg)', key: 'weight_kg', type: 'number', placeholder: '' },
+            { label: 'Height (cm)', key: 'height_cm', type: 'number', placeholder: '' },
             { label: 'Blood Pressure', key: 'blood_pressure', type: 'text', placeholder: '120/80' },
-            { label: 'Pulse (BPM)', key: 'pulse_bpm', type: 'number' },
+            { label: 'Pulse (BPM)', key: 'pulse_bpm', type: 'number', placeholder: '' },
           ].map(({ label, key, type, placeholder }) => (
             <div key={key}>
               <label style={{ fontSize: 11, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>{label}</label>
@@ -131,8 +131,14 @@ function VitalsPanel({ vitals, patientId, onSaved, editing, setEditing }: { vita
 
   return (
     <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #E5E9F0', padding: 20 }}>
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <span style={{ fontWeight: 700, fontSize: 14, color: DARK }}>Vitals</span>
+        <button onClick={() => setEditing(true)} style={{
+          display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 7,
+          border: '1px solid #E5E9F0', background: '#F9FAFB', color: '#374151', fontSize: 12, cursor: 'pointer'
+        }}>
+          <Edit3 size={12} /> Edit
+        </button>
       </div>
 
       {vitals?.blood_pressure || vitals?.pulse_bpm ? (
@@ -188,7 +194,9 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   const [loading, setLoading] = useState(true)
   // vitals kept in separate state so VitalsPanel can update it without re-fetching
   const [vitals, setVitals] = useState<Vitals | null>(null)
-  const [editingVitals, setEditingVitals] = useState(false)
+  const [editingPatient, setEditingPatient] = useState(false)
+  const [patientForm, setPatientForm] = useState({ patient_name: '', mobile: '' })
+  const [savingPatient, setSavingPatient] = useState(false)
   const [activeReport, setActiveReport] = useState<number | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [reportForm, setReportForm] = useState<ReportForm>(INIT_FORM)
@@ -205,7 +213,10 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
       fetch(`/api/doctor/patients/${patientId}`).then(r => r.json()),
       fetch('/api/doctor/prescription-options').then(r => r.json()),
     ]).then(([d, opts]) => {
-      if (d.patient) { setData(d); setVitals(d.vitals ?? null) }
+      if (d.patient) {
+        setData(d); setVitals(d.vitals ?? null)
+        setPatientForm({ patient_name: d.vitals?.patient_name ?? '', mobile: d.vitals?.mobile ?? '' })
+      }
       if (opts && !opts.error) {
         const flat: Record<string, string[]> = {}
         for (const [k, v] of Object.entries(opts)) flat[k] = (v as { value: string }[]).map(x => x.value)
@@ -418,14 +429,6 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 {/* Patient card */}
                 <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E9F0', padding: 24 }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-                    <button onClick={() => setEditingVitals(true)} style={{
-                      display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 7,
-                      border: '1px solid #E5E9F0', background: '#F9FAFB', color: '#374151', fontSize: 12, cursor: 'pointer'
-                    }}>
-                      <Edit3 size={12} /> Edit Vitals
-                    </button>
-                  </div>
                   <div style={{ display: 'flex', gap: 20 }}>
                     <div style={{
                       width: 80, height: 80, borderRadius: '50%', background: '#E0F2FE', flexShrink: 0,
@@ -435,31 +438,72 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                     }}>
                       {initials(patient.name)}
                     </div>
-                    <div>
-                      <h2 style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 800, color: DARK }}>{patient.name}</h2>
-                      <p style={{ margin: '0 0 12px', fontSize: 13, color: '#94A3B8' }}>
-                        {consultations[0]?.diagnosis ? consultations[0].diagnosis.split(' ').slice(0, 4).join(' ') : 'Patient'}
-                      </p>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                        {[
-                          { label: 'Age', value: vitals?.age ? `${vitals.age} yrs` : (a ? `${a.years}y ${a.months}m` : '—') },
-                          { label: 'Weight', value: vitals?.weight_kg ? `${vitals.weight_kg} kg` : '—' },
-                          { label: 'Height', value: vitals?.height_cm ? `${vitals.height_cm} cm` : '—' },
-                        ].map(({ label, value }) => (
-                          <div key={label}>
-                            <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: DARK, marginTop: 2 }}>{value}</div>
-                          </div>
-                        ))}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                        <div>
+                          <h2 style={{ margin: '0 0 2px', fontSize: 20, fontWeight: 800, color: DARK }}>
+                            {vitals?.patient_name || patient.name}
+                          </h2>
+                          <p style={{ margin: '0 0 12px', fontSize: 13, color: '#94A3B8' }}>
+                            {consultations[0]?.diagnosis ? consultations[0].diagnosis.split(' ').slice(0, 4).join(' ') : 'Patient'}
+                          </p>
+                        </div>
+                        <button onClick={() => { setPatientForm({ patient_name: vitals?.patient_name ?? '', mobile: vitals?.mobile ?? '' }); setEditingPatient(true) }} style={{
+                          display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 7,
+                          border: '1px solid #E5E9F0', background: '#F9FAFB', color: '#374151', fontSize: 12, cursor: 'pointer', flexShrink: 0
+                        }}>
+                          <Edit3 size={12} /> Edit
+                        </button>
                       </div>
+                      {editingPatient ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {[
+                            { label: 'Patient Name', key: 'patient_name', type: 'text', placeholder: 'Full name' },
+                            { label: 'Mobile', key: 'mobile', type: 'tel', placeholder: '+91 98765 43210' },
+                          ].map(({ label, key, type, placeholder }) => (
+                            <div key={key}>
+                              <label style={{ fontSize: 11, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 3 }}>{label}</label>
+                              <input type={type} value={(patientForm as Record<string, string>)[key]} placeholder={placeholder}
+                                onChange={e => setPatientForm(f => ({ ...f, [key]: e.target.value }))}
+                                style={{ width: '100%', border: '1px solid #E5E9F0', borderRadius: 8, padding: '7px 10px', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+                            </div>
+                          ))}
+                          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                            <button onClick={() => setEditingPatient(false)} style={{ flex: 1, padding: '7px', borderRadius: 8, border: '1px solid #E5E9F0', background: '#fff', color: '#374151', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+                            <button disabled={savingPatient} onClick={async () => {
+                              setSavingPatient(true)
+                              const res = await fetch(`/api/doctor/patients/${patientId}/vitals`, {
+                                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ ...vitals, ...patientForm }),
+                              })
+                              setSavingPatient(false)
+                              if (res.ok) { setVitals(v => ({ ...v, ...patientForm } as Vitals)); setEditingPatient(false) }
+                            }} style={{ flex: 2, padding: '7px', borderRadius: 8, border: 'none', background: TEAL, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                              {savingPatient ? 'Saving…' : 'Save'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                          {[
+                            { label: 'Age', value: vitals?.age ? `${vitals.age} yrs` : (a ? `${a.years}y ${a.months}m` : '—') },
+                            { label: 'Weight', value: vitals?.weight_kg ? `${vitals.weight_kg} kg` : '—' },
+                            { label: 'Height', value: vitals?.height_cm ? `${vitals.height_cm} cm` : '—' },
+                          ].map(({ label, value }) => (
+                            <div key={label}>
+                              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: DARK, marginTop: 2 }}>{value}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div style={{ borderTop: '1px solid #F3F4F6', marginTop: 20, paddingTop: 16 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                       {[
                         { label: 'Email', value: patient.email },
-                        { label: 'Phone', value: patient.phone ?? (vitals?.mobile ?? '—') },
-                        ...(vitals?.mobile && patient.phone ? [{ label: 'Mobile (records)', value: vitals.mobile }] : []),
+                        { label: 'Phone', value: vitals?.mobile || patient.phone || '—' },
                       ].map(({ label, value }) => (
                         <div key={label}>
                           <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
@@ -519,7 +563,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                 </div>
 
                 {/* Vitals */}
-                <VitalsPanel vitals={vitals} patientId={patientId} onSaved={setVitals} editing={editingVitals} setEditing={setEditingVitals} />
+                <VitalsPanel vitals={vitals} patientId={patientId} onSaved={setVitals} />
 
                 {/* Lab results */}
                 <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #E5E9F0', padding: 20 }}>

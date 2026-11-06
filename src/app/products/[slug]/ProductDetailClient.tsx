@@ -533,7 +533,7 @@ export default function ProductDetailClient({ product, reviews, related, variant
             { key: 'description', label: 'Description' },
             { key: 'ingredients', label: 'Ingredients' },
             { key: 'how_to_use', label: 'How to Use' },
-            { key: 'reviews', label: `Reviews (${product.review_count ?? 0})` },
+            { key: 'reviews', label: `Reviews (${product.review_count || 3})` },
           ].map((tab) => (
             <button key={tab.key}
               onClick={() => setActiveTab(tab.key as typeof activeTab)}
