@@ -72,11 +72,9 @@ const NAV: { id: Tab; label: string; icon: React.ElementType }[] = [
 ]
 
 /* ─── Vitals Editor ─── */
-function VitalsPanel({ vitals, patientId, onSaved }: { vitals: Vitals | null; patientId: string; onSaved: (v: Vitals) => void }) {
-  const [editing, setEditing] = useState(false)
+function VitalsPanel({ vitals, patientId, onSaved, editing, setEditing }: { vitals: Vitals | null; patientId: string; onSaved: (v: Vitals) => void; editing: boolean; setEditing: (v: boolean) => void }) {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    patient_name: vitals?.patient_name ?? '',
     age: vitals?.age ?? '',
     weight_kg: vitals?.weight_kg ?? '',
     height_cm: vitals?.height_cm ?? '',
@@ -92,7 +90,7 @@ function VitalsPanel({ vitals, patientId, onSaved }: { vitals: Vitals | null; pa
     })
     setSaving(false)
     if (res.ok) {
-      onSaved({ ...form, dob: null, age: Number(form.age) || null, patient_name: form.patient_name || null, weight_kg: Number(form.weight_kg) || null, height_cm: Number(form.height_cm) || null, blood_pressure: form.blood_pressure || null, pulse_bpm: Number(form.pulse_bpm) || null, mobile: form.mobile || null, updated_at: new Date().toISOString() })
+      onSaved({ ...form, dob: null, age: Number(form.age) || null, patient_name: null, weight_kg: Number(form.weight_kg) || null, height_cm: Number(form.height_cm) || null, blood_pressure: form.blood_pressure || null, pulse_bpm: Number(form.pulse_bpm) || null, mobile: form.mobile || null, updated_at: new Date().toISOString() })
       setEditing(false)
     }
   }
@@ -106,7 +104,6 @@ function VitalsPanel({ vitals, patientId, onSaved }: { vitals: Vitals | null; pa
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
-            { label: 'Patient Name', key: 'patient_name', type: 'text', placeholder: 'Full name', span: 2 },
             { label: 'Age (years)', key: 'age', type: 'number', placeholder: '28' },
             { label: 'Mobile Number', key: 'mobile', type: 'tel', placeholder: '+91 98765 43210' },
             { label: 'Weight (kg)', key: 'weight_kg', type: 'number' },
@@ -134,14 +131,8 @@ function VitalsPanel({ vitals, patientId, onSaved }: { vitals: Vitals | null; pa
 
   return (
     <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #E5E9F0', padding: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div style={{ marginBottom: 16 }}>
         <span style={{ fontWeight: 700, fontSize: 14, color: DARK }}>Vitals</span>
-        <button onClick={() => setEditing(true)} style={{
-          display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 7,
-          border: '1px solid #E5E9F0', background: '#F9FAFB', color: '#374151', fontSize: 12, cursor: 'pointer'
-        }}>
-          <Edit3 size={12} /> Edit
-        </button>
       </div>
 
       {vitals?.blood_pressure || vitals?.pulse_bpm ? (
@@ -197,6 +188,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
   const [loading, setLoading] = useState(true)
   // vitals kept in separate state so VitalsPanel can update it without re-fetching
   const [vitals, setVitals] = useState<Vitals | null>(null)
+  const [editingVitals, setEditingVitals] = useState(false)
   const [activeReport, setActiveReport] = useState<number | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [reportForm, setReportForm] = useState<ReportForm>(INIT_FORM)
@@ -426,6 +418,14 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 {/* Patient card */}
                 <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E9F0', padding: 24 }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+                    <button onClick={() => setEditingVitals(true)} style={{
+                      display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 7,
+                      border: '1px solid #E5E9F0', background: '#F9FAFB', color: '#374151', fontSize: 12, cursor: 'pointer'
+                    }}>
+                      <Edit3 size={12} /> Edit Vitals
+                    </button>
+                  </div>
                   <div style={{ display: 'flex', gap: 20 }}>
                     <div style={{
                       width: 80, height: 80, borderRadius: '50%', background: '#E0F2FE', flexShrink: 0,
@@ -442,8 +442,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                       </p>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         {[
-                          { label: 'DOB', value: vitals?.dob ? fmtDate(vitals.dob) : '—' },
-                          { label: 'Age', value: a ? `${a.years}y ${a.months}m` : '—' },
+                          { label: 'Age', value: vitals?.age ? `${vitals.age} yrs` : (a ? `${a.years}y ${a.months}m` : '—') },
                           { label: 'Weight', value: vitals?.weight_kg ? `${vitals.weight_kg} kg` : '—' },
                           { label: 'Height', value: vitals?.height_cm ? `${vitals.height_cm} cm` : '—' },
                         ].map(({ label, value }) => (
@@ -520,7 +519,7 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
                 </div>
 
                 {/* Vitals */}
-                <VitalsPanel vitals={vitals} patientId={patientId} onSaved={setVitals} />
+                <VitalsPanel vitals={vitals} patientId={patientId} onSaved={setVitals} editing={editingVitals} setEditing={setEditingVitals} />
 
                 {/* Lab results */}
                 <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #E5E9F0', padding: 20 }}>
