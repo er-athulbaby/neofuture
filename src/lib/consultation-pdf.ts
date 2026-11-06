@@ -21,7 +21,6 @@ export interface PrescriptionData {
     specialisation: string
     registrationNo: string
     stateMedicalCouncil: string
-    photoUrl?: string
     signatureUrl?: string
   }
   diagnosis: string
