@@ -5,6 +5,10 @@ import { createMeetingEvent } from '@/lib/google-calendar'
 import { sendConsultationConfirmation } from '@/lib/email'
 import crypto from 'crypto'
 
+function toISTLocal(d: Date): string {
+  return d.toLocaleString('sv-SE', { timeZone: 'Asia/Kolkata' }).replace(' ', 'T')
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -44,8 +48,10 @@ export async function POST(req: NextRequest) {
   let meetLink = ''
   let googleEventId = ''
   if (doctor?.google_refresh_token) {
-    const startTime = new Date(consult.slot_datetime).toISOString()
-    const endTime = new Date(new Date(consult.slot_datetime).getTime() + consult.duration_minutes * 60000).toISOString()
+    const startDate = new Date(consult.slot_datetime)
+    const endDate = new Date(startDate.getTime() + consult.duration_minutes * 60000)
+    const startTime = toISTLocal(startDate)
+    const endTime = toISTLocal(endDate)
     try {
       const event = await createMeetingEvent(doctor.google_refresh_token, {
         title: `NeoFuture Consultation — ${patient?.name} with ${doctor.name}`,
@@ -53,7 +59,7 @@ export async function POST(req: NextRequest) {
         endTime,
         patientEmail: patient?.email ?? '',
         doctorEmail: '',
-        description: `NeoFuture teleconsultation. Consultation ID: TC-${String(consultation_id).padStart(6, '0')}`,
+        description: `NeoFuture teleconsultation. Consultation ID: TC-${String(consultation_id).padStart(6, '0')}\nConsultation time (IST): ${startDate.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })}`,
       })
       meetLink = event.meetLink
       googleEventId = event.eventId

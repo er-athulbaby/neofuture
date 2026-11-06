@@ -95,7 +95,7 @@ function AppointCard({
   const [genPdf, setGenPdf] = useState(false)
   const [pdfUrl, setPdfUrl] = useState<string | null>(c.report_pdf_url)
   const [showPatientEdit, setShowPatientEdit] = useState(false)
-  const [patientForm, setPatientForm] = useState({ dob: '', weight_kg: '', height_cm: '', mobile: '', gender: '' })
+  const [patientForm, setPatientForm] = useState({ patient_name: '', age: '', weight_kg: '', height_cm: '', mobile: '', gender: '' })
   const [patientLoading, setPatientLoading] = useState(false)
   const [patientSaving, setPatientSaving] = useState(false)
 
@@ -107,7 +107,8 @@ function AppointCard({
       if (res.ok) {
         const d = await res.json()
         setPatientForm({
-          dob: d.dob ? d.dob.split('T')[0] : '',
+          patient_name: d.patient_name ?? '',
+          age: String(d.age ?? ''),
           weight_kg: String(d.weight_kg ?? ''),
           height_cm: String(d.height_cm ?? ''),
           mobile: d.mobile ?? '',
@@ -244,12 +245,16 @@ function AppointCard({
           ) : (
             <>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{ fontSize: 10, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, display: 'block', marginBottom: 3 }}>Name</label>
+                <input type="text" value={patientForm.patient_name} placeholder={c.patient_name}
+                  onChange={e => setPatientForm(f => ({ ...f, patient_name: e.target.value }))}
+                  style={{ width: '100%', border: '1px solid #E5E9F0', borderRadius: 7, padding: '6px 8px', fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
+              </div>
               <div>
-                <label style={{ fontSize: 10, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, display: 'block', marginBottom: 3 }}>
-                  DOB{patientForm.dob ? ` · Age ${Math.floor((Date.now() - new Date(patientForm.dob).getTime()) / 31557600000)}y` : ''}
-                </label>
-                <input type="date" value={patientForm.dob}
-                  onChange={e => setPatientForm(f => ({ ...f, dob: e.target.value }))}
+                <label style={{ fontSize: 10, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, display: 'block', marginBottom: 3 }}>Age</label>
+                <input type="number" value={patientForm.age} min={0} max={120}
+                  onChange={e => setPatientForm(f => ({ ...f, age: e.target.value }))}
                   style={{ width: '100%', border: '1px solid #E5E9F0', borderRadius: 7, padding: '6px 8px', fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div>
@@ -264,8 +269,8 @@ function AppointCard({
               </div>
               {[
                 { label: 'Mobile', key: 'mobile', type: 'tel' },
-                { label: 'Weight (kg)', key: 'weight_kg', type: 'number' },
-                { label: 'Height (cm)', key: 'height_cm', type: 'number' },
+                { label: 'Weight (kg) — optional', key: 'weight_kg', type: 'number' },
+                { label: 'Height (cm) — optional', key: 'height_cm', type: 'number' },
               ].map(({ label, key, type }) => (
                 <div key={key}>
                   <label style={{ fontSize: 10, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, display: 'block', marginBottom: 3 }}>{label}</label>
