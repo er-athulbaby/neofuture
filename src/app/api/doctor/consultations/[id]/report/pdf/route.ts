@@ -63,7 +63,6 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       specialisation: doctor.specialisation ?? '',
       registrationNo: doctor.registration_no ?? '',
       stateMedicalCouncil: doctor.state_medical_council ?? '',
-      photoUrl: doctor.photo_url ?? undefined,
       signatureUrl: doctor.signature_url ?? undefined,
     },
     diagnosis: report.diagnosis,
