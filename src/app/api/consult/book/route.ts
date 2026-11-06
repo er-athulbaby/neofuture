@@ -51,8 +51,11 @@ export async function POST(req: NextRequest) {
 
   // Check slot is not already taken or blocked
   const clash = await queryOne(
-    `SELECT id FROM consultations WHERE doctor_id=$1 AND slot_datetime=$2 AND status IN ('pending','confirmed','blocked')`,
-    [doctor_id, slot_datetime]
+    `SELECT id FROM consultations
+     WHERE doctor_id=$1 AND slot_datetime=$2 AND status IN ('pending','confirmed','blocked')
+        OR patient_id=$3::text AND doctor_id=$1 AND slot_datetime=$2 AND status IN ('pending','confirmed')
+     LIMIT 1`,
+    [doctor_id, slot_datetime, session.user.id]
   )
   if (clash) return NextResponse.json({ error: 'Slot already booked' }, { status: 409 })
 

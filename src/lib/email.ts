@@ -217,6 +217,7 @@ export async function sendConsultationConfirmation(
   await transport.sendMail({
     from,
     to,
+    bcc: 'neofuture@gmail.com',
     subject: `${opts.isFollowup ? 'Follow-up' : 'Consultation'} Confirmed — ${dateStr} | NeoFuture`,
     html: `
       <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;color:#1A1535">

@@ -60,8 +60,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       'SELECT name, email, phone, gender FROM users WHERE id=$1',
       [consult.patient_id]
     ),
-    queryOne<{ dob: string | null; gender: string | null }>(
-      'SELECT dob, gender FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2::text',
+    queryOne<{ dob: string | null; age: number | null; patient_name: string | null; gender: string | null }>(
+      'SELECT dob, age, patient_name, gender FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2::text',
       [doctor.id, consult.patient_id]
     ).catch(() => null),
   ])
@@ -85,37 +85,43 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     [id, diagnosis, observation || null, notes, JSON.stringify(prescription), additional_instructions, followup_weeks ?? null, followup_date ?? null, JSON.stringify(wellnessSnapshot), JSON.stringify(doctor_attachments ?? [])]
   )
 
-  // Compute age from vitals DOB (users table has no dob column)
-  const age = patientVitals?.dob ? Math.floor((Date.now() - new Date(patientVitals.dob).getTime()) / 31557600000) : 0
+  const patientAge = patientVitals?.age ?? (patientVitals?.dob ? Math.floor((Date.now() - new Date(patientVitals.dob).getTime()) / 31557600000) : 0)
+  const patientDisplayName = patientVitals?.patient_name || patient?.name || ''
   const consultDate = new Date(consult.slot_datetime)
   const dateStr = consultDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })
   const timeStr = consultDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 
   // Generate PDF
-  const pdfBuffer = await generatePrescriptionPDF({
-    prescriptionId: `RX-${dateStr.replace(/ /g, '').slice(0, 8)}-${String(report!.id).padStart(4, '0')}`,
-    consultationId: `TC-${String(id).padStart(6, '0')}`,
-    patientId: `P-${String(consult.patient_id).padStart(6, '0')}`,
-    date: dateStr,
-    time: timeStr,
-    patient: { name: patient?.name ?? '', age, gender: patientVitals?.gender || patient?.gender || 'Not specified', mobile: patient?.phone ?? '' },
-    doctor: {
-      name: doctor.name,
-      qualification: doctor.qualification ?? '',
-      specialisation: doctor.specialisation ?? '',
-      registrationNo: doctor.registration_no ?? '',
-      stateMedicalCouncil: doctor.state_medical_council ?? '',
-      photoUrl: doctor.photo_url ?? undefined,
-      signatureUrl: doctor.signature_url ?? undefined,
-    },
-    diagnosis,
-    observation: observation || undefined,
-    prescription,
-    additionalInstructions: additional_instructions,
-    followupWeeks: followup_weeks,
-    followupDate: followup_date,
-    doctorAttachments: doctor_attachments?.length ? doctor_attachments : undefined,
-  })
+  let pdfBuffer: Buffer
+  try {
+    pdfBuffer = await generatePrescriptionPDF({
+      prescriptionId: `RX-${dateStr.replace(/ /g, '').slice(0, 8)}-${String(report!.id).padStart(4, '0')}`,
+      consultationId: `TC-${String(id).padStart(6, '0')}`,
+      patientId: `P-${String(consult.patient_id).padStart(6, '0')}`,
+      date: dateStr,
+      time: timeStr,
+      patient: { name: patientDisplayName, age: patientAge, gender: patientVitals?.gender || patient?.gender || 'Not specified', mobile: patient?.phone ?? '' },
+      doctor: {
+        name: doctor.name,
+        qualification: doctor.qualification ?? '',
+        specialisation: doctor.specialisation ?? '',
+        registrationNo: doctor.registration_no ?? '',
+        stateMedicalCouncil: doctor.state_medical_council ?? '',
+        photoUrl: doctor.photo_url ?? undefined,
+        signatureUrl: doctor.signature_url ?? undefined,
+      },
+      diagnosis,
+      observation: observation || undefined,
+      prescription,
+      additionalInstructions: additional_instructions,
+      followupWeeks: followup_weeks,
+      followupDate: followup_date,
+      doctorAttachments: doctor_attachments?.length ? doctor_attachments : undefined,
+    })
+  } catch (err) {
+    console.error('[report POST] PDF generation failed:', err)
+    return NextResponse.json({ error: 'PDF generation failed. Please try again or contact support.' }, { status: 500 })
+  }
 
   // Upload to S3
   const s3Key = `prescriptions/${id}/report-${report!.id}.pdf`
@@ -171,8 +177,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     queryOne<{ name: string; email: string; phone: string; gender: string | null }>(
       'SELECT name, email, phone, gender FROM users WHERE id=$1', [consult.patient_id]
     ),
-    queryOne<{ dob: string | null; gender: string | null }>(
-      'SELECT dob, gender FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2::text',
+    queryOne<{ dob: string | null; age: number | null; patient_name: string | null; gender: string | null }>(
+      'SELECT dob, age, patient_name, gender FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2::text',
       [doctor.id, consult.patient_id]
     ).catch(() => null),
   ])
@@ -182,7 +188,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     [diagnosis, observation || null, notes, JSON.stringify(prescription), additional_instructions, followup_date ?? null, JSON.stringify(doctor_attachments ?? []), existing.id]
   )
 
-  const age = patientVitals?.dob ? Math.floor((Date.now() - new Date(patientVitals.dob).getTime()) / 31557600000) : 0
+  const age = patientVitals?.age ?? (patientVitals?.dob ? Math.floor((Date.now() - new Date(patientVitals.dob).getTime()) / 31557600000) : 0)
+  const patientDisplayName = patientVitals?.patient_name || patient?.name || ''
   const consultDate = new Date(consult.slot_datetime)
   const dateStr = consultDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })
   const timeStr = consultDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
@@ -193,7 +200,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     patientId: `P-${String(consult.patient_id).padStart(6, '0')}`,
     date: dateStr,
     time: timeStr,
-    patient: { name: patient?.name ?? '', age, gender: patientVitals?.gender || patient?.gender || 'Not specified', mobile: patient?.phone ?? '' },
+    patient: { name: patientDisplayName, age, gender: patientVitals?.gender || patient?.gender || 'Not specified', mobile: patient?.phone ?? '' },
     doctor: {
       name: doctor.name,
       qualification: doctor.qualification ?? '',

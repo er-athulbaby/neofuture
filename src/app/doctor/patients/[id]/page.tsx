@@ -10,7 +10,7 @@ import {
 import TemplateTextarea from '@/components/TemplateTextarea'
 
 /* ─── Types ─── */
-interface Vitals { dob: string | null; weight_kg: number | null; height_cm: number | null; blood_pressure: string | null; pulse_bpm: number | null; mobile: string | null; updated_at: string | null }
+interface Vitals { dob: string | null; age: number | null; patient_name: string | null; weight_kg: number | null; height_cm: number | null; blood_pressure: string | null; pulse_bpm: number | null; mobile: string | null; updated_at: string | null }
 interface Consultation {
   id: number; slot_datetime: string; status: string; is_followup: boolean
   lab_reports: { key: string; name: string; size: number; type: string }[]
@@ -76,7 +76,8 @@ function VitalsPanel({ vitals, patientId, onSaved }: { vitals: Vitals | null; pa
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    dob: vitals?.dob ? vitals.dob.split('T')[0] : '',
+    patient_name: vitals?.patient_name ?? '',
+    age: vitals?.age ?? '',
     weight_kg: vitals?.weight_kg ?? '',
     height_cm: vitals?.height_cm ?? '',
     blood_pressure: vitals?.blood_pressure ?? '',
@@ -91,7 +92,7 @@ function VitalsPanel({ vitals, patientId, onSaved }: { vitals: Vitals | null; pa
     })
     setSaving(false)
     if (res.ok) {
-      onSaved({ ...form, dob: form.dob || null, weight_kg: Number(form.weight_kg) || null, height_cm: Number(form.height_cm) || null, blood_pressure: form.blood_pressure || null, pulse_bpm: Number(form.pulse_bpm) || null, mobile: form.mobile || null, updated_at: new Date().toISOString() })
+      onSaved({ ...form, dob: null, age: Number(form.age) || null, patient_name: form.patient_name || null, weight_kg: Number(form.weight_kg) || null, height_cm: Number(form.height_cm) || null, blood_pressure: form.blood_pressure || null, pulse_bpm: Number(form.pulse_bpm) || null, mobile: form.mobile || null, updated_at: new Date().toISOString() })
       setEditing(false)
     }
   }
@@ -105,14 +106,15 @@ function VitalsPanel({ vitals, patientId, onSaved }: { vitals: Vitals | null; pa
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
-            { label: 'Date of Birth', key: 'dob', type: 'date' },
+            { label: 'Patient Name', key: 'patient_name', type: 'text', placeholder: 'Full name', span: 2 },
+            { label: 'Age (years)', key: 'age', type: 'number', placeholder: '28' },
             { label: 'Mobile Number', key: 'mobile', type: 'tel', placeholder: '+91 98765 43210' },
             { label: 'Weight (kg)', key: 'weight_kg', type: 'number' },
             { label: 'Height (cm)', key: 'height_cm', type: 'number' },
             { label: 'Blood Pressure', key: 'blood_pressure', type: 'text', placeholder: '120/80' },
             { label: 'Pulse (BPM)', key: 'pulse_bpm', type: 'number' },
-          ].map(({ label, key, type, placeholder }) => (
-            <div key={key}>
+          ].map(({ label, key, type, placeholder, span }) => (
+            <div key={key} style={span ? { gridColumn: `span ${span}` } : {}}>
               <label style={{ fontSize: 11, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>{label}</label>
               <input type={type} value={(form as Record<string, string | number>)[key] as string} placeholder={placeholder}
                 onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}

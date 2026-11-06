@@ -38,10 +38,10 @@ export async function GET(_req: NextRequest, { params }: Props) {
       'SELECT id::text, name, email, phone FROM users WHERE id::text = $1', [patientId]
     ),
     queryOne<{
-      dob: string | null; weight_kg: number | null; height_cm: number | null
+      dob: string | null; age: number | null; patient_name: string | null; weight_kg: number | null; height_cm: number | null
       blood_pressure: string | null; pulse_bpm: number | null; mobile: string | null; updated_at: string | null
     }>(
-      'SELECT dob, weight_kg, height_cm, blood_pressure, pulse_bpm, mobile, updated_at FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2',
+      'SELECT dob, age, patient_name, weight_kg, height_cm, blood_pressure, pulse_bpm, mobile, updated_at FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2',
       [doctor.id, patientId]
     ).catch(() => null),
     query(`

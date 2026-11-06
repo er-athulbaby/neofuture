@@ -200,9 +200,9 @@ export default function QuizPopup({
           </button>
           <div className="flex items-center gap-2 mb-1">
             <Sparkles size={18} />
-            <span className="text-xs font-medium uppercase tracking-wide opacity-80">NeoFuture AI</span>
+            <span className="text-xs font-medium uppercase tracking-wide opacity-80">NeoFuture</span>
           </div>
-          <h2 className="text-xl font-bold">AI Wellness Check-in</h2>
+          <h2 className="text-xl font-bold">Wellness Check-in</h2>
           <p className="text-white/80 text-sm mt-1">
             {state.step <= 4 ? 'Understand your wellness needs' :
              state.step === 99 ? (allDone ? 'Full profile complete!' : 'Continue for your complete profile') :
