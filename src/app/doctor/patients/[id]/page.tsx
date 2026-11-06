@@ -110,8 +110,8 @@ function VitalsPanel({ vitals, patientId, onSaved, editing, setEditing }: { vita
             { label: 'Height (cm)', key: 'height_cm', type: 'number' },
             { label: 'Blood Pressure', key: 'blood_pressure', type: 'text', placeholder: '120/80' },
             { label: 'Pulse (BPM)', key: 'pulse_bpm', type: 'number' },
-          ].map(({ label, key, type, placeholder, span }) => (
-            <div key={key} style={span ? { gridColumn: `span ${span}` } : {}}>
+          ].map(({ label, key, type, placeholder }) => (
+            <div key={key}>
               <label style={{ fontSize: 11, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>{label}</label>
               <input type={type} value={(form as Record<string, string | number>)[key] as string} placeholder={placeholder}
                 onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
