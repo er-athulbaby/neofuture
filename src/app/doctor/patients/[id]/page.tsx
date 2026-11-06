@@ -347,9 +347,12 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
         width: 56, background: DARK, display: 'flex', flexDirection: 'column', alignItems: 'center',
         padding: '20px 0', gap: 4, flexShrink: 0
       }}>
-        <div style={{ width: 32, height: 32, borderRadius: 9, background: TEAL, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+        <button onClick={() => router.push('/doctor/dashboard')} title="Dashboard" style={{
+          width: 32, height: 32, borderRadius: 9, background: TEAL, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: 16, border: 'none', cursor: 'pointer'
+        }}>
           <Activity size={16} color="#fff" />
-        </div>
+        </button>
         {NAV.map(({ id, icon: Icon }) => (
           <button key={id} onClick={() => setTab(id)} title={id} style={{
             width: 40, height: 40, borderRadius: 10, border: 'none', cursor: 'pointer',
