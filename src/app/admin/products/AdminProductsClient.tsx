@@ -60,6 +60,12 @@ export default function AdminProductsClient({ products: initial, categories }: P
   const [savingPlan, setSavingPlan] = useState(false)
   const [showSubPlans, setShowSubPlans] = useState(false)
 
+  interface AdminReview { id: number; reviewer_name: string; rating: number; comment: string | null; created_at: string }
+  const [reviews, setReviews] = useState<AdminReview[]>([])
+  const [showReviews, setShowReviews] = useState(false)
+  const [reviewForm, setReviewForm] = useState({ reviewer_name: '', rating: '5', comment: '' })
+  const [savingReview, setSavingReview] = useState(false)
+
   const filtered = products.filter(
     (p) => p.name.toLowerCase().includes(search.toLowerCase()) || p.category_name?.toLowerCase().includes(search.toLowerCase())
   )
@@ -68,6 +74,7 @@ export default function AdminProductsClient({ products: initial, categories }: P
     if (!editId) {
       setVariants([]); setShowVariants(false)
       setSubPlans([]); setShowSubPlans(false)
+      setReviews([]); setShowReviews(false)
       return
     }
     fetch(`/api/admin/products/${editId}/variants`)
@@ -77,6 +84,10 @@ export default function AdminProductsClient({ products: initial, categories }: P
     fetch(`/api/admin/products/${editId}/subscription-plans`)
       .then((r) => r.json())
       .then((d) => setSubPlans(d.plans ?? []))
+      .catch(() => {})
+    fetch(`/api/admin/products/${editId}/reviews`)
+      .then((r) => r.json())
+      .then((d) => setReviews(d.reviews ?? []))
       .catch(() => {})
   }, [editId])
 
@@ -851,6 +862,82 @@ export default function AdminProductsClient({ products: initial, categories }: P
                         </div>
                         <p className="text-xs text-brand-gray mt-2">Saving a plan for a duration that already exists will update it. Click <em>edit</em> on a row to load it into the form.</p>
                       </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Reviews ── */}
+              {editId && (
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <button type="button" onClick={() => setShowReviews(v => !v)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 text-sm font-semibold text-brand-dark hover:bg-gray-100 transition-colors">
+                    <span className="flex items-center gap-2"><Star size={14} /> Reviews ({reviews.length})</span>
+                    <span>{showReviews ? '▲' : '▼'}</span>
+                  </button>
+                  {showReviews && (
+                    <div className="p-4 space-y-4">
+                      {/* Add review form */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="col-span-2 sm:col-span-1">
+                          <FLabel label="Reviewer Name" />
+                          <input value={reviewForm.reviewer_name} onChange={e => setReviewForm(f => ({ ...f, reviewer_name: e.target.value }))}
+                            placeholder="Priya R." className={fClass} />
+                        </div>
+                        <div>
+                          <FLabel label="Rating (1-5)" />
+                          <select value={reviewForm.rating} onChange={e => setReviewForm(f => ({ ...f, rating: e.target.value }))} className={fClass}>
+                            {[5,4,3,2,1].map(n => <option key={n} value={n}>{n} ★</option>)}
+                          </select>
+                        </div>
+                        <div className="col-span-2">
+                          <FLabel label="Review Comment" />
+                          <input value={reviewForm.comment} onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))}
+                            placeholder="Share your experience..." className={fClass} />
+                        </div>
+                        <div className="col-span-2 sm:col-span-4 flex justify-end">
+                          <button type="button" disabled={savingReview || !reviewForm.reviewer_name} onClick={async () => {
+                            setSavingReview(true)
+                            const res = await fetch(`/api/admin/products/${editId}/reviews`, {
+                              method: 'POST', headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ reviewer_name: reviewForm.reviewer_name, rating: Number(reviewForm.rating), comment: reviewForm.comment || null }),
+                            })
+                            if (res.ok) {
+                              const d = await fetch(`/api/admin/products/${editId}/reviews`).then(r => r.json())
+                              setReviews(d.reviews ?? [])
+                              setReviewForm({ reviewer_name: '', rating: '5', comment: '' })
+                            }
+                            setSavingReview(false)
+                          }} className="flex items-center gap-1 bg-primary text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-primary-dark disabled:opacity-60 transition-colors">
+                            <Plus size={13} /> {savingReview ? 'Adding…' : 'Add Review'}
+                          </button>
+                        </div>
+                      </div>
+                      {/* Existing reviews */}
+                      {reviews.length > 0 && (
+                        <div className="space-y-2">
+                          {reviews.map(r => (
+                            <div key={r.id} className="flex items-start justify-between gap-3 bg-gray-50 rounded-xl p-3">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-brand-dark">{r.reviewer_name}</p>
+                                <div className="flex gap-0.5 my-0.5">
+                                  {[1,2,3,4,5].map(s => <Star key={s} size={11} className={s <= r.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'} />)}
+                                </div>
+                                {r.comment && <p className="text-xs text-brand-gray mt-1 leading-relaxed">{r.comment}</p>}
+                              </div>
+                              <button type="button" onClick={async () => {
+                                await fetch(`/api/admin/products/${editId}/reviews`, {
+                                  method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ review_id: r.id }),
+                                })
+                                setReviews(rv => rv.filter(x => x.id !== r.id))
+                              }} className="text-red-400 hover:text-red-600 flex-shrink-0 p-1">
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

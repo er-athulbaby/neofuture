@@ -46,10 +46,12 @@ export default async function ProductPage({ params }: Props) {
       [slug]
     ).catch(() => null),
     query<Review>(
-      `SELECT r.*, u.name as user_name FROM product_reviews r
-       JOIN users u ON u.id = r.user_id
+      `SELECT r.id, r.rating, r.comment, r.is_verified_purchase, r.images, r.created_at,
+              COALESCE(r.reviewer_name, u.name) as user_name
+       FROM product_reviews r
+       LEFT JOIN users u ON u.id = r.user_id
        WHERE r.product_id = (SELECT id FROM products WHERE slug = $1)
-       ORDER BY r.created_at DESC`,
+       ORDER BY r.is_admin_added DESC, r.created_at DESC`,
       [slug]
     ).catch(() => []),
     query<Product>(
