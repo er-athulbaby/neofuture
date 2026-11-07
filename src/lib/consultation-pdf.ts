@@ -60,10 +60,23 @@ function getLogoDataUri(): string {
   }
 }
 
+async function fetchAsDataUri(url: string): Promise<string> {
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return url
+    const buf = await res.arrayBuffer()
+    const mime = res.headers.get('content-type') ?? 'image/png'
+    return `data:${mime};base64,${Buffer.from(buf).toString('base64')}`
+  } catch { return url }
+}
+
 export async function generatePrescriptionPDF(data: PrescriptionData): Promise<Buffer> {
   const verifyUrl = `https://neofuture.in/verify/${data.prescriptionId}`
-  const qrDataUri = await QRCode.toDataURL(verifyUrl, { width: 72, margin: 1 })
-  const logoDataUri = getLogoDataUri()
+  const [qrDataUri, logoDataUri, signatureDataUri] = await Promise.all([
+    QRCode.toDataURL(verifyUrl, { width: 72, margin: 1 }),
+    Promise.resolve(getLogoDataUri()),
+    data.doctor.signatureUrl ? fetchAsDataUri(data.doctor.signatureUrl) : Promise.resolve(''),
+  ])
 
   const browser = await puppeteer.launch({
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -72,7 +85,7 @@ export async function generatePrescriptionPDF(data: PrescriptionData): Promise<B
 
   try {
     const page = await browser.newPage()
-    const html = buildPrescriptionHtml(data, logoDataUri, qrDataUri)
+    const html = buildPrescriptionHtml(data, logoDataUri, qrDataUri, signatureDataUri)
     await page.setContent(html, { waitUntil: 'load' })
     const pdf = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' } })
     return Buffer.from(pdf)
@@ -81,7 +94,7 @@ export async function generatePrescriptionPDF(data: PrescriptionData): Promise<B
   }
 }
 
-function buildPrescriptionHtml(d: PrescriptionData, logoDataUri: string, qrDataUri: string): string {
+function buildPrescriptionHtml(d: PrescriptionData, logoDataUri: string, qrDataUri: string, signatureDataUri: string): string {
   const rows = d.prescription.map((p, i) => `
     <tr style="background:${i % 2 === 0 ? '#fff7ed' : '#fff'}">
       <td style="padding:8px;border:1px solid #fed7aa;text-align:center">${i + 1}</td>
@@ -247,8 +260,8 @@ function buildPrescriptionHtml(d: PrescriptionData, logoDataUri: string, qrDataU
     <div class="sig-row">
       <div class="sig-block">
         <div style="font-size:10px;color:#9ca3af;margin-bottom:4px">Doctor's Digital Signature</div>
-        ${d.doctor.signatureUrl
-          ? `<img src="${d.doctor.signatureUrl}" class="sig-img" alt="Signature"/>`
+        ${signatureDataUri
+          ? `<img src="${signatureDataUri}" class="sig-img" alt="Signature"/>`
           : `<div style="width:120px;height:40px;border-bottom:2px solid #1a1535;margin-bottom:4px;"></div>`}
         <div class="sig-name">${d.doctor.name}</div>
         <div class="sig-sub">${d.date}, ${d.time}</div>

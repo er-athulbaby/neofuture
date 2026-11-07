@@ -108,7 +108,7 @@ function AppointCard({
       if (res.ok) {
         const d = await res.json()
         setPatientForm({
-          patient_name: d.patient_name ?? '',
+          patient_name: d.patient_name ?? displayName,
           age: String(d.age ?? ''),
           weight_kg: String(d.weight_kg ?? ''),
           height_cm: String(d.height_cm ?? ''),
