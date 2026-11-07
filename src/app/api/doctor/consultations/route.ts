@@ -13,23 +13,7 @@ export async function GET() {
   )
   if (!doctor) return NextResponse.json({ error: 'Doctor profile not found' }, { status: 404 })
 
-  const rows = await query(`
-    SELECT c.*,
-      u.id::text AS patient_id,
-      COALESCE(
-        (SELECT dpv.patient_name FROM doctor_patient_vitals dpv
-         WHERE dpv.doctor_id = $1 AND dpv.patient_id = u.id::text
-         LIMIT 1),
-        u.name
-      ) AS patient_name,
-      u.email AS patient_email,
-      r.id AS report_id, r.pdf_url AS report_pdf_url
-    FROM consultations c
-    JOIN users u ON u.id = c.patient_id
-    LEFT JOIN consultation_reports r ON r.consultation_id = c.id
-    WHERE c.doctor_id = $1 AND c.status IN ('confirmed','completed')
-    ORDER BY c.slot_datetime ASC
-  `, [doctor.id]).catch(() => query(`
+  const plainSql = `
     SELECT c.*,
       u.id::text AS patient_id, u.name AS patient_name, u.email AS patient_email,
       r.id AS report_id, r.pdf_url AS report_pdf_url
@@ -37,8 +21,30 @@ export async function GET() {
     JOIN users u ON u.id = c.patient_id
     LEFT JOIN consultation_reports r ON r.consultation_id = c.id
     WHERE c.doctor_id = $1 AND c.status IN ('confirmed','completed')
-    ORDER BY c.slot_datetime ASC
-  `, [doctor.id]))
+    ORDER BY c.slot_datetime ASC`
+
+  // Try to enrich with saved patient name; fall back to plain query on any error
+  let rows
+  try {
+    rows = await query(`
+      SELECT c.*,
+        u.id::text AS patient_id,
+        COALESCE(
+          (SELECT dpv.patient_name FROM doctor_patient_vitals dpv
+           WHERE dpv.doctor_id = $1 AND dpv.patient_id = u.id::text LIMIT 1),
+          u.name
+        ) AS patient_name,
+        u.email AS patient_email,
+        r.id AS report_id, r.pdf_url AS report_pdf_url
+      FROM consultations c
+      JOIN users u ON u.id = c.patient_id
+      LEFT JOIN consultation_reports r ON r.consultation_id = c.id
+      WHERE c.doctor_id = $1 AND c.status IN ('confirmed','completed')
+      ORDER BY c.slot_datetime ASC
+    `, [doctor.id])
+  } catch {
+    rows = await query(plainSql, [doctor.id]).catch(() => [])
+  }
 
   return NextResponse.json(rows)
 }
