@@ -131,12 +131,21 @@ function AppointCard({
 
   async function savePatient() {
     setPatientSaving(true)
-    await fetch(`/api/doctor/patients/${c.patient_id}/vitals`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patientForm),
-    })
+    try {
+      const res = await fetch(`/api/doctor/patients/${c.patient_id}/vitals`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patientForm),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        alert(`Save failed (${res.status}): ${data.error || JSON.stringify(data)}`)
+      } else {
+        if (patientForm.patient_name) setDisplayName(patientForm.patient_name)
+      }
+    } catch (e) {
+      alert(`Save error: ${e}`)
+    }
     setPatientSaving(false)
     setShowPatientEdit(false)
-    if (patientForm.patient_name) setDisplayName(patientForm.patient_name)
   }
 
   async function viewLab(key: string) {

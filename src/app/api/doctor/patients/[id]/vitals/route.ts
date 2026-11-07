@@ -64,6 +64,8 @@ export async function PUT(req: NextRequest, { params }: Props) {
 
   await ensureTable()
 
+  console.log('[vitals PUT] doctor_id=%s patient_id=%s patient_name=%s', doctor.id, patientId, patient_name)
+
   await query(`
     INSERT INTO doctor_patient_vitals (doctor_id, patient_id, dob, age, patient_name, weight_kg, height_cm, blood_pressure, pulse_bpm, mobile, gender, updated_at)
     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())
