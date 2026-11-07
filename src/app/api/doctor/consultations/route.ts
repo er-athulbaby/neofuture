@@ -13,7 +13,15 @@ export async function GET() {
   )
   if (!doctor) return NextResponse.json({ error: 'Doctor profile not found' }, { status: 404 })
 
-  // Add column if missing so the enriched query can succeed on next call
+  // Ensure table + column exist before the enriched query runs
+  await query(`
+    CREATE TABLE IF NOT EXISTS doctor_patient_vitals (
+      id SERIAL PRIMARY KEY, doctor_id INTEGER NOT NULL, patient_id TEXT NOT NULL,
+      dob DATE, weight_kg NUMERIC(5,1), height_cm NUMERIC(5,1),
+      blood_pressure VARCHAR(20), pulse_bpm INTEGER, updated_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(doctor_id, patient_id)
+    )
+  `, []).catch(() => {})
   await query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS patient_name TEXT`, []).catch(() => {})
 
   const plainSql = `
