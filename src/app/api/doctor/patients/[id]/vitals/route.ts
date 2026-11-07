@@ -11,6 +11,8 @@ async function ensureTable() {
       doctor_id INTEGER NOT NULL,
       patient_id TEXT NOT NULL,
       dob DATE,
+      age INTEGER,
+      patient_name TEXT,
       weight_kg NUMERIC(5,1),
       height_cm NUMERIC(5,1),
       blood_pressure VARCHAR(20),
@@ -21,12 +23,11 @@ async function ensureTable() {
       UNIQUE(doctor_id, patient_id)
     )
   `, [])
-  await Promise.all([
-    query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS mobile VARCHAR(20)`, []).catch(() => {}),
-    query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS gender VARCHAR(10)`, []).catch(() => {}),
-    query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS age INTEGER`, []).catch(() => {}),
-    query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS patient_name TEXT`, []).catch(() => {}),
-  ])
+  // Run sequentially — concurrent ALTER TABLEs lock-conflict and fail silently
+  await query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS age INTEGER`, []).catch(() => {})
+  await query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS patient_name TEXT`, []).catch(() => {})
+  await query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS mobile VARCHAR(20)`, []).catch(() => {})
+  await query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS gender VARCHAR(10)`, []).catch(() => {})
 }
 
 export async function GET(_req: NextRequest, { params }: Props) {
