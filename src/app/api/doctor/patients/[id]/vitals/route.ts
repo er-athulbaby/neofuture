@@ -23,11 +23,6 @@ async function ensureTable() {
       UNIQUE(doctor_id, patient_id)
     )
   `, [])
-  // Run sequentially — concurrent ALTER TABLEs lock-conflict and fail silently
-  await query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS age INTEGER`, []).catch(() => {})
-  await query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS patient_name TEXT`, []).catch(() => {})
-  await query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS mobile VARCHAR(20)`, []).catch(() => {})
-  await query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS gender VARCHAR(10)`, []).catch(() => {})
 }
 
 export async function GET(_req: NextRequest, { params }: Props) {
@@ -64,8 +59,6 @@ export async function PUT(req: NextRequest, { params }: Props) {
   const { dob, age, patient_name, weight_kg, height_cm, blood_pressure, pulse_bpm, mobile, gender } = await req.json()
 
   await ensureTable()
-
-  console.log('[vitals PUT] doctor_id=%s patient_id=%s patient_name=%s', doctor.id, patientId, patient_name)
 
   await query(`
     INSERT INTO doctor_patient_vitals (doctor_id, patient_id, dob, age, patient_name, weight_kg, height_cm, blood_pressure, pulse_bpm, mobile, gender, updated_at)

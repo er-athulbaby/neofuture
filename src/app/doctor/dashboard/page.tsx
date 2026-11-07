@@ -136,13 +136,9 @@ function AppointCard({
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patientForm),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        alert(`Save failed (${res.status}): ${data.error || JSON.stringify(data)}`)
-      } else {
-        if (patientForm.patient_name) setDisplayName(patientForm.patient_name)
-      }
-    } catch (e) {
-      alert(`Save error: ${e}`)
+      if (res.ok && patientForm.patient_name) setDisplayName(patientForm.patient_name)
+    } catch {
+      // silent — name stays as-is on network failure
     }
     setPatientSaving(false)
     setShowPatientEdit(false)
