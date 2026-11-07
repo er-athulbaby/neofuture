@@ -13,6 +13,9 @@ export async function GET() {
   )
   if (!doctor) return NextResponse.json({ error: 'Doctor profile not found' }, { status: 404 })
 
+  // Add column if missing so the enriched query can succeed on next call
+  await query(`ALTER TABLE doctor_patient_vitals ADD COLUMN IF NOT EXISTS patient_name TEXT`, []).catch(() => {})
+
   const plainSql = `
     SELECT c.*,
       u.id::text AS patient_id, u.name AS patient_name, u.email AS patient_email,
