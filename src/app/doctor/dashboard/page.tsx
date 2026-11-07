@@ -98,6 +98,15 @@ function AppointCard({
   const [patientForm, setPatientForm] = useState({ patient_name: '', age: '', weight_kg: '', height_cm: '', mobile: '', gender: '' })
   const [displayName, setDisplayName] = useState(c.patient_name)
   const [patientLoading, setPatientLoading] = useState(false)
+
+  // Hydrate saved name from vitals on mount
+  useEffect(() => {
+    if (!c.patient_id) return
+    fetch(`/api/doctor/patients/${c.patient_id}/vitals`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.patient_name) setDisplayName(d.patient_name) })
+      .catch(() => {})
+  }, [c.patient_id])
   const [patientSaving, setPatientSaving] = useState(false)
 
   async function openPatientEdit() {
