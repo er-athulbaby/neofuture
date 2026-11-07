@@ -13,6 +13,17 @@ export async function GET() {
   )
   if (!doctor) return NextResponse.json({ error: 'Doctor profile not found' }, { status: 404 })
 
+  // Ensure vitals table exists so the LEFT JOIN never throws
+  await query(`
+    CREATE TABLE IF NOT EXISTS doctor_patient_vitals (
+      id SERIAL PRIMARY KEY, doctor_id INTEGER NOT NULL, patient_id TEXT NOT NULL,
+      patient_name TEXT, age INTEGER, gender VARCHAR(10), mobile VARCHAR(20),
+      dob DATE, weight_kg NUMERIC(5,1), height_cm NUMERIC(5,1),
+      blood_pressure VARCHAR(20), pulse_bpm INTEGER, updated_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(doctor_id, patient_id)
+    )
+  `, []).catch(() => {})
+
   const rows = await query(`
     SELECT c.*,
       u.id::text AS patient_id,
