@@ -284,22 +284,28 @@ export async function sendConsultationConfirmation(
   })
 
   // Send separate notification to admin/notify addresses
+  console.error('[NOTIFY] bookingNotify=', JSON.stringify(bookingNotify))
   if (bookingNotify) {
     const notifyAddresses = bookingNotify.split(',').map((e: string) => e.trim()).filter(Boolean)
     for (const addr of notifyAddresses) {
-      await transport.sendMail({
-        from: bookingFrom,
-        to: addr,
-        subject: `[Booking Alert] ${opts.patientName} booked with ${opts.doctorName} — ${dateStr} ${timeStr}`,
-        html: `<div style="font-family:sans-serif;padding:20px;max-width:500px">
-          <h3 style="color:#D4236A">New Booking</h3>
-          <p><strong>Patient:</strong> ${opts.patientName} (${to})</p>
-          <p><strong>Doctor:</strong> ${opts.doctorName} — ${opts.specialisation}</p>
-          <p><strong>Date &amp; Time (IST):</strong> ${dateStr}, ${timeStr}</p>
-          ${opts.isFollowup ? '<p><strong>Type:</strong> Free follow-up</p>' : `<p><strong>Fee:</strong> ₹${opts.fee}</p>`}
-          ${opts.meetLink ? `<p><strong>Meet:</strong> <a href="${opts.meetLink}">${opts.meetLink}</a></p>` : ''}
-        </div>`,
-      }).catch(() => {})
+      try {
+        await transport.sendMail({
+          from: bookingFrom,
+          to: addr,
+          subject: `[Booking Alert] ${opts.patientName} booked with ${opts.doctorName} — ${dateStr} ${timeStr}`,
+          html: `<div style="font-family:sans-serif;padding:20px;max-width:500px">
+            <h3 style="color:#D4236A">New Booking</h3>
+            <p><strong>Patient:</strong> ${opts.patientName} (${to})</p>
+            <p><strong>Doctor:</strong> ${opts.doctorName} — ${opts.specialisation}</p>
+            <p><strong>Date &amp; Time (IST):</strong> ${dateStr}, ${timeStr}</p>
+            ${opts.isFollowup ? '<p><strong>Type:</strong> Free follow-up</p>' : `<p><strong>Fee:</strong> ₹${opts.fee}</p>`}
+            ${opts.meetLink ? `<p><strong>Meet:</strong> <a href="${opts.meetLink}">${opts.meetLink}</a></p>` : ''}
+          </div>`,
+        })
+        console.error('[NOTIFY] sent to', addr)
+      } catch (err) {
+        console.error('[NOTIFY] failed to', addr, err)
+      }
     }
   }
 }
