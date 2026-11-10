@@ -99,7 +99,6 @@ export async function sendOrderConfirmation(
   await transport.sendMail({
     from: orderFrom,
     to,
-    ...(orderNotify ? { bcc: orderNotify } : {}),
     subject: `Order Confirmed — #${order.orderNumber} | NeoFuture`,
     html: `
       <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;color:#1A1535">
@@ -162,6 +161,25 @@ export async function sendOrderConfirmation(
       </div>
     `,
   })
+
+  // Send separate notification to admin/notify addresses
+  if (orderNotify) {
+    const notifyAddresses = orderNotify.split(',').map((e: string) => e.trim()).filter(Boolean)
+    for (const addr of notifyAddresses) {
+      await transport.sendMail({
+        from: orderFrom,
+        to: addr,
+        subject: `[Order Alert] #${order.orderNumber} — ₹${order.total.toLocaleString('en-IN')}`,
+        html: `<div style="font-family:sans-serif;padding:20px;max-width:500px">
+          <h3 style="color:#D4236A">New Order</h3>
+          <p><strong>Order:</strong> #${order.orderNumber}</p>
+          <p><strong>Customer:</strong> ${to}</p>
+          <p><strong>Total:</strong> ₹${order.total.toLocaleString('en-IN')}</p>
+          <p><strong>Items:</strong> ${order.items.map(i => `${i.name} ×${i.quantity}`).join(', ')}</p>
+        </div>`,
+      }).catch(() => {})
+    }
+  }
 }
 
 export async function sendPasswordReset(to: string, resetUrl: string) {
@@ -231,11 +249,9 @@ export async function sendConsultationConfirmation(
   const timeStr = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 
   const { transport, bookingFrom, bookingNotify } = await getTransporter()
-  console.error('[BCC DEBUG] bookingNotify=', JSON.stringify(bookingNotify), 'to=', to)
   await transport.sendMail({
     from: bookingFrom,
     to,
-    ...(bookingNotify ? { bcc: bookingNotify } : {}),
     subject: `${opts.isFollowup ? 'Follow-up' : 'Consultation'} Confirmed — ${dateStr} | NeoFuture`,
     html: `
       <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;color:#1A1535">
@@ -266,6 +282,26 @@ export async function sendConsultationConfirmation(
       </div>
     `,
   })
+
+  // Send separate notification to admin/notify addresses
+  if (bookingNotify) {
+    const notifyAddresses = bookingNotify.split(',').map((e: string) => e.trim()).filter(Boolean)
+    for (const addr of notifyAddresses) {
+      await transport.sendMail({
+        from: bookingFrom,
+        to: addr,
+        subject: `[Booking Alert] ${opts.patientName} booked with ${opts.doctorName} — ${dateStr} ${timeStr}`,
+        html: `<div style="font-family:sans-serif;padding:20px;max-width:500px">
+          <h3 style="color:#D4236A">New Booking</h3>
+          <p><strong>Patient:</strong> ${opts.patientName} (${to})</p>
+          <p><strong>Doctor:</strong> ${opts.doctorName} — ${opts.specialisation}</p>
+          <p><strong>Date &amp; Time (IST):</strong> ${dateStr}, ${timeStr}</p>
+          ${opts.isFollowup ? '<p><strong>Type:</strong> Free follow-up</p>' : `<p><strong>Fee:</strong> ₹${opts.fee}</p>`}
+          ${opts.meetLink ? `<p><strong>Meet:</strong> <a href="${opts.meetLink}">${opts.meetLink}</a></p>` : ''}
+        </div>`,
+      }).catch(() => {})
+    }
+  }
 }
 
 export async function sendConsultationReport(
