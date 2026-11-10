@@ -81,15 +81,20 @@ export async function POST(req: NextRequest) {
 
   // Send confirmation email
   if (patient?.email && doctor) {
-    await sendConsultationConfirmation(patient.email, {
-      patientName: patient.name,
-      doctorName: doctor.name,
-      specialisation: doctor.specialisation ?? '',
-      slotDatetime: consult.slot_datetime,
-      meetLink,
-      fee: doctor.consultation_fee,
-      isFollowup: consult.is_followup,
-    }).catch(() => {})
+    try {
+      await sendConsultationConfirmation(patient.email, {
+        patientName: patient.name,
+        doctorName: doctor.name,
+        specialisation: doctor.specialisation ?? '',
+        slotDatetime: consult.slot_datetime,
+        meetLink,
+        fee: doctor.consultation_fee,
+        isFollowup: consult.is_followup,
+      })
+      console.error('[VERIFY] confirmation email sent to', patient.email)
+    } catch (err) {
+      console.error('[VERIFY] email error:', err)
+    }
   }
 
   return NextResponse.json({ success: true, meet_link: meetLink })
