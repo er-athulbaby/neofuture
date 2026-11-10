@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { query, queryOne } from '@/lib/db'
 import Razorpay from 'razorpay'
 import { createMeetingEvent } from '@/lib/google-calendar'
+import { sendConsultationConfirmation } from '@/lib/email'
 
 // Returns local IST time string (no offset) for Google Calendar API
 function toISTLocal(d: Date): string {
@@ -89,6 +90,13 @@ export async function POST(req: NextRequest) {
       )
       const meetLink = await buildMeetLink(doctor_id, consult!.id, slot_datetime, session.user.id)
       if (meetLink) await query('UPDATE consultations SET meet_link=$1 WHERE id=$2', [meetLink, consult!.id])
+      const [patientU, docU] = await Promise.all([
+        queryOne<{ name: string; email: string }>('SELECT name, email FROM users WHERE id=$1', [session.user.id]),
+        queryOne<{ name: string; specialisation: string; consultation_fee: number }>('SELECT name, specialisation, consultation_fee FROM doctors WHERE id=$1', [doctor_id]),
+      ])
+      if (patientU?.email && docU) {
+        sendConsultationConfirmation(patientU.email, { patientName: patientU.name, doctorName: docU.name, specialisation: docU.specialisation ?? '', slotDatetime: slot_datetime, meetLink, fee: 0, isFollowup: true }).catch(() => {})
+      }
       return NextResponse.json({ consultation_id: consult!.id, is_free: true, amount: 0 })
     }
 
@@ -121,6 +129,13 @@ export async function POST(req: NextRequest) {
       }
       const meetLink = await buildMeetLink(doctor_id, consult!.id, slot_datetime, session.user.id)
       if (meetLink) await query('UPDATE consultations SET meet_link=$1 WHERE id=$2', [meetLink, consult!.id])
+      const [patientU, docU] = await Promise.all([
+        queryOne<{ name: string; email: string }>('SELECT name, email FROM users WHERE id=$1', [session.user.id]),
+        queryOne<{ name: string; specialisation: string }>('SELECT name, specialisation FROM doctors WHERE id=$1', [doctor_id]),
+      ])
+      if (patientU?.email && docU) {
+        sendConsultationConfirmation(patientU.email, { patientName: patientU.name, doctorName: docU.name, specialisation: docU.specialisation ?? '', slotDatetime: slot_datetime, meetLink, fee: 0, isFollowup: false }).catch(() => {})
+      }
       return NextResponse.json({ consultation_id: consult!.id, is_free: true, amount: 0 })
     }
 
