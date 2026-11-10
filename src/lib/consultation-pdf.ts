@@ -62,7 +62,10 @@ function getLogoDataUri(): string {
 
 async function fetchAsDataUri(url: string): Promise<string> {
   try {
-    const res = await fetch(url)
+    const absUrl = url.startsWith('/')
+      ? `${process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'}${url}`
+      : url
+    const res = await fetch(absUrl)
     if (!res.ok) return ''
     const buf = await res.arrayBuffer()
     const mime = res.headers.get('content-type') ?? 'image/png'
