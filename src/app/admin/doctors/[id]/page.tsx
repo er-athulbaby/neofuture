@@ -48,6 +48,7 @@ export default function AdminDoctorEditPage() {
     const res = await fetch(`/api/admin/doctors/${id}`)
     const data = await res.json()
     setDoc({ ...data, availability: data.availability ?? [] })
+    if (data.email) setCredEmail(data.email)
   }, [id, isNew])
 
   useEffect(() => { load() }, [load])
