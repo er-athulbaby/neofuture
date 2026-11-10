@@ -48,6 +48,8 @@ export interface SiteConfig {
   smtp_user: string
   smtp_pass: string
   smtp_from: string
+  booking_notify_emails: string
+  order_notify_emails: string
   popup_enabled: string
   popup_delay: string
   popup_title: string
@@ -113,6 +115,8 @@ export const CONFIG_DEFAULTS: SiteConfig = {
   smtp_user: '',
   smtp_pass: '',
   smtp_from: '',
+  booking_notify_emails: '',
+  order_notify_emails: '',
   popup_enabled: 'false',
   popup_delay: '30',
   popup_title: 'Special Offer Just for You!',

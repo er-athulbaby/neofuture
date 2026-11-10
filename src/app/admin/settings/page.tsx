@@ -367,6 +367,8 @@ export default function AdminSettingsPage() {
             <F label="App Password" name="smtp_pass" value={s.smtp_pass} onChange={fc} type="password" placeholder="16-character Google App Password" />
           </Row>
           <F label='From Name & Address (e.g. NeoFuture <your@gmail.com>)' name="smtp_from" value={s.smtp_from} onChange={fc} placeholder="NeoFuture <noreply@gmail.com>" />
+          <F label="Booking Notification Emails (comma-separated)" name="booking_notify_emails" value={s.booking_notify_emails} onChange={fc} placeholder="admin@neofuture.in, doctor@neofuture.in" />
+          <F label="Order Notification Emails (comma-separated)" name="order_notify_emails" value={s.order_notify_emails} onChange={fc} placeholder="orders@neofuture.in, admin@neofuture.in" />
         </Sec>
 
         {/* Payment */}

@@ -4,7 +4,7 @@ import { query } from './db'
 async function getSmtpConfig() {
   try {
     const rows = await query<{ key: string; value: string }>(
-      `SELECT key, value FROM site_settings WHERE key IN ('smtp_host','smtp_port','smtp_user','smtp_pass','smtp_from')`,
+      `SELECT key, value FROM site_settings WHERE key IN ('smtp_host','smtp_port','smtp_user','smtp_pass','smtp_from','booking_notify_emails','order_notify_emails')`,
       []
     )
     const m: Record<string, string> = {}
@@ -15,6 +15,8 @@ async function getSmtpConfig() {
       user: m.smtp_user || process.env.SMTP_USER || '',
       pass: m.smtp_pass || process.env.SMTP_PASS || '',
       from: m.smtp_from || process.env.SMTP_FROM || '',
+      bookingNotify: m.booking_notify_emails || process.env.CONSULT_BCC_EMAIL || '',
+      orderNotify: m.order_notify_emails || '',
     }
   } catch {
     return {
@@ -23,6 +25,8 @@ async function getSmtpConfig() {
       user: process.env.SMTP_USER || '',
       pass: process.env.SMTP_PASS || '',
       from: process.env.SMTP_FROM || '',
+      bookingNotify: process.env.CONSULT_BCC_EMAIL || '',
+      orderNotify: '',
     }
   }
 }
@@ -37,6 +41,8 @@ async function getTransporter() {
       auth: { user: cfg.user, pass: cfg.pass },
     }),
     from: cfg.from,
+    bookingNotify: cfg.bookingNotify,
+    orderNotify: cfg.orderNotify,
   }
 }
 
@@ -79,10 +85,11 @@ export async function sendOrderConfirmation(
       <span style="color:#666">${addr.line1 ?? ''}, ${addr.city ?? ''}, ${addr.state ?? ''} – ${addr.pincode ?? ''}</span>
     </div>` : ''
 
-  const { transport, from } = await getTransporter()
+  const { transport, from, orderNotify } = await getTransporter()
   await transport.sendMail({
     from,
     to,
+    ...(orderNotify ? { bcc: orderNotify } : {}),
     subject: `Order Confirmed — #${order.orderNumber} | NeoFuture`,
     html: `
       <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;color:#1A1535">
@@ -213,11 +220,11 @@ export async function sendConsultationConfirmation(
   const dateStr = dt.toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })
   const timeStr = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 
-  const { transport, from } = await getTransporter()
+  const { transport, from, bookingNotify } = await getTransporter()
   await transport.sendMail({
     from,
     to,
-    bcc: 'neofuture@gmail.com',
+    ...(bookingNotify ? { bcc: bookingNotify } : {}),
     subject: `${opts.isFollowup ? 'Follow-up' : 'Consultation'} Confirmed — ${dateStr} | NeoFuture`,
     html: `
       <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;color:#1A1535">
