@@ -63,11 +63,11 @@ function getLogoDataUri(): string {
 async function fetchAsDataUri(url: string): Promise<string> {
   try {
     const res = await fetch(url)
-    if (!res.ok) return url
+    if (!res.ok) return ''
     const buf = await res.arrayBuffer()
     const mime = res.headers.get('content-type') ?? 'image/png'
     return `data:${mime};base64,${Buffer.from(buf).toString('base64')}`
-  } catch { return url }
+  } catch { return '' }
 }
 
 export async function generatePrescriptionPDF(data: PrescriptionData): Promise<Buffer> {

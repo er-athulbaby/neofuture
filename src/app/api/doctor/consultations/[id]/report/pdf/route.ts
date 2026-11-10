@@ -37,15 +37,15 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       'SELECT name, email, phone FROM users WHERE id=$1',
       [consult.patient_id]
     ),
-    queryOne<{ dob: string | null }>(
-      'SELECT dob FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2::text',
+    queryOne<{ dob: string | null; age: number | null; patient_name: string | null; gender: string | null; mobile: string | null }>(
+      'SELECT dob, age, patient_name, gender, mobile FROM doctor_patient_vitals WHERE doctor_id=$1 AND patient_id=$2::text',
       [doctor.id, consult.patient_id]
     ).catch(() => null),
   ])
 
   const prescription = typeof report.prescription === 'string' ? JSON.parse(report.prescription) : report.prescription
 
-  const age = patientVitals?.dob ? Math.floor((Date.now() - new Date(patientVitals.dob).getTime()) / 31557600000) : 0
+  const age = patientVitals?.age ?? (patientVitals?.dob ? Math.floor((Date.now() - new Date(patientVitals.dob).getTime()) / 31557600000) : 0)
   const consultDate = new Date(consult.slot_datetime)
   const dateStr = consultDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })
   const timeStr = consultDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
@@ -56,7 +56,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     patientId: `P-${String(consult.patient_id).padStart(6, '0')}`,
     date: dateStr,
     time: timeStr,
-    patient: { name: patient?.name ?? '', age, gender: 'Female', mobile: patient?.phone ?? '' },
+    patient: { name: patientVitals?.patient_name || patient?.name || '', age, gender: patientVitals?.gender || 'Not specified', mobile: patientVitals?.mobile || patient?.phone || '' },
     doctor: {
       name: doctor.name,
       qualification: doctor.qualification ?? '',
