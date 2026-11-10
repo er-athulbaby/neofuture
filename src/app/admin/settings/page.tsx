@@ -27,6 +27,8 @@ type Cfg = {
   smtp_user: string
   smtp_pass: string
   smtp_from: string
+  booking_notify_emails: string
+  order_notify_emails: string
   shipping_free_above: string
   shipping_charge: string
   popup_enabled: string
@@ -82,6 +84,8 @@ const D: Cfg = {
   smtp_user: '',
   smtp_pass: '',
   smtp_from: '',
+  booking_notify_emails: '',
+  order_notify_emails: '',
   shipping_free_above: '999',
   shipping_charge: '50',
   popup_enabled: 'false',
