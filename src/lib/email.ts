@@ -4,7 +4,7 @@ import { query } from './db'
 async function getSmtpConfig() {
   try {
     const rows = await query<{ key: string; value: string }>(
-      `SELECT key, value FROM site_settings WHERE key IN ('smtp_host','smtp_port','smtp_user','smtp_pass','smtp_from','booking_notify_emails','order_notify_emails')`,
+      `SELECT key, value FROM site_settings WHERE key IN ('smtp_host','smtp_port','smtp_user','smtp_pass','smtp_from','booking_from_email','order_from_email','prescription_from_email','booking_notify_emails','order_notify_emails')`,
       []
     )
     const m: Record<string, string> = {}
@@ -15,16 +15,23 @@ async function getSmtpConfig() {
       user: m.smtp_user || process.env.SMTP_USER || '',
       pass: m.smtp_pass || process.env.SMTP_PASS || '',
       from: m.smtp_from || process.env.SMTP_FROM || '',
+      bookingFrom: m.booking_from_email || m.smtp_from || process.env.SMTP_FROM || '',
+      orderFrom: m.order_from_email || m.smtp_from || process.env.SMTP_FROM || '',
+      prescriptionFrom: m.prescription_from_email || m.smtp_from || process.env.SMTP_FROM || '',
       bookingNotify: m.booking_notify_emails || process.env.CONSULT_BCC_EMAIL || '',
       orderNotify: m.order_notify_emails || '',
     }
   } catch {
+    const f = process.env.SMTP_FROM || ''
     return {
       host: process.env.SMTP_HOST || '',
       port: Number(process.env.SMTP_PORT || 587),
       user: process.env.SMTP_USER || '',
       pass: process.env.SMTP_PASS || '',
-      from: process.env.SMTP_FROM || '',
+      from: f,
+      bookingFrom: f,
+      orderFrom: f,
+      prescriptionFrom: f,
       bookingNotify: process.env.CONSULT_BCC_EMAIL || '',
       orderNotify: '',
     }
@@ -41,6 +48,9 @@ async function getTransporter() {
       auth: { user: cfg.user, pass: cfg.pass },
     }),
     from: cfg.from,
+    bookingFrom: cfg.bookingFrom,
+    orderFrom: cfg.orderFrom,
+    prescriptionFrom: cfg.prescriptionFrom,
     bookingNotify: cfg.bookingNotify,
     orderNotify: cfg.orderNotify,
   }
@@ -85,9 +95,9 @@ export async function sendOrderConfirmation(
       <span style="color:#666">${addr.line1 ?? ''}, ${addr.city ?? ''}, ${addr.state ?? ''} – ${addr.pincode ?? ''}</span>
     </div>` : ''
 
-  const { transport, from, orderNotify } = await getTransporter()
+  const { transport, orderFrom, orderNotify } = await getTransporter()
   await transport.sendMail({
-    from,
+    from: orderFrom,
     to,
     ...(orderNotify ? { bcc: orderNotify } : {}),
     subject: `Order Confirmed — #${order.orderNumber} | NeoFuture`,
@@ -220,9 +230,9 @@ export async function sendConsultationConfirmation(
   const dateStr = dt.toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })
   const timeStr = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 
-  const { transport, from, bookingNotify } = await getTransporter()
+  const { transport, bookingFrom, bookingNotify } = await getTransporter()
   await transport.sendMail({
-    from,
+    from: bookingFrom,
     to,
     ...(bookingNotify ? { bcc: bookingNotify } : {}),
     subject: `${opts.isFollowup ? 'Follow-up' : 'Consultation'} Confirmed — ${dateStr} | NeoFuture`,
@@ -261,9 +271,9 @@ export async function sendConsultationReport(
   to: string,
   opts: { patientName: string; doctorName: string; pdfBuffer: Buffer }
 ) {
-  const { transport, from } = await getTransporter()
+  const { transport, prescriptionFrom } = await getTransporter()
   await transport.sendMail({
-    from,
+    from: prescriptionFrom,
     to,
     subject: `Your Prescription from ${opts.doctorName} | NeoFuture`,
     html: `

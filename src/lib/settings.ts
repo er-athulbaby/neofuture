@@ -48,6 +48,9 @@ export interface SiteConfig {
   smtp_user: string
   smtp_pass: string
   smtp_from: string
+  booking_from_email: string
+  order_from_email: string
+  prescription_from_email: string
   booking_notify_emails: string
   order_notify_emails: string
   popup_enabled: string
@@ -115,6 +118,9 @@ export const CONFIG_DEFAULTS: SiteConfig = {
   smtp_user: '',
   smtp_pass: '',
   smtp_from: '',
+  booking_from_email: '',
+  order_from_email: '',
+  prescription_from_email: '',
   booking_notify_emails: '',
   order_notify_emails: '',
   popup_enabled: 'false',

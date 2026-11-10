@@ -27,6 +27,9 @@ type Cfg = {
   smtp_user: string
   smtp_pass: string
   smtp_from: string
+  booking_from_email: string
+  order_from_email: string
+  prescription_from_email: string
   booking_notify_emails: string
   order_notify_emails: string
   shipping_free_above: string
@@ -84,6 +87,9 @@ const D: Cfg = {
   smtp_user: '',
   smtp_pass: '',
   smtp_from: '',
+  booking_from_email: '',
+  order_from_email: '',
+  prescription_from_email: '',
   booking_notify_emails: '',
   order_notify_emails: '',
   shipping_free_above: '999',
@@ -370,9 +376,17 @@ export default function AdminSettingsPage() {
             <F label="Gmail Address (Username)" name="smtp_user" value={s.smtp_user} onChange={fc} placeholder="your@gmail.com" />
             <F label="App Password" name="smtp_pass" value={s.smtp_pass} onChange={fc} type="password" placeholder="16-character Google App Password" />
           </Row>
-          <F label='From Name & Address (e.g. NeoFuture <your@gmail.com>)' name="smtp_from" value={s.smtp_from} onChange={fc} placeholder="NeoFuture <noreply@gmail.com>" />
-          <F label="Booking Notification Emails (comma-separated)" name="booking_notify_emails" value={s.booking_notify_emails} onChange={fc} placeholder="admin@neofuture.in, doctor@neofuture.in" />
-          <F label="Order Notification Emails (comma-separated)" name="order_notify_emails" value={s.order_notify_emails} onChange={fc} placeholder="orders@neofuture.in, admin@neofuture.in" />
+          <F label='Default From Address (e.g. NeoFuture <your@gmail.com>)' name="smtp_from" value={s.smtp_from} onChange={fc} placeholder="NeoFuture <noreply@gmail.com>" />
+          <div className="text-xs text-brand-gray mt-1 mb-2">Override the sender address per email type below (leave blank to use the default above).</div>
+          <Row>
+            <F label="Booking Confirmation — From" name="booking_from_email" value={s.booking_from_email} onChange={fc} placeholder="bookings@neofuture.in" />
+            <F label="Order Confirmation — From" name="order_from_email" value={s.order_from_email} onChange={fc} placeholder="orders@neofuture.in" />
+          </Row>
+          <F label="Prescription — From" name="prescription_from_email" value={s.prescription_from_email} onChange={fc} placeholder="prescriptions@neofuture.in" />
+          <Row>
+            <F label="Booking Notification Emails — BCC (comma-separated)" name="booking_notify_emails" value={s.booking_notify_emails} onChange={fc} placeholder="admin@neofuture.in, doctor@neofuture.in" />
+            <F label="Order Notification Emails — BCC (comma-separated)" name="order_notify_emails" value={s.order_notify_emails} onChange={fc} placeholder="orders@neofuture.in, admin@neofuture.in" />
+          </Row>
         </Sec>
 
         {/* Payment */}
