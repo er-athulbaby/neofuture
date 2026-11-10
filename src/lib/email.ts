@@ -284,7 +284,6 @@ export async function sendConsultationConfirmation(
   })
 
   // Send separate notification to admin/notify addresses
-  console.error('[NOTIFY] bookingNotify=', JSON.stringify(bookingNotify))
   if (bookingNotify) {
     const notifyAddresses = bookingNotify.split(',').map((e: string) => e.trim()).filter(Boolean)
     for (const addr of notifyAddresses) {
@@ -302,9 +301,8 @@ export async function sendConsultationConfirmation(
             ${opts.meetLink ? `<p><strong>Meet:</strong> <a href="${opts.meetLink}">${opts.meetLink}</a></p>` : ''}
           </div>`,
         })
-        console.error('[NOTIFY] sent to', addr)
       } catch (err) {
-        console.error('[NOTIFY] failed to', addr, err)
+        console.error('[notify] booking alert failed to', addr, err)
       }
     }
   }
