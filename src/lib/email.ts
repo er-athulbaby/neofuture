@@ -231,7 +231,7 @@ export async function sendConsultationConfirmation(
   const timeStr = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 
   const { transport, bookingFrom, bookingNotify } = await getTransporter()
-  console.log('[BCC DEBUG] bookingNotify=', JSON.stringify(bookingNotify), 'to=', to)
+  console.error('[BCC DEBUG] bookingNotify=', JSON.stringify(bookingNotify), 'to=', to)
   await transport.sendMail({
     from: bookingFrom,
     to,
