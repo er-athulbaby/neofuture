@@ -111,8 +111,9 @@ export async function POST(req: NextRequest) {
         [session.user.id]
       )
       if (user && user.neopulse_balance > 0) {
-        neopulseRedeemed = Math.min(99, fee - 1, user.neopulse_balance)
-        neopulsePointsUsed = neopulseRedeemed
+        const maxRupees = Math.floor(user.neopulse_balance / 10) // 10 pts = ₹1
+        neopulseRedeemed = Math.min(99, fee - 1, maxRupees)
+        neopulsePointsUsed = neopulseRedeemed * 10
         fee -= neopulseRedeemed
       }
     }
