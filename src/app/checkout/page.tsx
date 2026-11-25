@@ -23,7 +23,8 @@ function CheckoutForm() {
   const { items, subtotal, clearCart } = useCart()
   const { toast } = useToast()
 
-  const couponCode = searchParams.get('coupon') ?? ''
+  const [couponCode, setCouponCode] = useState(searchParams.get('coupon') ?? '')
+  const [couponInput, setCouponInput] = useState(searchParams.get('coupon') ?? '')
   const [step, setStep] = useState<1 | 2>(1)
   const [loading, setLoading] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay')
@@ -53,7 +54,7 @@ function CheckoutForm() {
   const [pricing, setPricing] = useState<{
     subtotal: number; discount: number; shipping: number; tax: number; total: number;
     razorpay_order_id: string; coupon_id: number | null; key_id: string
-    gst_rate: number; gst_type: string
+    gst_rate: number; gst_type: string; neopulse_discount: number; neopulse_points: number
   } | null>(null)
 
   const shipping = subtotal >= shippingFreeAbove ? 0 : shippingCharge
@@ -371,6 +372,41 @@ function CheckoutForm() {
                 </div>
               )}
 
+              {/* Coupon code */}
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <h2 className="font-bold text-brand-dark text-lg mb-3 flex items-center gap-2">
+                  <Lock size={20} className="text-primary" /> Coupon Code
+                </h2>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    placeholder="Enter coupon code"
+                    className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCouponCode(couponInput)}
+                    className="px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors"
+                  >
+                    Apply
+                  </button>
+                  {couponCode && (
+                    <button
+                      type="button"
+                      onClick={() => { setCouponCode(''); setCouponInput('') }}
+                      className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-brand-gray hover:border-gray-300 transition-colors"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+                {couponCode && (
+                  <p className="text-sm text-green-600 font-medium mt-2">✓ Coupon &quot;{couponCode}&quot; will be applied</p>
+                )}
+              </div>
+
               {/* Payment method selector */}
               <div className="bg-white rounded-2xl border border-gray-100 p-6">
                 <h2 className="font-bold text-brand-dark text-lg mb-4 flex items-center gap-2">
@@ -445,6 +481,12 @@ function CheckoutForm() {
                 {pricing.discount > 0 && (
                   <div className="flex justify-between text-success">
                     <span>Coupon Discount</span><span>−{formatPrice(pricing.discount)}</span>
+                  </div>
+                )}
+                {(pricing.neopulse_discount ?? 0) > 0 && (
+                  <div className="flex justify-between text-primary text-sm font-medium">
+                    <span className="flex items-center gap-1"><Zap size={12} /> NeoPulse ({pricing.neopulse_points} NP)</span>
+                    <span>−{formatPrice(pricing.neopulse_discount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-brand-gray">
